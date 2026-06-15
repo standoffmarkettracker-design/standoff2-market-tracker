@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://standoff2markettracker.com/sitemap.xml
