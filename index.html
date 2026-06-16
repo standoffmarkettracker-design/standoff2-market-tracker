@@ -6138,7 +6138,14 @@ function InventoryPanel({ lang, setTab, setSelected, setGraphItem, user }) {
         return (
           <div key={item.name} style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"16px",marginBottom:10 }}>
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10 }}>
-              <div style={{ display:"flex",alignItems:"center",gap:8,flex:1,cursor:"pointer" }} onClick={function(){setTab("market");setSelected(item.market)}}>
+              <div style={{ display:"flex",alignItems:"center",gap:8,flex:1,cursor:"pointer" }} onClick={function(){
+                setTab("market");
+                setSelected(item.market);
+                setTimeout(function(){
+                  var el = document.querySelector(".s2-detail");
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 80);
+              }}>
                 {img && <img src={img} alt="" style={{ width:40,height:28,objectFit:"contain",borderRadius:4 }} />}
                 <div>
                   <div style={{ fontSize:13,fontWeight:600,color:"#eee" }}>{item.name}</div>
@@ -6213,7 +6220,14 @@ function InvestmentPanel({ setTab, setSelected, setGraphItem, lang }) {
     var sig = showScore ? getSignal(scoreVal) : null;
     var img = ITEM_IMAGES[item.name];
     return (
-      <div key={item.name+"_inv"+idx} onClick={function(){setTab("market");setSelected(item)}} className="s2-inv-card" style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"16px",cursor:"pointer" }}>
+      <div key={item.name+"_inv"+idx} onClick={function(){
+        setTab("market");
+        setSelected(item);
+        setTimeout(function(){
+          var el = document.querySelector(".s2-detail");
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 80);
+      }} className="s2-inv-card" style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"16px",cursor:"pointer" }}>
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10 }}>
           <div style={{ display:"flex",alignItems:"center",gap:8,flex:1 }}>
             <span style={{ fontSize:18,fontWeight:800,color:accent }}>#{idx+1}</span>
