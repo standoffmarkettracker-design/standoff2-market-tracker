@@ -4949,14 +4949,8 @@ function ItemChat({ item, tier }) {
 
   if (!item) return null;
 
-  if (tier === "Free") return (
-    <div style={{ marginTop:16,padding:16,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,textAlign:"center" }}>
-      <div style={{ fontSize:13,color:"#666",marginBottom:4 }}>💬 Item Chat</div>
-      <div style={{ fontSize:12,color:"#555" }}>Upgrade to Basic or higher to access chat</div>
-    </div>
-  );
-
-  var cdTime = tier === "Basic" ? 300 : 30;
+  // Cooldown by tier: Free = 3600s (1/hr), Basic = 300s (5 min), VIP/VIP+ = 30s
+  var cdTime = tier === "Free" ? 3600 : tier === "Basic" ? 300 : 30;
 
   function handleSend() {
     if (!input.trim() || cooldown > 0) return;
@@ -4994,6 +4988,7 @@ function ItemChat({ item, tier }) {
         <button onClick={handleSend} disabled={!input.trim()||cooldown>0}
           style={{ padding:"8px 12px",borderRadius:6,background:!input.trim()||cooldown>0?"rgba(255,255,255,0.03)":"#ff6b35",border:"none",color:!input.trim()||cooldown>0?"#555":"#fff",fontSize:12,fontWeight:600,cursor:!input.trim()||cooldown>0?"not-allowed":"pointer" }}>Send</button>
       </div>
+      {tier==="Free" && <div style={{ fontSize:10,color:"#444",marginTop:4 }}>Free tier: 1 message per hour · {msgs.length} message{msgs.length!==1?"s":""}</div>}
       {tier==="Basic" && <div style={{ fontSize:10,color:"#444",marginTop:4 }}>Basic tier: 5 min cooldown · {msgs.length} message{msgs.length!==1?"s":""}</div>}
       {(tier==="VIP"||tier==="VIP+") && <div style={{ fontSize:10,color:"#444",marginTop:4 }}>{tier} tier: 30 sec cooldown · {msgs.length} message{msgs.length!==1?"s":""}</div>}
     </div>
@@ -5122,7 +5117,7 @@ function CryptoWallets() {
 
 function SupportModal({ onClose, currentTier, setTier, user, onSignUp }) {
   const tiers = [
-    { name: "Free", price: "$0", period: "forever", color: "#888", bg: "rgba(128,128,128,0.1)", border: "rgba(128,128,128,0.3)", features: ["Browse all 2,255 items", "Search & filter", "Price change tracking", "View price graphs", "1 giveaway ticket per entry"], link: null },
+    { name: "Free", price: "$0", period: "forever", color: "#888", bg: "rgba(128,128,128,0.1)", border: "rgba(128,128,128,0.3)", features: ["Browse all 2,255 items", "Search & filter", "Price change tracking", "View price graphs", "Item chat (1 per hour)", "1 giveaway ticket per entry"], link: null },
     { name: "Basic", price: "$1", period: "/month", color: "#4fc3f7", bg: "rgba(79,195,247,0.1)", border: "rgba(79,195,247,0.4)", features: ["Everything in Free", "Priority data updates", "Email price alerts", "Item chat (5 min cooldown)", "10 giveaway tickets per entry"], link: "crypto" },
     { name: "VIP", price: "$10", period: "/month", color: "#ce93d8", bg: "rgba(206,147,216,0.1)", border: "rgba(206,147,216,0.4)", features: ["Everything in Basic", "Real-time price tracking", "Advanced analytics", "Item chat (30 sec cooldown)", "25 giveaway tickets per entry"], popular: true, link: "crypto" },
     { name: "VIP+", price: "$25", period: "/month", color: "#ffd700", bg: "rgba(255,215,0,0.1)", border: "rgba(255,215,0,0.4)", features: ["Everything in VIP", "API access", "Custom price alerts", "Market trend predictions", "Item chat (30 sec cooldown)", "100 giveaway tickets per entry", "Early feature access"], link: "crypto" },
@@ -5169,6 +5164,157 @@ function SupportModal({ onClose, currentTier, setTier, user, onSignUp }) {
           <div style={{ fontSize:11,color:"#555",marginBottom:10 }}>May take a few minutes for benefits to appear</div>
           <button onClick={onClose} style={{ background:"none",border:"none",color:"#555",fontSize:12,cursor:"pointer" }}>Maybe later</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function AuthLoggedIn({ user, onLogout }) {
+  var [ptUsername, setPtUsername] = React.useState("");
+  var [ptPublic, setPtPublic] = React.useState(true);
+  var [ptSaving, setPtSaving] = React.useState(false);
+  var [ptSaved, setPtSaved] = React.useState(false);
+  var [ptErr, setPtErr] = React.useState("");
+  var [currentUsername, setCurrentUsername] = React.useState(""); // the saved username in Firebase
+  var [lastChanged, setLastChanged] = React.useState(null); // timestamp of last username change
+
+  React.useEffect(function() {
+    db.ref("playerProfiles/" + user.uid).once("value", function(snap) {
+      var val = snap.val();
+      if (val) {
+        setPtUsername(val.username || "");
+        setCurrentUsername(val.username || "");
+        setPtPublic(val.public !== false);
+        setLastChanged(val.usernameChangedAt || null);
+      }
+    });
+  }, [user.uid]);
+
+  var COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+  var now = Date.now();
+  var cooldownRemaining = lastChanged ? Math.max(0, COOLDOWN_MS - (now - lastChanged)) : 0;
+  var isFirstSet = !currentUsername; // no cooldown for first-time setup
+  var canChange = isFirstSet || cooldownRemaining === 0;
+  var isUsernameUnchanged = ptUsername.trim().toLowerCase() === currentUsername.toLowerCase();
+
+  function formatCooldown(ms) {
+    var days = Math.ceil(ms / (24 * 60 * 60 * 1000));
+    return days + " day" + (days !== 1 ? "s" : "");
+  }
+
+  function savePlayerProfile() {
+    var trimmed = ptUsername.trim();
+    if (!trimmed) { setPtErr("Username is required"); return; }
+    if (!/^[a-zA-Z0-9_\-\.]{3,24}$/.test(trimmed)) { setPtErr("3–24 chars, letters/numbers/underscores only"); return; }
+
+    var usernameActuallyChanging = trimmed.toLowerCase() !== currentUsername.toLowerCase();
+    if (usernameActuallyChanging && !canChange) {
+      setPtErr("You can only change your username once every 30 days. " + formatCooldown(cooldownRemaining) + " remaining.");
+      return;
+    }
+
+    setPtSaving(true); setPtErr("");
+
+    function writeProfile(batch) {
+      batch["playerProfiles/" + user.uid + "/username"] = trimmed;
+      batch["playerProfiles/" + user.uid + "/public"] = ptPublic;
+      batch["playerProfiles/" + user.uid + "/uid"] = user.uid;
+      batch["playerProfiles/" + user.uid + "/displayName"] = user.displayName || user.email;
+      if (usernameActuallyChanging) batch["playerProfiles/" + user.uid + "/usernameChangedAt"] = now;
+      db.ref().update(batch, function(err) {
+        setPtSaving(false);
+        if (err) { setPtErr("Save failed: " + err.message); return; }
+        setCurrentUsername(trimmed);
+        if (usernameActuallyChanging) setLastChanged(now);
+        setPtSaved(true);
+        setTimeout(function() { setPtSaved(false); }, 3000);
+      });
+    }
+
+    // Fast path: username not changing — skip the uniqueness read, write immediately
+    if (!usernameActuallyChanging) {
+      writeProfile({});
+      return;
+    }
+
+    // Username is changing — use a transaction on the new username slot to atomically
+    // claim it only if it's unclaimed (avoids a separate read round trip)
+    db.ref("playerUsernames/" + trimmed.toLowerCase()).transaction(function(current) {
+      // Abort if already owned by someone else
+      if (current !== null && current !== user.uid) return; // undefined = abort
+      return user.uid; // claim it
+    }, function(err, committed, snap) {
+      if (err) { setPtErr("Save failed: " + err.message); setPtSaving(false); return; }
+      if (!committed) { setPtErr("That username is already taken by another player."); setPtSaving(false); return; }
+      // Transaction succeeded — now release the old username and write profile in one batch
+      var batch = {};
+      if (currentUsername) batch["playerUsernames/" + currentUsername.toLowerCase()] = null;
+      writeProfile(batch);
+    });
+  }
+
+  return (
+    <div style={{ padding:"28px" }}>
+      <div style={{ maxWidth:440, margin:"0 auto", display:"flex", flexDirection:"column", gap:16 }}>
+
+        {/* Account info card */}
+        <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:24, textAlign:"center" }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>👤</div>
+          <h3 style={{ margin:"0 0 4px", fontSize:18, fontWeight:700, color:"#fff" }}>{user.displayName || "User"}</h3>
+          <div style={{ fontSize:13, color:"#888", marginBottom:8 }}>{user.email}</div>
+          <div onClick={function(){navigator.clipboard.writeText(user.uid)}} style={{ fontSize:11, color:"#555", marginBottom:12, cursor:"pointer", padding:"6px 10px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:6, fontFamily:"monospace", wordBreak:"break-all" }} title="Click to copy">UID: {user.uid}</div>
+          {user.emailVerified ? (
+            <div style={{ fontSize:12, color:"#4caf50", marginBottom:16, padding:"6px 10px", background:"rgba(76,175,80,0.1)", borderRadius:6 }}>✓ Email verified</div>
+          ) : (
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:12, color:"#ef5350", marginBottom:8, padding:"6px 10px", background:"rgba(239,83,80,0.1)", borderRadius:6 }}>✗ Email not verified</div>
+              <button onClick={function(){user.sendEmailVerification().then(function(){alert("Verification email sent!")})}} style={{ padding:"6px 14px", borderRadius:6, background:"rgba(255,107,53,0.15)", border:"1px solid rgba(255,107,53,0.3)", color:"#ff6b35", fontSize:11, fontWeight:600, cursor:"pointer" }}>Resend Verification Email</button>
+            </div>
+          )}
+          <button onClick={onLogout} style={{ padding:"10px 24px", borderRadius:8, background:"rgba(239,83,80,0.15)", border:"1px solid rgba(239,83,80,0.3)", color:"#ef5350", fontSize:13, fontWeight:600, cursor:"pointer" }}>Sign Out</button>
+        </div>
+
+        {/* Player Tracker profile card */}
+        <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:24 }}>
+          <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:4 }}>🎮 Player Tracker Profile</div>
+          <div style={{ fontSize:12, color:"#555", marginBottom:16 }}>Set a username so other players can search for and view your inventory in the Player Tracker tab.</div>
+
+          <div style={{ marginBottom:14 }}>
+            <div style={{ fontSize:11, color:"#888", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.05em" }}>Username</div>
+            <input value={ptUsername} onChange={function(e){setPtUsername(e.target.value)}} placeholder="e.g. ProPlayer123"
+              disabled={!canChange && !isUsernameUnchanged}
+              style={{ width:"100%", padding:"10px 12px", background: (!canChange && !isUsernameUnchanged) ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color: (!canChange && !isUsernameUnchanged) ? "#555" : "#eee", fontSize:13, outline:"none", boxSizing:"border-box" }} />
+            <div style={{ fontSize:10, color:"#444", marginTop:4 }}>3–24 chars · letters, numbers, underscores only · unique to you</div>
+          </div>
+
+          {/* Cooldown notice */}
+          {!isFirstSet && !canChange && (
+            <div style={{ marginBottom:14, padding:"8px 12px", borderRadius:8, background:"rgba(255,183,77,0.1)", border:"1px solid rgba(255,183,77,0.25)", color:"#ffb74d", fontSize:12 }}>
+              ⏳ You can change your username again in {formatCooldown(cooldownRemaining)}. You can still toggle public/private.
+            </div>
+          )}
+
+          <div style={{ marginBottom:16 }}>
+            <label style={{ display:"flex", alignItems:"center", gap:12, cursor:"pointer" }}>
+              <div onClick={function(){setPtPublic(!ptPublic)}} style={{ width:40, height:22, borderRadius:11, background:ptPublic?"#ff6b35":"rgba(255,255,255,0.1)", position:"relative", transition:"background 0.2s", cursor:"pointer", flexShrink:0 }}>
+                <div style={{ position:"absolute", top:3, left:ptPublic?20:3, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left 0.2s" }} />
+              </div>
+              <div>
+                <div style={{ fontSize:13, color:"#eee", fontWeight:600 }}>Public Profile</div>
+                <div style={{ fontSize:11, color:"#555" }}>{ptPublic ? "Anyone can search and view your inventory" : "Hidden from search"}</div>
+              </div>
+            </label>
+          </div>
+
+          {ptErr && <div style={{ marginBottom:10, padding:"8px 12px", borderRadius:8, background:"rgba(239,83,80,0.15)", color:"#ef5350", fontSize:12 }}>{ptErr}</div>}
+          {ptSaved && <div style={{ marginBottom:10, padding:"8px 12px", borderRadius:8, background:"rgba(76,175,80,0.15)", color:"#4caf50", fontSize:12 }}>✓ Saved! Others can find you as "{currentUsername}".</div>}
+
+          <button onClick={savePlayerProfile} disabled={ptSaving}
+            style={{ padding:"10px 20px", borderRadius:8, background:ptSaving?"rgba(255,255,255,0.05)":"#ff6b35", border:"none", color:ptSaving?"#555":"#fff", fontSize:13, fontWeight:700, cursor:ptSaving?"not-allowed":"pointer" }}>
+            {ptSaving ? "Saving..." : "Save Profile"}
+          </button>
+        </div>
+
       </div>
     </div>
   );
@@ -5229,23 +5375,7 @@ function AuthPanel({ user, onClose }) {
   }
 
   if (user) return (
-    <div style={{ padding:"28px" }}>
-      <div style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:24,maxWidth:400,margin:"0 auto",textAlign:"center" }}>
-        <div style={{ fontSize:40,marginBottom:12 }}>👤</div>
-        <h3 style={{ margin:"0 0 4px",fontSize:18,fontWeight:700,color:"#fff" }}>{user.displayName || "User"}</h3>
-        <div style={{ fontSize:13,color:"#888",marginBottom:8 }}>{user.email}</div>
-        <div onClick={function(){navigator.clipboard.writeText(user.uid)}} style={{ fontSize:11,color:"#555",marginBottom:12,cursor:"pointer",padding:"6px 10px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:6,fontFamily:"monospace",wordBreak:"break-all" }} title="Click to copy">UID: {user.uid}</div>
-        {user.emailVerified ? (
-          <div style={{ fontSize:12,color:"#4caf50",marginBottom:16,padding:"6px 10px",background:"rgba(76,175,80,0.1)",borderRadius:6 }}>✓ Email verified</div>
-        ) : (
-          <div style={{ marginBottom:16 }}>
-            <div style={{ fontSize:12,color:"#ef5350",marginBottom:8,padding:"6px 10px",background:"rgba(239,83,80,0.1)",borderRadius:6 }}>✗ Email not verified</div>
-            <button onClick={function(){user.sendEmailVerification().then(function(){alert("Verification email sent!")})}} style={{ padding:"6px 14px",borderRadius:6,background:"rgba(255,107,53,0.15)",border:"1px solid rgba(255,107,53,0.3)",color:"#ff6b35",fontSize:11,fontWeight:600,cursor:"pointer" }}>Resend Verification Email</button>
-          </div>
-        )}
-        <button onClick={handleLogout} style={{ padding:"10px 24px",borderRadius:8,background:"rgba(239,83,80,0.15)",border:"1px solid rgba(239,83,80,0.3)",color:"#ef5350",fontSize:13,fontWeight:600,cursor:"pointer" }}>Sign Out</button>
-      </div>
-    </div>
+    <AuthLoggedIn user={user} onLogout={handleLogout} />
   );
 
   return (
@@ -5799,12 +5929,94 @@ function useInventory() {
   return {items:inv, addItem:addItem, removeItem:removeItem, updateQty:updateQty};
 }
 
-function InventoryPanel({ lang, setTab, setSelected, setGraphItem }) {
+function InventoryPanel({ lang, setTab, setSelected, setGraphItem, user }) {
   var inv = useInventory();
   var items = inv.items;
   var [addSearch, setAddSearch] = React.useState("");
   var [showAdd, setShowAdd] = React.useState(false);
   var [addQty, setAddQty] = React.useState(1);
+
+  // AI screenshot import state
+  var [imgFile, setImgFile] = React.useState(null);
+  var [imgPreview, setImgPreview] = React.useState(null);
+  var [scanning, setScanning] = React.useState(false);
+  var [scanResults, setScanResults] = React.useState(null);
+  var [scanErr, setScanErr] = React.useState("");
+  var [confirmItems, setConfirmItems] = React.useState([]);
+  var [showConfirm, setShowConfirm] = React.useState(false);
+  var fileInputRef = React.useRef(null);
+
+  function handleImageSelect(e) {
+    var file = e.target.files[0]; if (!file) return;
+    setImgFile(file); setScanResults(null); setScanErr(""); setShowConfirm(false);
+    var reader = new FileReader();
+    reader.onload = function(ev) { setImgPreview(ev.target.result); };
+    reader.readAsDataURL(file);
+  }
+
+  async function handleScan() {
+    if (!imgFile) return;
+    setScanning(true); setScanErr(""); setScanResults(null); setShowConfirm(false);
+    try {
+      var base64 = await new Promise(function(res, rej) {
+        var r = new FileReader();
+        r.onload = function(e) { res(e.target.result.split(",")[1]); };
+        r.onerror = function() { rej(new Error("Read failed")); };
+        r.readAsDataURL(imgFile);
+      });
+      var response = await fetch("/.netlify/functions/scan-inventory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: imgFile.type || "image/jpeg", data: base64 } },
+              { type: "text", text: "This is a screenshot from the mobile game Standoff 2. Identify all visible inventory items. For each item return its exact name and quantity (default 1 if not shown). Return ONLY a JSON array, no markdown, no other text: [{\"name\": \"item name\", \"qty\": 1}]. If no items visible return []." }
+            ]
+          }]
+        })
+      });
+      var data = await response.json();
+      if (data.error) throw new Error(data.error.message);
+      var text = (data.content || []).map(function(c){return c.text||""}).join("").trim().replace(/```json|```/g,"").trim();
+      var parsed = JSON.parse(text);
+      if (!Array.isArray(parsed)) throw new Error("Unexpected format");
+      var matched = parsed.map(function(r) {
+        var exact = ITEMS.find(function(i){return i.name.toLowerCase()===(r.name||"").toLowerCase()});
+        var fuzzy = !exact ? ITEMS.find(function(i){return i.name.toLowerCase().indexOf((r.name||"").toLowerCase())>-1||(r.name||"").toLowerCase().indexOf(i.name.toLowerCase())>-1}) : null;
+        var item = exact || fuzzy;
+        return { raw: r.name, matched: item?item.name:null, qty: r.qty||1, item: item||null, include: !!item };
+      });
+      setScanResults(matched);
+      setConfirmItems(matched.filter(function(m){return m.include}).map(function(m){return{name:m.matched,qty:m.qty}}));
+      setShowConfirm(true);
+    } catch(err) { setScanErr("Scan failed: " + err.message + ". Try a clearer screenshot with item names visible."); }
+    setScanning(false);
+  }
+
+  function importConfirmedItems() {
+    confirmItems.forEach(function(ci){ if(ci.name&&ci.qty>0) inv.addItem(ci.name, ci.qty); });
+    setShowConfirm(false); setScanResults(null); setImgFile(null); setImgPreview(null); setScanErr("");
+    alert("✓ " + confirmItems.length + " item(s) imported!");
+  }
+
+  // Mirror inventory to Firebase so Player Tracker search can read it
+  React.useEffect(function() {
+    if (!user || items.length === 0) return;
+    var update = {};
+    items.forEach(function(i) { update[i.name.replace(/[.#$\/\[\]]/g, "_")] = i; });
+    db.ref("playerInventories/" + user.uid).set(update);
+    // Daily value snapshot
+    var today = new Date().toISOString().slice(0, 10);
+    var total = items.reduce(function(sum, invItem) {
+      var market = ITEMS.find(function(i) { return i.name === invItem.name; });
+      return sum + (market ? market.price * invItem.qty : 0);
+    }, 0);
+    db.ref("playerValueHistory/" + user.uid + "/" + today).set(Math.round(total * 100) / 100);
+  }, [items.length, user && user.uid]);
 
   var totalValue = 0; var totalAdded = 0; var totalDay = 0; var totalWeek = 0; var totalMonth = 0;
   var enriched = items.map(function(invItem) {
@@ -5837,8 +6049,67 @@ function InventoryPanel({ lang, setTab, setSelected, setGraphItem }) {
           <h2 style={{ margin:"0 0 4px",fontSize:22,fontWeight:800,color:"#fff" }}>📦 {t("myInventory",lang)}</h2>
           <p style={{ margin:0,fontSize:12,color:"#555" }}>{items.length} item{items.length!==1?"s":""}</p>
         </div>
-        <button onClick={function(){setShowAdd(!showAdd)}} style={{ padding:"8px 16px",borderRadius:8,background:"#ff6b35",border:"none",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>{t("addToInventory",lang)}</button>
+        <div style={{ display:"flex", gap:8 }}>
+          <button onClick={function(){if(fileInputRef.current)fileInputRef.current.click()}} style={{ padding:"8px 14px",borderRadius:8,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.15)",color:"#ccc",fontSize:12,fontWeight:600,cursor:"pointer" }}>📷 Import Screenshot</button>
+          <button onClick={function(){setShowAdd(!showAdd)}} style={{ padding:"8px 16px",borderRadius:8,background:"#ff6b35",border:"none",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>{t("addToInventory",lang)}</button>
+        </div>
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} style={{ display:"none" }} />
       </div>
+
+      {/* AI Screenshot scan flow */}
+      {imgPreview && (
+        <div style={{ marginBottom:20,padding:16,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12 }}>
+          <div style={{ fontSize:12,color:"#888",marginBottom:10,letterSpacing:"0.05em",textTransform:"uppercase" }}>📷 Screenshot Preview</div>
+          <img src={imgPreview} alt="inventory screenshot" style={{ maxWidth:"100%",maxHeight:260,objectFit:"contain",borderRadius:8,marginBottom:12,display:"block" }} />
+          <div style={{ fontSize:11,color:"#555",marginBottom:10 }}>AI will scan for Standoff 2 item names. Make sure item names are clearly visible in the screenshot.</div>
+          {scanErr && <div style={{ marginBottom:10,padding:"8px 12px",borderRadius:8,background:"rgba(239,83,80,0.1)",color:"#ef5350",fontSize:12 }}>{scanErr}</div>}
+          <div style={{ display:"flex",gap:8 }}>
+            <button onClick={handleScan} disabled={scanning} style={{ padding:"9px 18px",borderRadius:8,background:scanning?"rgba(255,255,255,0.05)":"#ff6b35",border:"none",color:scanning?"#555":"#fff",fontSize:12,fontWeight:700,cursor:scanning?"not-allowed":"pointer" }}>
+              {scanning ? "⏳ Scanning..." : "🤖 Scan with AI"}
+            </button>
+            <button onClick={function(){setImgFile(null);setImgPreview(null);setScanResults(null);setShowConfirm(false);setScanErr("");}} style={{ padding:"9px 14px",borderRadius:8,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",color:"#888",fontSize:12,cursor:"pointer" }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Scan confirm table */}
+      {showConfirm && scanResults && (
+        <div style={{ marginBottom:20,padding:16,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12 }}>
+          <div style={{ fontSize:13,fontWeight:700,color:"#fff",marginBottom:4 }}>🤖 AI Scan Results</div>
+          <div style={{ fontSize:11,color:"#555",marginBottom:14 }}>Review and edit before importing. Uncheck items to exclude.</div>
+          <div style={{ display:"flex",flexDirection:"column",gap:6,marginBottom:14 }}>
+            {scanResults.map(function(r,idx) {
+              var checked = confirmItems.some(function(c){return c.name===r.matched});
+              var ci = confirmItems.find(function(c){return c.name===r.matched});
+              return (
+                <div key={idx} style={{ display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:r.item?"rgba(255,255,255,0.03)":"rgba(239,83,80,0.05)",border:"1px solid "+(r.item?"rgba(255,255,255,0.07)":"rgba(239,83,80,0.2)"),borderRadius:8 }}>
+                  {r.item && <input type="checkbox" checked={checked} onChange={function(e){
+                    if(e.target.checked){setConfirmItems(function(prev){return prev.find(function(c){return c.name===r.matched})?prev:prev.concat([{name:r.matched,qty:r.qty}])});}
+                    else{setConfirmItems(function(prev){return prev.filter(function(c){return c.name!==r.matched})});}
+                  }} style={{ flexShrink:0 }} />}
+                  <div style={{ flex:1,minWidth:0 }}>
+                    <div style={{ fontSize:12,color:r.item?"#eee":"#ef5350",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{r.item?r.matched:r.raw+" (not found)"}</div>
+                    {r.item && <div style={{ fontSize:10,color:"#555" }}>{r.item.rarity} · {fmtPrice(r.item.price)} G each</div>}
+                  </div>
+                  {r.item && checked && (
+                    <input type="number" min="1" value={ci?ci.qty:r.qty} onChange={function(e){
+                      var qty=Math.max(1,parseInt(e.target.value)||1);
+                      setConfirmItems(function(prev){return prev.map(function(c){return c.name===r.matched?Object.assign({},c,{qty:qty}):c})});
+                    }} style={{ width:50,padding:"3px 6px",background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:4,color:"#fff",fontSize:11,textAlign:"center" }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+            <button onClick={importConfirmedItems} disabled={confirmItems.length===0}
+              style={{ padding:"9px 18px",borderRadius:8,background:confirmItems.length===0?"rgba(255,255,255,0.04)":"#ff6b35",border:"none",color:confirmItems.length===0?"#555":"#fff",fontSize:12,fontWeight:700,cursor:confirmItems.length===0?"not-allowed":"pointer" }}>
+              Import {confirmItems.length} Item{confirmItems.length!==1?"s":""}
+            </button>
+            <button onClick={function(){setShowConfirm(false)}} style={{ padding:"9px 14px",borderRadius:8,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",color:"#888",fontSize:12,cursor:"pointer" }}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {showAdd && (
         <div style={{ marginBottom:20,padding:16,background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12 }}>
@@ -6035,6 +6306,242 @@ function InvestmentPanel({ setTab, setSelected, setGraphItem, lang }) {
   );
 }
 
+// ==================== PLAYER TRACKER ====================
+
+
+
+function InvSortedList({ inventory }) {
+  var [invSort, setInvSort] = React.useState("value");
+  var sortOptions = [
+    { id:"value", label:"Value" },
+    { id:"price", label:"Price" },
+    { id:"qty",   label:"Qty" },
+    { id:"rarity",label:"Rarity" },
+    { id:"name",  label:"Name" },
+  ];
+  var rarityRank = { Immortal:0, Arcane:1, Legendary:2, Epic:3, Rare:4, Uncommon:5, Common:6 };
+
+  var sorted = inventory.slice().sort(function(a, b) {
+    var ma = ITEMS.find(function(i){return i.name===a.name});
+    var mb = ITEMS.find(function(i){return i.name===b.name});
+    if (invSort === "value")  return (mb?(mb.price*b.qty):0) - (ma?(ma.price*a.qty):0);
+    if (invSort === "price")  return (mb?mb.price:0) - (ma?ma.price:0);
+    if (invSort === "qty")    return b.qty - a.qty;
+    if (invSort === "rarity") { var ra = rarityRank[ma&&ma.rarity]; var rb = rarityRank[mb&&mb.rarity]; if(ra===undefined)ra=99; if(rb===undefined)rb=99; return ra-rb; }
+    if (invSort === "name")   return a.name.localeCompare(b.name);
+    return 0;
+  });
+
+  return (
+    <div>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+        <div style={{ fontSize:11, color:"#555", textTransform:"uppercase", letterSpacing:"0.07em" }}>Inventory ({inventory.length} items)</div>
+        <div style={{ display:"flex", gap:4 }}>
+          {sortOptions.map(function(opt) {
+            return (
+              <button key={opt.id} onClick={function(){setInvSort(opt.id)}}
+                style={{ padding:"3px 8px", borderRadius:5, background:invSort===opt.id?"rgba(255,107,53,0.2)":"rgba(255,255,255,0.04)", border:"1px solid "+(invSort===opt.id?"rgba(255,107,53,0.5)":"rgba(255,255,255,0.08)"), color:invSort===opt.id?"#ff6b35":"#666", fontSize:10, fontWeight:600, cursor:"pointer" }}>
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ display:"flex", flexDirection:"column", gap:6, maxHeight:400, overflowY:"auto" }}>
+        {sorted.map(function(invItem) {
+          var market = ITEMS.find(function(i){return i.name===invItem.name}); if(!market)return null;
+          var rc = RC[market.rarity]||"#888"; var img = ITEM_IMAGES[invItem.name];
+          return (
+            <div key={invItem.name} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:8 }}>
+              {img && <img src={img} alt="" style={{ width:32, height:22, objectFit:"contain", borderRadius:3, flexShrink:0 }} />}
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:12, color:"#eee", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{invItem.name}</div>
+                <div style={{ fontSize:10, color:rc }}>{market.rarity}</div>
+              </div>
+              <div style={{ textAlign:"right", flexShrink:0 }}>
+                <div style={{ fontSize:12, color:"#fff", fontFamily:"monospace" }}>{fmtPrice(market.price*invItem.qty)} G</div>
+                <div style={{ fontSize:10, color:"#555" }}>×{invItem.qty} @ {fmtPrice(market.price)}</div>
+              </div>
+            </div>
+          );
+        }).filter(Boolean)}
+      </div>
+    </div>
+  );
+}
+
+function ProfileInventoryView({ inventory, vhist }) {
+  function calcTotal(inv) {
+    return inv.reduce(function(sum, invItem) {
+      var market = ITEMS.find(function(i) { return i.name === invItem.name; });
+      return sum + (market ? market.price * invItem.qty : 0);
+    }, 0);
+  }
+  var total = calcTotal(inventory);
+  var byRarity = {};
+  inventory.forEach(function(invItem) {
+    var market = ITEMS.find(function(i) { return i.name === invItem.name; });
+    if (!market) return;
+    if (!byRarity[market.rarity]) byRarity[market.rarity] = { count: 0, value: 0 };
+    byRarity[market.rarity].count += invItem.qty;
+    byRarity[market.rarity].value += market.price * invItem.qty;
+  });
+  var rarityOrder = ["Immortal","Arcane","Legendary","Epic","Rare","Uncommon","Common"];
+
+  return (
+    <div>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:20 }}>
+        {[
+          { label:"Total Value", val: fmtPrice(total) + " G" },
+          { label:"Items", val: inventory.reduce(function(s,i){return s+i.qty},0) },
+          { label:"Unique Skins", val: inventory.length }
+        ].map(function(s) { return (
+          <div key={s.label} style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"14px 16px" }}>
+            <div style={{ fontSize:10, color:"#555", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:6 }}>{s.label}</div>
+            <div style={{ fontSize:18, fontWeight:700, color:"#fff", fontFamily:"monospace" }}>{s.val}</div>
+          </div>
+        ); })}
+      </div>
+
+      {vhist && vhist.length >= 2 && (
+        <div style={{ marginBottom:20, background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:16 }}>
+          <div style={{ fontSize:11, color:"#555", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:10 }}>Portfolio Value History</div>
+          <svg viewBox="0 0 400 80" style={{ width:"100%", height:80 }}>
+            {(function() {
+              var prices = vhist.map(function(p){return p.total});
+              var minP = Math.min.apply(null,prices), maxP = Math.max.apply(null,prices);
+              var pad = (maxP-minP)*0.1 || maxP*0.1 || 1;
+              var W=400,H=80;
+              function xOf(i){return i/(vhist.length-1)*W}
+              function yOf(v){return H-((v-(minP-pad))/(maxP+pad-(minP-pad)))*H}
+              var path=vhist.map(function(p,i){return(i===0?"M":"L")+xOf(i).toFixed(1)+" "+yOf(p.total).toFixed(1)}).join(" ");
+              var isUp=prices[prices.length-1]>=prices[0]; var color=isUp?"#4caf50":"#ef5350";
+              return [
+                React.createElement("defs",{key:"d"},React.createElement("linearGradient",{id:"pvhg",x1:"0",y1:"0",x2:"0",y2:"1"},React.createElement("stop",{offset:"0%",stopColor:color,stopOpacity:"0.3"}),React.createElement("stop",{offset:"100%",stopColor:color,stopOpacity:"0.02"}))),
+                React.createElement("path",{key:"a",d:path+" L "+W+" "+H+" L 0 "+H+" Z",fill:"url(#pvhg)"}),
+                React.createElement("path",{key:"l",d:path,fill:"none",stroke:color,strokeWidth:"2"})
+              ];
+            })()}
+          </svg>
+          <div style={{ display:"flex", justifyContent:"space-between", fontSize:10, color:"#444", marginTop:4 }}>
+            <span>{vhist[0].date}</span><span>{vhist[vhist.length-1].date}</span>
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginBottom:20 }}>
+        <div style={{ fontSize:11, color:"#555", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:10 }}>By Rarity</div>
+        <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+          {rarityOrder.filter(function(r){return byRarity[r]}).map(function(r) {
+            var rc=RC[r]||"#888"; var pct=total>0?(byRarity[r].value/total*100):0;
+            return (
+              <div key={r} style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <span style={{ fontSize:11, color:rc, width:80, flexShrink:0 }}>{r}</span>
+                <div style={{ flex:1, height:6, background:"rgba(255,255,255,0.05)", borderRadius:3, overflow:"hidden" }}>
+                  <div style={{ width:pct+"%", height:"100%", background:rc, borderRadius:3 }} />
+                </div>
+                <span style={{ fontSize:11, color:"#666", width:70, textAlign:"right", flexShrink:0 }}>{fmtPrice(byRarity[r].value)} G</span>
+                <span style={{ fontSize:10, color:"#444", width:24, flexShrink:0 }}>×{byRarity[r].count}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <InvSortedList inventory={inventory} />
+    </div>
+  );
+}
+
+function PlayerTrackerPanel({ user, tier, setTab }) {
+  var [searchQ, setSearchQ] = React.useState("");
+  var [foundProfile, setFoundProfile] = React.useState(null);
+  var [searchErr, setSearchErr] = React.useState("");
+  var [searching, setSearching] = React.useState(false);
+
+  function handleSearch() {
+    if (!searchQ.trim()) return;
+    setSearching(true); setSearchErr(""); setFoundProfile(null);
+    db.ref("playerUsernames/" + searchQ.trim().toLowerCase()).once("value", function(snap) {
+      var uid = snap.val();
+      if (!uid) { setSearchErr("Player not found. They may not have set up a Player Tracker profile yet."); setSearching(false); return; }
+      db.ref("playerProfiles/" + uid).once("value", function(psnap) {
+        var profile = psnap.val();
+        if (!profile || profile.public === false) { setSearchErr("This profile is set to private."); setSearching(false); return; }
+        db.ref("playerInventories/" + uid).once("value", function(isnap) {
+          var invData = isnap.val() || {};
+          var inv = Object.keys(invData).map(function(k) { return invData[k]; });
+          db.ref("playerValueHistory/" + uid).orderByKey().limitToLast(30).once("value", function(vsnap) {
+            var vdata = vsnap.val() || {};
+            var vpts = Object.keys(vdata).sort().map(function(d) { return { date: d, total: vdata[d] }; });
+            setFoundProfile({ profile: profile, inventory: inv, valueHistory: vpts });
+            setSearching(false);
+          });
+        });
+      });
+    });
+  }
+
+  return (
+    <div style={{ padding:28 }}>
+      <div style={{ marginBottom:24 }}>
+        <h2 style={{ margin:"0 0 4px", fontSize:22, fontWeight:800, color:"#fff" }}>🎮 Player Tracker</h2>
+        <p style={{ margin:0, fontSize:13, color:"#555" }}>Search any player by their username to view their public inventory and portfolio value.</p>
+      </div>
+
+      <div style={{ display:"flex", gap:10, marginBottom:20 }}>
+        <input value={searchQ} onChange={function(e){setSearchQ(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")handleSearch()}} placeholder="Enter player username..."
+          style={{ flex:1, padding:"10px 14px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"#eee", fontSize:13, outline:"none" }} />
+        <button onClick={handleSearch} disabled={searching||!searchQ.trim()} style={{ padding:"10px 20px", borderRadius:8, background:searching||!searchQ.trim()?"rgba(255,255,255,0.05)":"#ff6b35", border:"none", color:searching||!searchQ.trim()?"#555":"#fff", fontSize:13, fontWeight:700, cursor:searching||!searchQ.trim()?"not-allowed":"pointer" }}>
+          {searching ? "Searching..." : "Search"}
+        </button>
+      </div>
+
+      {searchErr && (
+        <div style={{ padding:"12px 16px", background:"rgba(239,83,80,0.1)", border:"1px solid rgba(239,83,80,0.3)", borderRadius:8, color:"#ef5350", fontSize:13, marginBottom:16 }}>
+          {searchErr}
+        </div>
+      )}
+
+      {foundProfile && (
+        <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, padding:20 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:20, paddingBottom:16, borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ width:48, height:48, borderRadius:"50%", background:"linear-gradient(135deg,#ff6b35,#f7931e)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, fontWeight:800, color:"#fff", flexShrink:0 }}>
+              {foundProfile.profile.username.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize:18, fontWeight:800, color:"#fff" }}>{foundProfile.profile.username}</div>
+              <div style={{ fontSize:11, color:"#555" }}>Self-reported inventory · {foundProfile.inventory.length} item types</div>
+            </div>
+            <div style={{ marginLeft:"auto", fontSize:10, padding:"3px 8px", borderRadius:20, background:"rgba(76,175,80,0.15)", color:"#4caf50", border:"1px solid rgba(76,175,80,0.3)" }}>PUBLIC</div>
+          </div>
+          <ProfileInventoryView inventory={foundProfile.inventory} vhist={foundProfile.valueHistory} />
+        </div>
+      )}
+
+      {!foundProfile && !searchErr && (
+        <div style={{ textAlign:"center", padding:"40px 20px", color:"#444" }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>🔍</div>
+          <div style={{ fontSize:14, marginBottom:8 }}>Search for a player by their username</div>
+          <div style={{ fontSize:11, color:"#333", marginBottom:20 }}>Players set their username in the Account tab · their inventory comes from the 📦 Inventory tab</div>
+          {!user && (
+            <button onClick={function(){setTab("account")}} style={{ padding:"9px 20px", borderRadius:8, background:"rgba(255,107,53,0.15)", border:"1px solid rgba(255,107,53,0.3)", color:"#ff6b35", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+              Sign in to set up your profile →
+            </button>
+          )}
+          {user && (
+            <button onClick={function(){setTab("account")}} style={{ padding:"9px 20px", borderRadius:8, background:"rgba(255,107,53,0.15)", border:"1px solid rgba(255,107,53,0.3)", color:"#ff6b35", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+              Set your username in Account →
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==================== END PLAYER TRACKER ====================
+
 function App() {
   const [selected, setSelected] = useState(ITEMS[0]);
   const [search, setSearch] = useState("");
@@ -6081,6 +6588,15 @@ function App() {
           var t = snap.val();
           if (t) { setTier(t); localStorage.setItem("s2_tier", t); }
         });
+        // Check admin on login — no keyboard shortcut needed
+        db.ref("admins/" + u.uid).once("value", function(snap) {
+          if (snap.val() === true) setShowAdmin(true);
+        });
+        db.ref("users/" + u.uid + "/isAdmin").once("value", function(snap) {
+          if (snap.val() === true) setShowAdmin(true);
+        });
+      } else {
+        setShowAdmin(false);
       }
     });
     return unsub;
@@ -6139,7 +6655,7 @@ function App() {
       </div>
 
       <div className="s2-tabs" style={{ display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"inventory",label:"📦 "+t("myInventory",lang)}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
+        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"inventory",label:"📦 "+t("myInventory",lang)},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
           <button key={t.id} onClick={function(){setTab(t.id)}} style={{ padding:"12px 24px",background:tab===t.id?"rgba(255,255,255,0.05)":"transparent",border:"none",borderBottom:tab===t.id?"2px solid #ff6b35":"2px solid transparent",color:tab===t.id?"#fff":"#666",fontSize:13,fontWeight:600,cursor:"pointer",letterSpacing:"0.03em" }}>{t.label}</button>
         )})}
       </div>
@@ -6157,7 +6673,9 @@ function App() {
         </div>
       )}
 
-      {tab === "inventory" && <InventoryPanel lang={lang} setTab={setTab} setSelected={setSelected} setGraphItem={setGraphItem} />}
+      {tab === "inventory" && <InventoryPanel lang={lang} setTab={setTab} setSelected={setSelected} setGraphItem={setGraphItem} user={user} />}
+
+      {tab === "players" && <PlayerTrackerPanel user={user} tier={tier} setTab={setTab} />}
 
       {tab === "giveaways" && <GiveawaysTab user={user} tier={tier} />}
 
