@@ -4725,42 +4725,9 @@ function genHistory(item, firebaseData) {
     return lerp(pN,p1,da);
   }
 
-  // If we have Firebase data, use real prices
-  if (firebaseData && Object.keys(firebaseData).length > 0) {
-    var key = item.name.replace(/[.#$/\[\]]/g, "_");
-    var realPts = [];
-    var dates = Object.keys(firebaseData).sort();
-    dates.forEach(function(dateStr) {
-      var snap = firebaseData[dateStr];
-      if (snap[key] && snap[key].p !== undefined) {
-        realPts.push({ date: new Date(dateStr + "T12:00:00"), price: snap[key].p });
-      }
-    });
-    // Add current price as last point
-    realPts.push({ date: now, price: pN });
-
-    if (realPts.length >= 2) {
-      // Fill gaps between real points with interpolation
-      var filled = [];
-      for (var i = 0; i < realPts.length - 1; i++) {
-        filled.push(realPts[i]);
-        var diffMs = realPts[i+1].date - realPts[i].date;
-        var diffHours = diffMs / (1000*60*60);
-        var step = diffHours > 72 ? 12 : 4;
-        for (var h = step; h < diffHours; h += step) {
-          var t = h / diffHours;
-          var interpPrice = lerp(realPts[i].price, realPts[i+1].price, t);
-          var noise = (rnd()-0.5)*2*(item.vol/100)*interpPrice*0.15;
-          var dt = new Date(realPts[i].date.getTime() + h*3600000);
-          filled.push({ date: dt, price: Math.max(0.01, interpPrice + noise) });
-        }
-      }
-      filled.push(realPts[realPts.length-1]);
-      return filled;
-    }
-  }
-
-  // Fallback: synthetic data
+  // Always generate a full year of synthetic history based on known % change metrics.
+  // (Real Firebase snapshots are too sparse right now to reliably reconstruct a full year,
+  // so we use the deterministic synthetic curve for consistent, full-range graphs.)
   var pts=[];
   for(var h=totalHours;h>=0;h-=h>720?12:4){
     var base=bp(h);
@@ -4776,13 +4743,7 @@ function genHistory(item, firebaseData) {
 
 function GraphModal({ item, onClose }) {
   const rc = RC[item.rarity] || "#888";
-  const [fbData, setFbData] = React.useState(null);
-  React.useEffect(function() {
-    db.ref("priceHistory").orderByKey().limitToLast(365).once("value", function(snap) {
-      setFbData(snap.val() || {});
-    }, function() { setFbData({}); });
-  }, []);
-  const data = genHistory(item, fbData);
+  const data = genHistory(item, null);
   const [hoverIdx, setHoverIdx] = useState(null);
   const [range, setRange] = useState("All");
   const svgRef = useRef(null);
