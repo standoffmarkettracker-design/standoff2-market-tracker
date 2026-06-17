@@ -78,7 +78,7 @@ body{margin:0;background:#0f0f12}
 <body>
 <div id="root"></div>
 <script type="text/plain" id="app-source">
-const { useState, useRef } = React;
+const { useState, useRef, useEffect } = React;
 
 const ITEMS = [
   { name: "Butterfly \"Arcane Surge\"", price: 499999, day: 25, week: -49.99, month: -45, year: 0, spread: 64, vol: 80, type: "Knife", rarity: "Arcane" },
@@ -4711,6 +4711,35 @@ function ItemCard({ item, onClick, selected, onGraph }) {
   );
 }
 
+var __realHistoryCache = null;
+var __realHistoryPromise = null;
+function loadRealHistory() {
+  if (__realHistoryCache) return Promise.resolve(__realHistoryCache);
+  if (__realHistoryPromise) return __realHistoryPromise;
+  __realHistoryPromise = fetch("/price_history_real.json")
+    .then(function(r) { return r.ok ? r.json() : {}; })
+    .then(function(data) { __realHistoryCache = data; return data; })
+    .catch(function() { __realHistoryCache = {}; return {}; });
+  return __realHistoryPromise;
+}
+
+function genHistoryFromReal(item, realPoints) {
+  var dates = Object.keys(realPoints).sort();
+  if (dates.length === 0) return null;
+  var pts = dates.map(function(d) {
+    return { date: new Date(d + "T12:00:00"), price: realPoints[d] };
+  });
+  // Append today's live price as the final point so the graph always ends at the current price
+  var now = new Date();
+  var lastDate = pts[pts.length - 1].date;
+  if (now.getTime() - lastDate.getTime() > 12 * 60 * 60 * 1000) {
+    pts.push({ date: now, price: item.price });
+  } else {
+    pts[pts.length - 1] = { date: now, price: item.price };
+  }
+  return pts;
+}
+
 function genHistory(item, firebaseData) {
   var now = new Date(), totalHours = 365*24, pN = item.price;
   var p1 = pN/(1+item.day/100), p7 = pN/(1+item.week/100), p30 = pN/(1+item.month/100), p365 = pN/(1+item.year/100);
@@ -4743,11 +4772,31 @@ function genHistory(item, firebaseData) {
 
 function GraphModal({ item, onClose }) {
   const rc = RC[item.rarity] || "#888";
-  const data = genHistory(item, null);
+  const [realData, setRealData] = useState(undefined); // undefined = loading, null = none available
+  useEffect(function() {
+    let cancelled = false;
+    loadRealHistory().then(function(all) {
+      if (cancelled) return;
+      var pts = all[item.name] ? genHistoryFromReal(item, all[item.name]) : null;
+      setRealData(pts);
+    });
+    return function() { cancelled = true; };
+  }, [item.name]);
+  const data = realData === undefined ? null : (realData || genHistory(item, null));
+  const isRealData = !!realData;
   const [hoverIdx, setHoverIdx] = useState(null);
   const [range, setRange] = useState("All");
   const svgRef = useRef(null);
-  const rangeDays = { "1W": 7, "1M": 30, "3M": 90, "6M": 180, "All": 9999 };
+  const rangeDays = { "1W": 7, "1M": 30, "3M": 90, "6M": 180, "1Y": 365, "All": 9999 };
+  if (data === null) {
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={onClose}>
+        <div style={{ background: "#16161a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, padding: 40, color: "#666", fontSize: 13 }} onClick={function(e){e.stopPropagation()}}>
+          Loading price history…
+        </div>
+      </div>
+    );
+  }
   var cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - rangeDays[range]);
   const sliced = range === "All" ? data : data.filter(function(p){return p.date >= cutoff});
@@ -4777,7 +4826,7 @@ function GraphModal({ item, onClose }) {
       <div className="s2-graph-modal" style={{ background: "#16161a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, padding: 28, width: 620, maxWidth: "95vw" }} onClick={function(e){e.stopPropagation()}}>
         <div className="s2-graph-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
           <div>
-            <div style={{ fontSize: 11, color: rc, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>{item.rarity} · {item.type}</div>
+            <div style={{ fontSize: 11, color: rc, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>{item.rarity} · {item.type}{isRealData && <span style={{ marginLeft:8, color:"#4caf50", letterSpacing:"normal" }}>● Verified Market Data</span>}</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{item.name}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#666", fontSize: 20, cursor: "pointer" }}>✕</button>
