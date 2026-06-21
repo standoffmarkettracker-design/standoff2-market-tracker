@@ -4800,26 +4800,53 @@ var __realHistoryPromise = null;
 function loadRealHistory() {
   if (__realHistoryCache) return Promise.resolve(__realHistoryCache);
   if (__realHistoryPromise) return __realHistoryPromise;
-  __realHistoryPromise = fetch("/price_history_real.json")
-    .then(function(r) { return r.ok ? r.json() : {}; })
-    .then(function(data) { __realHistoryCache = data; return data; })
+  __realHistoryPromise = Promise.all([
+    fetch("/price_history_real_1.json").then(function(r) { return r.ok ? r.json() : {}; }).catch(function() { return {}; }),
+    fetch("/price_history_real_2.json").then(function(r) { return r.ok ? r.json() : {}; }).catch(function() { return {}; })
+  ])
+    .then(function(parts) {
+      var data = Object.assign({}, parts[0], parts[1]);
+      __realHistoryCache = data;
+      return data;
+    })
     .catch(function() { __realHistoryCache = {}; return {}; });
   return __realHistoryPromise;
 }
 
-function genHistoryFromReal(item, realPoints) {
-  var dates = Object.keys(realPoints).sort();
+// Estimated (interpolated) points are kept in a fully separate file from the verified
+// real data. They only ever fill gaps between two real anchor points and are always
+// rendered distinctly (dashed) so they're never mistaken for verified market data.
+var __estHistoryCache = null;
+var __estHistoryPromise = null;
+function loadEstimatedHistory() {
+  if (__estHistoryCache) return Promise.resolve(__estHistoryCache);
+  if (__estHistoryPromise) return __estHistoryPromise;
+  __estHistoryPromise = fetch("/price_history_estimated.json")
+    .then(function(r) { return r.ok ? r.json() : {}; })
+    .then(function(data) { __estHistoryCache = data; return data; })
+    .catch(function() { __estHistoryCache = {}; return {}; });
+  return __estHistoryPromise;
+}
+
+function genHistoryFromReal(item, realPoints, estPoints) {
+  var merged = {};
+  Object.keys(realPoints || {}).forEach(function(d) { merged[d] = { price: realPoints[d], estimated: false }; });
+  // Estimated points only ever fill in a date that has no real entry already.
+  Object.keys(estPoints || {}).forEach(function(d) {
+    if (!(d in merged)) merged[d] = { price: estPoints[d], estimated: true };
+  });
+  var dates = Object.keys(merged).sort();
   if (dates.length === 0) return null;
   var pts = dates.map(function(d) {
-    return { date: new Date(d + "T12:00:00"), price: realPoints[d] };
+    return { date: new Date(d + "T12:00:00"), price: merged[d].price, estimated: merged[d].estimated };
   });
   // Append today's live price as the final point so the graph always ends at the current price
   var now = new Date();
   var lastDate = pts[pts.length - 1].date;
   if (now.getTime() - lastDate.getTime() > 12 * 60 * 60 * 1000) {
-    pts.push({ date: now, price: item.price });
+    pts.push({ date: now, price: item.price, estimated: false });
   } else {
-    pts[pts.length - 1] = { date: now, price: item.price };
+    pts[pts.length - 1] = { date: now, price: item.price, estimated: false };
   }
   return pts;
 }
@@ -4859,15 +4886,17 @@ function GraphModal({ item, onClose }) {
   const [realData, setRealData] = useState(undefined); // undefined = loading, null = none available
   useEffect(function() {
     let cancelled = false;
-    loadRealHistory().then(function(all) {
+    Promise.all([loadRealHistory(), loadEstimatedHistory()]).then(function(results) {
       if (cancelled) return;
-      var pts = all[item.name] ? genHistoryFromReal(item, all[item.name]) : null;
+      var all = results[0], allEst = results[1];
+      var pts = all[item.name] ? genHistoryFromReal(item, all[item.name], allEst[item.name]) : null;
       setRealData(pts);
     });
     return function() { cancelled = true; };
   }, [item.name]);
   const data = realData === undefined ? null : (realData || genHistory(item, null));
   const isRealData = !!realData;
+  const hasEstimated = isRealData && realData.some(function(p){return p.estimated});
   const [hoverIdx, setHoverIdx] = useState(null);
   const [range, setRange] = useState("All");
   const svgRef = useRef(null);
@@ -4892,6 +4921,16 @@ function GraphModal({ item, onClose }) {
   function yOf(p) { return PT + gH - ((p - (minP - padP)) / (maxP + padP - (minP - padP))) * gH }
   const linePath = sliced.map(function(p, i) { return (i === 0 ? "M" : "L") + " " + xOf(i).toFixed(1) + " " + yOf(p.price).toFixed(1) }).join(" ");
   const areaPath = linePath + " L " + xOf(sliced.length - 1).toFixed(1) + " " + (PT + gH).toFixed(1) + " L 0 " + (PT + gH).toFixed(1) + " Z";
+  // A segment is drawn dashed if either endpoint is an estimated (interpolated) point,
+  // so estimated stretches are always visually distinct from verified real data.
+  const lineSegments = [];
+  for (var si = 1; si < sliced.length; si++) {
+    var segEstimated = !!(sliced[si].estimated || sliced[si - 1].estimated);
+    lineSegments.push({
+      estimated: segEstimated,
+      d: "M " + xOf(si - 1).toFixed(1) + " " + yOf(sliced[si - 1].price).toFixed(1) + " L " + xOf(si).toFixed(1) + " " + yOf(sliced[si].price).toFixed(1)
+    });
+  }
   const isUp = sliced[sliced.length - 1].price >= sliced[0].price;
   const lineColor = isUp ? "#4caf50" : "#ef5350";
   const gradId = "grad" + item.name.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20);
@@ -4910,7 +4949,7 @@ function GraphModal({ item, onClose }) {
       <div className="s2-graph-modal" style={{ background: "#16161a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, padding: 28, width: 620, maxWidth: "95vw" }} onClick={function(e){e.stopPropagation()}}>
         <div className="s2-graph-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
           <div>
-            <div style={{ fontSize: 11, color: rc, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>{item.rarity} · {item.type}{isRealData && <span style={{ marginLeft:8, color:"#4caf50", letterSpacing:"normal" }}>● Verified Market Data</span>}</div>
+            <div style={{ fontSize: 11, color: rc, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>{item.rarity} · {item.type}{isRealData && <span style={{ marginLeft:8, color:"#4caf50", letterSpacing:"normal" }}>● Verified Market Data</span>}{hasEstimated && <span style={{ marginLeft:8, color:"#888", letterSpacing:"normal" }}>┄ Includes estimated days</span>}</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{item.name}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#666", fontSize: 20, cursor: "pointer" }}>✕</button>
@@ -4918,7 +4957,7 @@ function GraphModal({ item, onClose }) {
         <div className="s2-graph-price" style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 20 }}>
           <span style={{ fontSize: 28, fontWeight: 800, color: "#fff", fontFamily: "monospace" }}>{fmtPrice(hovered.price)} G</span>
           <span style={{ fontSize: 14, color: parseFloat(pctChange) >= 0 ? "#4caf50" : "#ef5350", fontWeight: 600 }}>{parseFloat(pctChange)>=0?"▲":"▼"} {Math.abs(pctChange)}% ({range})</span>
-          <span style={{ fontSize: 12, color: "#555", marginLeft: "auto" }}>{hovered.date.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>
+          <span style={{ fontSize: 12, color: "#555", marginLeft: "auto" }}>{hovered.date.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}{hovered.estimated && <span style={{ color:"#888" }}> (est.)</span>}</span>
         </div>
         <div className="s2-graph-ranges" style={{ display: "flex", gap: 6, marginBottom: 16 }}>
           {Object.keys(rangeDays).map(function(r){return <button key={r} onClick={function(){setRange(r);setHoverIdx(null)}} style={{ padding:"4px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",background:range===r?rc+"22":"transparent",border:"1px solid "+(range===r?rc:"rgba(255,255,255,0.1)"),color:range===r?rc:"#666"}}>{r}</button>})}
@@ -4927,7 +4966,7 @@ function GraphModal({ item, onClose }) {
           <defs><linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={lineColor} stopOpacity="0.25"/><stop offset="100%" stopColor={lineColor} stopOpacity="0.02"/></linearGradient></defs>
           {[0.25,0.5,0.75].map(function(t){var y=PT+t*gH;var p=(maxP+padP)-t*(maxP+padP-(minP-padP));var lbl=fmtPrice(p);return <g key={t}><line x1={0} y1={y} x2={W} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="1"/><text x={W-4} y={y-3} fill="#444" fontSize="10" textAnchor="end">{lbl}</text></g>})}
           <path d={areaPath} fill={"url(#"+gradId+")"} />
-          <path d={linePath} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinejoin="round" />
+          {lineSegments.map(function(seg, i){return <path key={i} d={seg.d} fill="none" stroke={lineColor} strokeWidth="1.5" strokeLinejoin="round" strokeDasharray={seg.estimated ? "4,3" : undefined} opacity={seg.estimated ? 0.65 : 1} />})}
           <line x1={hovX} y1={PT} x2={hovX} y2={PT+gH} stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="3,3" />
           <circle cx={hovX} cy={hovY} r="4" fill={lineColor} stroke="#16161a" strokeWidth="2" />
         </svg>
