@@ -2381,6 +2381,17 @@ const ITEMS = [
 ];
 
 var ITEM_COLLECTIONS = {
+  "\"Breakout\" Gloves Case": "Breakout",
+  "Charm \"Breakout\" Gold": "Breakout",
+  "\"Breakout\" Weapon Case": "Breakout",
+  "Sticker \"Breakout\" Gold": "Breakout",
+  "\"Breakout\" Charm Pack": "Breakout",
+  "\"Breakout\" Sticker Pack": "Breakout",
+  "\"Breakout\" Weapon Crate": "Breakout",
+  "Charm \"Breakout\" Silver": "Breakout",
+  "Sticker \"Breakout\" Silver": "Breakout",
+  "\"Breakout\" Graffiti Pack": "Breakout",
+  "Graffiti \"Breakout\" Packed": "Breakout",
   "Butterfly \"Arcane Surge\"": "Dia de Muertos",
   "Sticker \"Gold Skull\"": "Standoff 2",
   "Sticker \"Z9 Mask\" Color": "Other",
@@ -2717,7 +2728,6 @@ var ITEM_COLLECTIONS = {
   "jKommando \"Luxury\"": "Rival",
   "TEC-9 \"Glitch\"": "Space Vision",
   "Sticker \"Snow King\"": "Other",
-  "\"Breakout\" Gloves Case": "Other",
   "MP7 \"R1NA\"": "Syndicate",
   "Tanto \"Pearl Abyss\"": "Dragon Rise",
   "Fang \"Damascus\"": "Sunstrike",
@@ -2874,7 +2884,6 @@ var ITEM_COLLECTIONS = {
   "Sticker \"Party Rabbit\"": "Other",
   "Scorpion \"Cold Flame\"": "New Year 2021",
   "Sticker \"Bubblegum Space\"": "Other",
-  "Charm \"Breakout\" Gold": "Other",
   "Gloves \"Dread\"": "Gambit",
   "Scorpion \"Scratch\"": "Scorpion",
   "Kukri \"Constellations\"": "Legends",
@@ -3404,12 +3413,10 @@ var ITEM_COLLECTIONS = {
   "Sticker \"Gun Heart\" Swap": "Other",
   "MP7 \"Graffiti\"": "Scorpion",
   "UMP45 \"Spirit\" StatTrack": "Revival",
-  "\"Breakout\" Weapon Case": "Other",
   "\"Winter Tale\" Weapon Case": "Other",
   "Sticker \"Drowned\" Color": "Other",
   "MAC10 \"Purple Mist\" StatTrack": "Hot Winter Party",
   "F/S \"Enforcer\" StatTrack": "Dragon Rise",
-  "Sticker \"Breakout\" Gold": "Other",
   "USP \"Rainforest\"": "Prey",
   "Sticker \"Jubilee 5\" Color": "Other",
   "Sticker \"Night Flier\" Color": "Other",
@@ -3663,7 +3670,6 @@ var ITEM_COLLECTIONS = {
   "Sticker \"Luck\"": "Other",
   "Sticker \"Frostbite\"": "Other",
   "Desert Eagle \"Red Dragon\"": "Furious",
-  "\"Breakout\" Charm Pack": "Other",
   "UMP45 \"Arid\" StatTrack": "Sunstrike",
   "M4 \"Ironclad\"": "Reforged",
   "Sticker \"Minotaur\"": "Other",
@@ -3873,7 +3879,6 @@ var ITEM_COLLECTIONS = {
   "Graffiti \"Solid Heart\" Packed": "Other",
   "Sticker \"PRO\"": "Other",
   "Sticker \"Spectral Mist Shine\"": "Shine",
-  "\"Breakout\" Sticker Pack": "Other",
   "Sticker \"V2\"": "Other",
   "P350 \"Skull\"": "Rival",
   "SM1014 \"Quake\"": "Rival",
@@ -4146,7 +4151,6 @@ var ITEM_COLLECTIONS = {
   "MP7 \"Palace\"": "Empire",
   "Sticker \"Wait what\"": "Other",
   "MAC10 \"Escape Plan\"": "Other",
-  "Sticker \"Breakout\" Silver": "Other",
   "FN FAL \"Verglas\"": "Frosty Chaos",
   "M4 \"Retro Film\"": "Other",
   "Sticker \"Rusty Gear\"": "Other",
@@ -4161,7 +4165,6 @@ var ITEM_COLLECTIONS = {
   "Sticker \"Brutal\"": "Other",
   "F/S \"Pink Shot\"": "Kitsune Dreams",
   "Charm \"Peripteros\"": "Other",
-  "\"Breakout\" Weapon Crate": "Other",
   "M110 \"Z-07 M.A.R.K.S.M.A.N.\"": "Dragon Rise",
   "Charm \"Tape Recorder\"": "Other",
   "FabM \"Undertow\"": "Syndicate",
@@ -4184,7 +4187,6 @@ var ITEM_COLLECTIONS = {
   "Sticker \"Gun Run\"": "Other",
   "VAL \"Vertex\" StatTrack": "Other",
   "Charm \"Bladebrand\"": "Other",
-  "Charm \"Breakout\" Silver": "Other",
   "M16 \"Wraithwood\"": "Nightmare",
   "Graffiti \"Omen\" Packed": "Other",
   "Sticker \"Think about it\"": "Other",
@@ -4385,7 +4387,6 @@ var ITEM_COLLECTIONS = {
   "SM1014 \"Wave\"": "Scorpion",
   "Graffiti \"Scorcher\" Packed": "Other",
   "\"Fable\" Box": "Fable",
-  "\"Breakout\" Graffiti Pack": "Other",
   "FabM \"Fiend\"": "Dia de Muertos",
   "Graffiti \"Tough Guy\" Packed": "Other",
   "Graffiti \"Sensei\" Packed": "Other",
@@ -4570,7 +4571,6 @@ var ITEM_COLLECTIONS = {
   "P90 \"Horizon\"": "Other",
   "Graffiti \"Holiday Broadcast\" Packed": "Other",
   "Graffiti \"Bear Warning\" Packed": "Other",
-  "Graffiti \"Breakout\" Packed": "Other",
   "F/S \"Polymer\"": "Reforged",
   "M110 \"Dark Pact\"": "Nightmare",
   "SM1014 \"Wasp\"": "Dynasty",
@@ -6859,7 +6859,7 @@ function App() {
               {dynamicTypes.map(function(t){return <option key={t} value={t}>{t}</option>})}
             </select>
             <select value={collFilter} onChange={function(e){setCollFilter(e.target.value)}} style={{ background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"9px 10px",color:"#ccc",fontSize:13,cursor:"pointer" }}>
-              {["All","2 Years","4 Years","5 Years","8 Years","Assistance","Chameleon","Champions","Competitive","Cursed Souls","Dia de Muertos","Dragon Rise","Dynasty","Empire","Esports","FUN&SUN","Fable","Fireborn","Flow","Frosty Chaos","Furious","Gambit","Halloween 2019","Halloween 2020","Hot Winter Party","Joy","Kitsune Dreams","Legends","Nameless","New Year 2020","New Year 2021","Nightmare","Origin","Outcast","Prey","Project Pandora","Project Z9","Reforged","Revenge","Revival","Rival","Scorpion","Sharp","Shine","Space Vision","Splash","Standoff 2","Subject X","Sunstrike","Syndicate","Vibe","Winter Fun 2022","Other"].map(function(c){return <option key={c} value={c}>{c}</option>})}
+              {["All","2 Years","4 Years","5 Years","8 Years","Assistance","Breakout","Chameleon","Champions","Competitive","Cursed Souls","Dia de Muertos","Dragon Rise","Dynasty","Empire","Esports","FUN&SUN","Fable","Fireborn","Flow","Frosty Chaos","Furious","Gambit","Halloween 2019","Halloween 2020","Hot Winter Party","Joy","Kitsune Dreams","Legends","Nameless","New Year 2020","New Year 2021","Nightmare","Origin","Outcast","Prey","Project Pandora","Project Z9","Reforged","Revenge","Revival","Rival","Scorpion","Sharp","Shine","Space Vision","Splash","Standoff 2","Subject X","Sunstrike","Syndicate","Vibe","Winter Fun 2022","Other"].map(function(c){return <option key={c} value={c}>{c}</option>})}
             </select>
             <select value={sort} onChange={function(e){setSort(e.target.value)}} style={{ background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"9px 10px",color:"#ccc",fontSize:13,cursor:"pointer" }}>
               <option value="price">{t("sortPrice",lang)}</option>
