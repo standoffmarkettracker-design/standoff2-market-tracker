@@ -203,6 +203,8 @@ function ItemCard({ item, onClick, selected, onGraph }) {
 
 var __realHistoryCache = null;
 var __realHistoryPromise = null;
+var __latestPriceDate = null;  // set when history loads; drives the "Updated:" header
+
 function loadRealHistory() {
   if (__realHistoryCache) return Promise.resolve(__realHistoryCache);
   if (__realHistoryPromise) return __realHistoryPromise;
@@ -213,6 +215,15 @@ function loadRealHistory() {
     .then(function(parts) {
       var data = Object.assign({}, parts[0], parts[1]);
       __realHistoryCache = data;
+      // Find the most recent date across all items for the "Updated" banner
+      var latest = "";
+      Object.values(data).forEach(function(hist) {
+        Object.keys(hist).forEach(function(d) { if (d > latest) latest = d; });
+      });
+      if (latest) {
+        var dt = new Date(latest + "T12:00:00");
+        __latestPriceDate = dt.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+      }
       return data;
     })
     .catch(function() { __realHistoryCache = {}; return {}; });
@@ -1786,7 +1797,37 @@ function getSignal(score) {
   return { label: "Avoid", color: "#ef5350", icon: "🔴" };
 }
 
+// Analyse real price history to compute smarter signals not available from the DataTables feed
+function analyseHistory(hist) {
+  var dates = Object.keys(hist).sort();
+  if (dates.length < 7) return null;
+  var prices = dates.map(function(d) { return hist[d]; });
+  var latest = prices[prices.length - 1];
+  var min30 = Math.min.apply(null, prices.slice(-30));
+  var max30 = Math.max.apply(null, prices.slice(-30));
+  var avg30 = prices.slice(-30).reduce(function(a,b){return a+b;},0) / Math.min(prices.length, 30);
+  // Recovery: hit a 30-day low in the past 7 days but is now higher
+  var recentMin = Math.min.apply(null, prices.slice(-7));
+  var olderMin  = Math.min.apply(null, prices.slice(-30, -7));
+  var hitLow    = recentMin <= min30 * 1.05;
+  var recovered = latest > recentMin * 1.08;
+  // Dip: currently below 30-day avg by >10%, could be a buy
+  var isBelowAvg = latest < avg30 * 0.90;
+  // Breakout: last 3 days all higher than the 14-day avg before them
+  var avg14pre = prices.slice(-17, -3).reduce(function(a,b){return a+b;},0) / 14;
+  var last3above = prices.slice(-3).every(function(p){return p > avg14pre * 1.05;});
+  // Range position: where current price sits in the 30-day range (0=bottom, 1=top)
+  var rangePct = max30 > min30 ? (latest - min30) / (max30 - min30) : 0.5;
+  return { hitLow:hitLow, recovered:recovered, isBelowAvg:isBelowAvg, last3above:last3above, rangePct:rangePct, min30:min30, avg30:avg30, dataPoints:dates.length };
+}
+
 function InvestmentPanel({ setTab, setSelected, setGraphItem, lang }) {
+  var [histData, setHistData] = React.useState(null);
+
+  React.useEffect(function() {
+    loadRealHistory().then(function(all) { setHistData(all); });
+  }, []);
+
   var scored = ITEMS.filter(function(i){return i.price >= 1}).map(function(item) {
     return { item: item, score: scoreItem(item) };
   }).sort(function(a, b) { return b.score - a.score; });
@@ -1794,6 +1835,24 @@ function InvestmentPanel({ setTab, setSelected, setGraphItem, lang }) {
   var predicted = scored.slice(0, 10);
   var momentum = ITEMS.filter(function(i){return i.price>=1 && i.day>0 && i.week>0 && i.month>0}).sort(function(a,b){return (b.day+b.week+b.month)-(a.day+a.week+a.month)}).slice(0,10);
   var undervalued = ITEMS.filter(function(i){return i.price>=5 && i.price<=5000 && i.spread<25 && i.vol<30 && i.month>5 && i.year>0}).sort(function(a,b){return b.month-a.month}).slice(0,10);
+
+  // History-based signals — only available once histData loads
+  var recoveries = [], dips = [], breakouts = [];
+  if (histData) {
+    ITEMS.forEach(function(item) {
+      if (item.price < 5) return;
+      var hist = histData[item.name];
+      if (!hist) return;
+      var a = analyseHistory(hist);
+      if (!a || a.dataPoints < 14) return;
+      if (a.hitLow && a.recovered) recoveries.push({ item:item, analysis:a });
+      if (a.isBelowAvg && item.month > 0) dips.push({ item:item, analysis:a });
+      if (a.last3above) breakouts.push({ item:item, analysis:a });
+    });
+    recoveries.sort(function(a,b){return b.item.price - a.item.price;});
+    dips.sort(function(a,b){return a.analysis.rangePct - b.analysis.rangePct;});
+    breakouts.sort(function(a,b){return b.item.price - a.item.price;});
+  }
 
   function renderCard(item, idx, accent, showScore, scoreVal) {
     var rc=RC[item.rarity]||"#888";var rb=RB[item.rarity]||"rgba(128,128,128,0.12)";
@@ -1838,6 +1897,37 @@ function InvestmentPanel({ setTab, setSelected, setGraphItem, lang }) {
     );
   }
 
+  function renderCardWithBadge(item, idx, accent, badge) {
+    var rc=RC[item.rarity]||"#888";var rb=RB[item.rarity]||"rgba(128,128,128,0.12)";
+    var img = ITEM_IMAGES[item.name];
+    return (
+      <div key={item.name+"_hist"+idx} onClick={function(){
+        setTab("market");
+        setSelected(item);
+        setTimeout(function(){
+          var el = document.querySelector(".s2-detail");
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 80);
+      }} className="s2-inv-card" style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"16px",cursor:"pointer" }}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8 }}>
+          <div style={{ display:"flex",alignItems:"center",gap:8,flex:1 }}>
+            <span style={{ fontSize:18,fontWeight:800,color:accent }}>#{idx+1}</span>
+            {img && <img src={img} alt="" style={{ width:32,height:22,objectFit:"contain",borderRadius:3 }} />}
+            <span style={{ fontSize:13,fontWeight:600,color:"#eee" }}>{item.name}</span>
+          </div>
+          <span style={{ fontSize:10,padding:"2px 6px",borderRadius:20,background:rb,color:rc,border:"1px solid "+rc+"33",whiteSpace:"nowrap" }}>{item.rarity}</span>
+        </div>
+        <div style={{ fontSize:10,color:accent,fontWeight:600,marginBottom:8,padding:"3px 8px",background:accent+"18",borderRadius:6,display:"inline-block" }}>{badge}</div>
+        <div style={{ display:"flex",gap:12,fontSize:11,flexWrap:"wrap" }}>
+          <span style={{ color:"#888" }}>{fmtPrice(item.price)} G</span>
+          <span style={{ color:item.day>=0?"#4caf50":"#ef5350" }}>24h: {item.day>=0?"+":""}{item.day.toFixed(1)}%</span>
+          <span style={{ color:item.week>=0?"#4caf50":"#ef5350" }}>7d: {item.week>=0?"+":""}{item.week.toFixed(1)}%</span>
+          <span style={{ color:item.month>=0?"#4caf50":"#ef5350" }}>30d: {item.month>=0?"+":""}{item.month.toFixed(1)}%</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div style={{ marginBottom:32 }}>
@@ -1863,6 +1953,45 @@ function InvestmentPanel({ setTab, setSelected, setGraphItem, lang }) {
           {undervalued.map(function(item,i){return renderCard(item,i,"#64b5f6",false,0)})}
         </div>
       </div>
+
+      {/* --- History-powered signals --- */}
+      {!histData && (
+        <div style={{ textAlign:"center",color:"#555",fontSize:12,padding:"32px 0" }}>Loading historical analysis…</div>
+      )}
+      {histData && recoveries.length > 0 && (
+        <div style={{ marginBottom:32 }}>
+          <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#ff7043",letterSpacing:"0.03em" }}>🔄 30-Day Low Recoveries</h3>
+          <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>Hit a 30-day price low recently but bounced back — potential buy-the-dip opportunity</p>
+          <div className="s2-investments" style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12 }}>
+            {recoveries.slice(0,10).map(function(r,i){
+              return renderCardWithBadge(r.item,i,"#ff7043","↩ Recovered from " + r.item.price.toLocaleString() + "G low");
+            })}
+          </div>
+        </div>
+      )}
+      {histData && dips.length > 0 && (
+        <div style={{ marginBottom:32 }}>
+          <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#26c6da",letterSpacing:"0.03em" }}>📉 Below 30-Day Average</h3>
+          <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>Price currently 10%+ below its 30-day average with positive monthly trend — historically tends to mean-revert</p>
+          <div className="s2-investments" style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12 }}>
+            {dips.slice(0,10).map(function(r,i){
+              var pct = Math.round((1 - r.item.price / r.analysis.avg30) * 100);
+              return renderCardWithBadge(r.item,i,"#26c6da","↓ " + pct + "% below 30d avg (" + Math.round(r.analysis.avg30).toLocaleString() + "G)");
+            })}
+          </div>
+        </div>
+      )}
+      {histData && breakouts.length > 0 && (
+        <div style={{ marginBottom:32 }}>
+          <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#ffd54f",letterSpacing:"0.03em" }}>🚀 3-Day Breakouts</h3>
+          <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>3 consecutive days above the 14-day average — early momentum signal</p>
+          <div className="s2-investments" style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12 }}>
+            {breakouts.slice(0,10).map(function(r,i){
+              return renderCardWithBadge(r.item,i,"#ffd54f","↑ 3d above 14d avg");
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2206,7 +2335,7 @@ function App() {
           </div>
         </div>
         <div className="s2-header-right" style={{ display:"flex",alignItems:"center",gap:12 }}>
-          <div style={{ fontSize:10,color:"#444" }}>Updated: {siteConfig.lastUpdated || "Jun 16, 2026"}</div>
+          <div style={{ fontSize:10,color:"#444" }}>Updated: {siteConfig.lastUpdated || __latestPriceDate || "Loading…"}</div>
           <select value={lang} onChange={function(e){changeLang(e.target.value)}} style={{ padding:"5px 8px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,color:"#ccc",fontSize:11,cursor:"pointer" }}>
             {Object.keys(LANGS).map(function(l){return <option key={l} value={l}>{LANGS[l].flag} {LANGS[l].name}</option>})}
           </select>
