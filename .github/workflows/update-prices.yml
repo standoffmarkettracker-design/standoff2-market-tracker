@@ -1,0 +1,34 @@
+name: Daily Price Update
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-prices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run price update script
+        run: python scripts/update_prices.py
+
+      - name: Commit and push if prices changed
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add price_history_real_1.json price_history_real_2.json items.json
+          git diff --cached --quiet || git commit -m "chore: daily price update $(date -u '+%Y-%m-%d')"
+          git push
