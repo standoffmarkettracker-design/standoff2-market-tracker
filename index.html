@@ -963,7 +963,8 @@ function AuthLoggedIn({ user, onLogout }) {
           <button onClick={onLogout} style={{ padding:"10px 24px", borderRadius:8, background:"rgba(239,83,80,0.15)", border:"1px solid rgba(239,83,80,0.3)", color:"#ef5350", fontSize:13, fontWeight:600, cursor:"pointer" }}>Sign Out</button>
         </div>
 
-        {/* Player Tracker profile card */}
+        {/* Referral section */}
+        <ReferralSection user={user} />
         <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:24 }}>
           <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:4 }}>🎮 Player Tracker Profile</div>
           <div style={{ fontSize:12, color:"#555", marginBottom:16 }}>Set a username so other players can search for and view your inventory in the Player Tracker tab.</div>
@@ -1004,6 +1005,64 @@ function AuthLoggedIn({ user, onLogout }) {
           </button>
         </div>
 
+      </div>
+    </div>
+  );
+}
+
+// ─── Referral System ──────────────────────────────────────────────────────────
+function ReferralSection({ user }) {
+  var [referralCount, setReferralCount] = React.useState(0);
+  var [copied, setCopied] = React.useState(false);
+
+  React.useEffect(function() {
+    if (!user) return;
+    db.ref("users/" + user.uid + "/referralCount").on("value", function(snap) {
+      setReferralCount(snap.val() || 0);
+    });
+    return function() { db.ref("users/" + user.uid + "/referralCount").off(); };
+  }, [user && user.uid]);
+
+  var referralLink = "https://standoff2markettracker.com?ref=" + user.uid;
+
+  function copyLink() {
+    navigator.clipboard.writeText(referralLink).then(function() {
+      setCopied(true);
+      setTimeout(function(){ setCopied(false); }, 2000);
+    });
+  }
+
+  return (
+    <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:24 }}>
+      <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:4 }}>🔗 Refer a Friend</div>
+      <div style={{ fontSize:12, color:"#555", marginBottom:16 }}>
+        Share your referral link. When someone signs up using it, you'll earn +1 referral credit — and we'll reward loyal referrers with bonus giveaway tickets in future updates.
+      </div>
+
+      {/* Stats */}
+      <div style={{ display:"flex", gap:12, marginBottom:16 }}>
+        <div style={{ flex:1, background:"rgba(255,255,255,0.03)", borderRadius:10, padding:"12px 14px", textAlign:"center", border:"1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ fontSize:24, fontWeight:800, color:"#4caf50" }}>{referralCount}</div>
+          <div style={{ fontSize:10, color:"#555", marginTop:2 }}>Successful Referrals</div>
+        </div>
+        <div style={{ flex:1, background:"rgba(255,255,255,0.03)", borderRadius:10, padding:"12px 14px", textAlign:"center", border:"1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ fontSize:24, fontWeight:800, color:"#ffd700" }}>{referralCount * 5}</div>
+          <div style={{ fontSize:10, color:"#555", marginTop:2 }}>Bonus Tickets Earned</div>
+        </div>
+      </div>
+
+      {/* Copy link */}
+      <div style={{ fontSize:11, color:"#666", marginBottom:6 }}>Your referral link</div>
+      <div style={{ display:"flex", gap:8 }}>
+        <div style={{ flex:1, padding:"9px 12px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:8, fontSize:11, color:"#777", fontFamily:"monospace", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+          {referralLink}
+        </div>
+        <button onClick={copyLink} style={{ padding:"9px 16px", borderRadius:8, background:copied?"rgba(76,175,80,0.2)":"rgba(255,255,255,0.06)", border:"1px solid "+(copied?"rgba(76,175,80,0.5)":"rgba(255,255,255,0.1)"), color:copied?"#4caf50":"#aaa", fontSize:12, fontWeight:600, cursor:"pointer", flexShrink:0 }}>
+          {copied ? "✓ Copied!" : "Copy"}
+        </button>
+      </div>
+      <div style={{ fontSize:10, color:"#444", marginTop:8 }}>
+        Referral credits are tracked automatically — no action needed when friends sign up.
       </div>
     </div>
   );
@@ -2280,6 +2339,176 @@ function ProfileInventoryView({ inventory, vhist }) {
   );
 }
 
+// ─── Portfolio Tracker ────────────────────────────────────────────────────────
+function PortfolioPanel({ user, setTab }) {
+  var inv = useInventory();
+  var items = inv.items;
+  var [valueHistory, setValueHistory] = React.useState({});
+  var [sortBy, setSortBy] = React.useState("value");
+
+  // Load historical value snapshots from Firebase
+  React.useEffect(function() {
+    if (!user) return;
+    db.ref("playerValueHistory/" + user.uid).once("value", function(snap) {
+      setValueHistory(snap.val() || {});
+    });
+  }, [user && user.uid]);
+
+  // Enrich inventory items with current market data
+  var totalValue = 0, totalCost = 0, totalDayGain = 0, totalWeekGain = 0, totalMonthGain = 0;
+  var enriched = items.map(function(invItem) {
+    var market = ITEMS.find(function(i){ return i.name === invItem.name; });
+    if (!market) return null;
+    var currentVal = market.price * invItem.qty;
+    var costBasis  = (invItem.addedPrice || market.price) * invItem.qty;
+    var dayGain    = (market.price * (market.day   || 0) / 100) * invItem.qty;
+    var weekGain   = (market.price * (market.week  || 0) / 100) * invItem.qty;
+    var monthGain  = (market.price * (market.month || 0) / 100) * invItem.qty;
+    totalValue    += currentVal;
+    totalCost     += costBasis;
+    totalDayGain  += dayGain;
+    totalWeekGain += weekGain;
+    totalMonthGain+= monthGain;
+    return { invItem, market, currentVal, costBasis, dayGain, weekGain, monthGain, pnl: currentVal - costBasis };
+  }).filter(Boolean);
+
+  // Sort holdings
+  enriched.sort(function(a, b) {
+    if (sortBy === "value")  return b.currentVal - a.currentVal;
+    if (sortBy === "pnl")    return b.pnl - a.pnl;
+    if (sortBy === "day")    return b.dayGain - a.dayGain;
+    if (sortBy === "gain%")  return (b.pnl/b.costBasis) - (a.pnl/a.costBasis);
+    return b.currentVal - a.currentVal;
+  });
+
+  var totalPnl     = totalValue - totalCost;
+  var totalPnlPct  = totalCost > 0 ? (totalPnl / totalCost * 100) : 0;
+
+  // Build chart data from value history + today
+  var today = new Date().toISOString().slice(0, 10);
+  var histWithToday = Object.assign({}, valueHistory);
+  if (totalValue > 0) histWithToday[today] = Math.round(totalValue * 100) / 100;
+  var histDates  = Object.keys(histWithToday).sort();
+  var histPrices = histDates.map(function(d){ return histWithToday[d]; });
+  var histMin    = Math.min.apply(null, histPrices) * 0.97;
+  var histMax    = Math.max.apply(null, histPrices) * 1.03;
+  var chartW = 580, chartH = 160;
+  function toX(i) { return histDates.length < 2 ? chartW/2 : (i / (histDates.length - 1)) * chartW; }
+  function toY(v) { return chartH - ((v - histMin) / (histMax - histMin || 1)) * chartH; }
+  var pathD = histDates.length < 2 ? "" : "M " + histDates.map(function(_, i){ return toX(i) + "," + toY(histPrices[i]); }).join(" L ");
+  var fillD = pathD ? pathD + " L " + toX(histDates.length-1) + "," + chartH + " L 0," + chartH + " Z" : "";
+  var chartColor = totalPnl >= 0 ? "#4caf50" : "#ef5350";
+
+  if (!user) return (
+    <div style={{ maxWidth:800, margin:"0 auto", padding:"60px 24px", textAlign:"center" }}>
+      <div style={{ fontSize:40, marginBottom:16 }}>📊</div>
+      <h2 style={{ color:"#fff", marginBottom:8 }}>Portfolio Tracker</h2>
+      <p style={{ color:"#555", marginBottom:24 }}>Sign in to track your holdings and see your real-time portfolio value.</p>
+      <button onClick={function(){ setTab("account"); }} style={{ padding:"10px 28px", borderRadius:8, background:"rgba(79,195,247,0.15)", border:"1px solid rgba(79,195,247,0.4)", color:"#4fc3f7", fontWeight:700, cursor:"pointer" }}>Sign In</button>
+    </div>
+  );
+
+  if (items.length === 0) return (
+    <div style={{ maxWidth:800, margin:"0 auto", padding:"60px 24px", textAlign:"center" }}>
+      <div style={{ fontSize:40, marginBottom:16 }}>📦</div>
+      <h2 style={{ color:"#fff", marginBottom:8 }}>Portfolio Tracker</h2>
+      <p style={{ color:"#555", marginBottom:24 }}>Add items to your inventory first, then your portfolio value will appear here automatically.</p>
+      <button onClick={function(){ setTab("inventory"); }} style={{ padding:"10px 28px", borderRadius:8, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", color:"#aaa", fontWeight:700, cursor:"pointer" }}>Go to Inventory →</button>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth:860, margin:"0 auto", padding:"28px 20px" }}>
+      <h2 style={{ margin:"0 0 24px", fontSize:22, fontWeight:800, color:"#fff" }}>📊 Portfolio Tracker</h2>
+
+      {/* Summary cards */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:12, marginBottom:24 }}>
+        {[
+          { label:"Total Value",   value:fmtPrice(totalValue) + " G",                    color:"#fff" },
+          { label:"Total P&L",     value:(totalPnl>=0?"+":"")+fmtPrice(totalPnl)+" G",   color:totalPnl>=0?"#4caf50":"#ef5350" },
+          { label:"Return",        value:(totalPnlPct>=0?"+":"")+totalPnlPct.toFixed(1)+"%", color:totalPnl>=0?"#4caf50":"#ef5350" },
+          { label:"24h Change",    value:(totalDayGain>=0?"+":"")+fmtPrice(totalDayGain)+" G", color:totalDayGain>=0?"#4caf50":"#ef5350" },
+          { label:"7d Change",     value:(totalWeekGain>=0?"+":"")+fmtPrice(totalWeekGain)+" G", color:totalWeekGain>=0?"#4caf50":"#ef5350" },
+          { label:"30d Change",    value:(totalMonthGain>=0?"+":"")+fmtPrice(totalMonthGain)+" G", color:totalMonthGain>=0?"#4caf50":"#ef5350" },
+        ].map(function(card) {
+          return (
+            <div key={card.label} style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:12, padding:"16px 14px" }}>
+              <div style={{ fontSize:10, color:"#555", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.06em" }}>{card.label}</div>
+              <div style={{ fontSize:18, fontWeight:800, color:card.color }}>{card.value}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Value history chart */}
+      {histDates.length >= 2 && (
+        <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:20, marginBottom:24, overflow:"hidden" }}>
+          <div style={{ fontSize:12, fontWeight:700, color:"#888", marginBottom:12 }}>Portfolio Value History</div>
+          <svg viewBox={"0 0 " + chartW + " " + chartH} style={{ width:"100%", height:chartH, display:"block" }}>
+            <defs>
+              <linearGradient id="pfGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={chartColor} stopOpacity="0.3" />
+                <stop offset="100%" stopColor={chartColor} stopOpacity="0.02" />
+              </linearGradient>
+            </defs>
+            <path d={fillD} fill="url(#pfGrad)" />
+            <path d={pathD} fill="none" stroke={chartColor} strokeWidth="2" />
+            {/* Start and end labels */}
+            <text x="4" y="14" fill="#555" fontSize="9">{histDates[0]}</text>
+            <text x={chartW-4} y="14" fill="#555" fontSize="9" textAnchor="end">{histDates[histDates.length-1]}</text>
+            <text x={toX(histDates.length-1)} y={toY(histPrices[histPrices.length-1])-6} fill={chartColor} fontSize="10" fontWeight="700" textAnchor="end">{fmtPrice(histPrices[histPrices.length-1])} G</text>
+          </svg>
+        </div>
+      )}
+
+      {/* Holdings table */}
+      <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, overflow:"hidden" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 18px", borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
+          <div style={{ fontSize:13, fontWeight:700, color:"#aaa" }}>Holdings ({enriched.length})</div>
+          <select value={sortBy} onChange={function(e){setSortBy(e.target.value)}} style={{ padding:"5px 8px", borderRadius:6, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", color:"#ccc", fontSize:11 }}>
+            <option value="value">Sort: Value</option>
+            <option value="pnl">Sort: P&L</option>
+            <option value="gain%">Sort: Return %</option>
+            <option value="day">Sort: 24h</option>
+          </select>
+        </div>
+        {enriched.map(function(e) {
+          var rc = RC[e.market.rarity] || "#888";
+          var rb = RB[e.market.rarity] || "rgba(128,128,128,0.12)";
+          var pnlPct = e.costBasis > 0 ? (e.pnl / e.costBasis * 100) : 0;
+          var img = ITEM_IMAGES[e.market.name];
+          return (
+            <div key={e.invItem.name} style={{ display:"grid", gridTemplateColumns:"1fr auto auto auto", gap:12, alignItems:"center", padding:"12px 18px", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
+                {img && <img src={img} alt="" style={{ width:32, height:22, objectFit:"contain", borderRadius:3, flexShrink:0 }} />}
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:12, fontWeight:600, color:"#eee", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{e.invItem.name}</div>
+                  <div style={{ fontSize:10, color:"#555" }}>
+                    <span style={{ padding:"1px 5px", borderRadius:10, background:rb, color:rc, border:"1px solid "+rc+"33", marginRight:6 }}>{e.market.rarity}</span>
+                    qty: {e.invItem.qty}
+                  </div>
+                </div>
+              </div>
+              <div style={{ textAlign:"right" }}>
+                <div style={{ fontSize:12, fontWeight:700, color:"#fff" }}>{fmtPrice(e.currentVal)} G</div>
+                <div style={{ fontSize:10, color:"#555" }}>{fmtPrice(e.market.price)} G each</div>
+              </div>
+              <div style={{ textAlign:"right", minWidth:70 }}>
+                <div style={{ fontSize:12, fontWeight:600, color:e.pnl>=0?"#4caf50":"#ef5350" }}>{e.pnl>=0?"+":""}{fmtPrice(e.pnl)} G</div>
+                <div style={{ fontSize:10, color:e.pnl>=0?"#4caf50":"#ef5350" }}>{pnlPct>=0?"+":""}{pnlPct.toFixed(1)}%</div>
+              </div>
+              <div style={{ textAlign:"right", minWidth:60 }}>
+                <div style={{ fontSize:11, color:e.dayGain>=0?"#4caf50":"#ef5350" }}>{e.dayGain>=0?"+":""}{fmtPrice(e.dayGain)} G</div>
+                <div style={{ fontSize:10, color:"#555" }}>today</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PlayerTrackerPanel({ user, tier, setTab }) {
   var [searchQ, setSearchQ] = React.useState("");
   var [foundProfile, setFoundProfile] = React.useState(null);
@@ -2384,6 +2613,15 @@ function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [lang, setLang] = useState(function(){ return localStorage.getItem('s2_lang') || 'en'; });
 
+  // Capture referral code from URL on first load
+  React.useEffect(function() {
+    var params = new URLSearchParams(location.search);
+    var ref = params.get("ref");
+    if (ref && ref.length > 4) {
+      localStorage.setItem("s2_ref", ref);
+    }
+  }, []);
+
   function changeLang(l) { setLang(l); localStorage.setItem('s2_lang', l); }
   const [siteConfig, setSiteConfig] = useState({banner:"⚠ Reminder that prices are updated daily and might not be totally accurate",siteTitle:"STANDOFF 2",chatEnabled:true,giveawaysEnabled:true,announcement:"",announcementColor:"#ffb74d"});
   const [lastUpdatedDate, setLastUpdatedDate] = useState(null);
@@ -2417,13 +2655,32 @@ function App() {
           var t = snap.val();
           if (t) { setTier(t); localStorage.setItem("s2_tier", t); }
         });
-        // Check admin on login — no keyboard shortcut needed
+        // Check admin on login
         db.ref("admins/" + u.uid).once("value", function(snap) {
           if (snap.val() === true) setShowAdmin(true);
         });
         db.ref("users/" + u.uid + "/isAdmin").once("value", function(snap) {
           if (snap.val() === true) setShowAdmin(true);
         });
+        // Process referral: check if this user was referred and hasn't been credited yet
+        var pendingRef = localStorage.getItem("s2_ref");
+        if (pendingRef && pendingRef !== u.uid) {
+          db.ref("referrals/" + u.uid + "/referredBy").once("value", function(snap) {
+            if (!snap.val()) {
+              // First time — record referral and credit both users
+              var batch = {};
+              batch["referrals/" + u.uid + "/referredBy"] = pendingRef;
+              batch["referrals/" + u.uid + "/joinedAt"]   = Date.now();
+              batch["referrals/" + pendingRef + "/referred/" + u.uid] = Date.now();
+              db.ref().update(batch);
+              // Give referrer +5 bonus giveaway tickets (stored as a bonus multiplier)
+              db.ref("users/" + pendingRef + "/referralCount").transaction(function(count) {
+                return (count || 0) + 1;
+              });
+              localStorage.removeItem("s2_ref");
+            }
+          });
+        }
       } else {
         setShowAdmin(false);
       }
@@ -2484,11 +2741,12 @@ function App() {
       </div>
 
       <div className="s2-tabs" style={{ display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"inventory",label:"📦 "+t("myInventory",lang)},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
+        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"portfolio",label:"📊 Portfolio"},{id:"inventory",label:"📦 "+t("myInventory",lang)},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
           <button key={t.id} onClick={function(){setTab(t.id)}} style={{ padding:"12px 24px",background:tab===t.id?"rgba(255,255,255,0.05)":"transparent",border:"none",borderBottom:tab===t.id?"2px solid #ff6b35":"2px solid transparent",color:tab===t.id?"#fff":"#666",fontSize:13,fontWeight:600,cursor:"pointer",letterSpacing:"0.03em" }}>{t.label}</button>
         )})}
       </div>
 
+      {tab === "portfolio" && <PortfolioPanel user={user} setTab={setTab} />}
       {tab === "investments" && (
         <div style={{ padding:"28px" }}>
           <h2 style={{ margin:"0 0 6px",fontSize:22,fontWeight:800,color:"#fff" }}>{t("bestInvestments",lang)}</h2>
