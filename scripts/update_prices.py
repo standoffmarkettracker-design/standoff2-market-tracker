@@ -15,11 +15,16 @@ HEADERS = {
     "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
     "origin": "https://standoff-2.com",
     "referer": "https://standoff-2.com/shop/",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "x-requested-with": "XMLHttpRequest",
+    "accept-language": "en-US,en;q=0.9",
 }
 
-SHOP_URL = "https://standoff-2.com/shop/"
+SHOP_URLS = [
+    "https://standoff-2.com/shop/",
+    "https://standoff-2.com/shop/?skin=AK-47&type=unknown&rare=all&category=all&collection=all",
+    "https://standoff-2.com/",
+]
 AJAX_URL = "https://standoff-2.com/wp-admin/admin-ajax.php"
 TABLE_ID = "2"
 PAGE_SIZE = 3000
@@ -33,17 +38,44 @@ GIVEAWAY_PINNED = {
 
 def get_nonce(session):
     """Load shop page and extract DataTables nonce."""
-    print("Fetching nonce from shop page...")
-    r = session.get(SHOP_URL, headers={"user-agent": HEADERS["user-agent"]}, timeout=30)
-    r.raise_for_status()
-    m = re.search(r'"wdtNonce"\s*:\s*"([^"]+)"', r.text)
-    if not m:
-        m = re.search(r'wdtNonce["\s:]+([a-f0-9]{8,12})', r.text)
-    if not m:
-        raise RuntimeError("Could not find DataTables nonce in shop page")
-    nonce = m.group(1)
-    print(f"  nonce: {nonce}")
-    return nonce
+    patterns = [
+        r'"wdtNonce"\s*:\s*"([^"]+)"',
+        r'wdtNonce["\s:]+([a-f0-9]{8,12})',
+        r'"nonce"\s*:\s*"([a-f0-9]{10})"',
+        r'nonce["\s:=\']+([a-f0-9]{8,12})',
+    ]
+    for url in SHOP_URLS:
+        print(f"Fetching nonce from {url}...")
+        try:
+            r = session.get(url, headers={
+                "user-agent": HEADERS["user-agent"],
+                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "accept-language": "en-US,en;q=0.9",
+            }, timeout=30)
+            r.raise_for_status()
+            for pat in patterns:
+                m = re.search(pat, r.text)
+                if m:
+                    nonce = m.group(1)
+                    print(f"  nonce: {nonce}")
+                    return nonce
+            print(f"  nonce not found in {url}, trying next...")
+        except Exception as e:
+            print(f"  failed to fetch {url}: {e}")
+
+    # Last resort: try a known nonce format by scraping all hex strings
+    print("Trying last-resort nonce extraction...")
+    try:
+        r = session.get(SHOP_URLS[0], headers={"user-agent": HEADERS["user-agent"]}, timeout=30)
+        all_nonces = re.findall(r'[a-f0-9]{10}', r.text)
+        if all_nonces:
+            nonce = all_nonces[0]
+            print(f"  guessed nonce: {nonce}")
+            return nonce
+    except Exception as e:
+        print(f"  last resort failed: {e}")
+
+    raise RuntimeError("Could not find DataTables nonce in shop page")
 
 
 def fetch_catalog(session, nonce):
