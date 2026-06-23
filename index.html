@@ -305,9 +305,9 @@ function genHistory(item, firebaseData) {
   return pts;
 }
 
-function GraphModal({ item, onClose }) {
+function GraphModal({ item, onClose, tier }) {
   const rc = RC[item.rarity] || "#888";
-  const [realData, setRealData] = useState(undefined); // undefined = loading, null = none available
+  const [realData, setRealData] = useState(undefined);
   useEffect(function() {
     let cancelled = false;
     loadRealHistory().then(function(all) {
@@ -322,7 +322,11 @@ function GraphModal({ item, onClose }) {
   const hasEstimated = isRealData && realData.some(function(p){return p.estimated});
   const [hoverIdx, setHoverIdx] = useState(null);
   const [range, setRange] = useState("All");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [showCustom, setShowCustom] = useState(false);
   const svgRef = useRef(null);
+  const isVIP = tier === "VIP+" || tier === "VIP";
   const rangeDays = { "1W": 7, "1M": 30, "3M": 90, "6M": 180, "1Y": 365, "All": 9999 };
   if (data === null) {
     return (
@@ -335,7 +339,15 @@ function GraphModal({ item, onClose }) {
   }
   var cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - rangeDays[range]);
-  const sliced = range === "All" ? data : data.filter(function(p){return p.date >= cutoff});
+  var sliced;
+  if (showCustom && customFrom && customTo) {
+    var fromDate = new Date(customFrom + "T00:00:00");
+    var toDate   = new Date(customTo   + "T23:59:59");
+    sliced = data.filter(function(p){ return p.date >= fromDate && p.date <= toDate; });
+    if (sliced.length === 0) sliced = data;
+  } else {
+    sliced = range === "All" ? data : data.filter(function(p){return p.date >= cutoff});
+  }
   const prices = sliced.map(function(p){return p.price});
   const minP = Math.min.apply(null, prices), maxP = Math.max.apply(null, prices);
   const padP = (maxP - minP) * 0.1 || maxP * 0.05;
@@ -382,8 +394,22 @@ function GraphModal({ item, onClose }) {
           <span style={{ fontSize: 14, color: parseFloat(pctChange) >= 0 ? "#4caf50" : "#ef5350", fontWeight: 600 }}>{parseFloat(pctChange)>=0?"▲":"▼"} {Math.abs(pctChange)}% ({range})</span>
           <span style={{ fontSize: 12, color: "#555", marginLeft: "auto" }}>{hovered.date.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}{hovered.estimated && <span style={{ color:"#888" }}> (est.)</span>}</span>
         </div>
-        <div className="s2-graph-ranges" style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-          {Object.keys(rangeDays).map(function(r){return <button key={r} onClick={function(){setRange(r);setHoverIdx(null)}} style={{ padding:"4px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",background:range===r?rc+"22":"transparent",border:"1px solid "+(range===r?rc:"rgba(255,255,255,0.1)"),color:range===r?rc:"#666"}}>{r}</button>})}
+        <div className="s2-graph-ranges" style={{ display:"flex", gap:6, marginBottom:showCustom?8:16, flexWrap:"wrap" }}>
+          {Object.keys(rangeDays).map(function(r){return <button key={r} onClick={function(){setRange(r);setHoverIdx(null);setShowCustom(false)}} style={{ padding:"4px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",background:range===r&&!showCustom?rc+"22":"transparent",border:"1px solid "+(range===r&&!showCustom?rc:"rgba(255,255,255,0.1)"),color:range===r&&!showCustom?rc:"#666"}}>{r}</button>})}
+          {isVIP ? (
+            <button onClick={function(){setShowCustom(!showCustom);setHoverIdx(null)}} style={{ padding:"4px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",background:showCustom?rc+"22":"transparent",border:"1px solid "+(showCustom?rc:"rgba(255,255,255,0.1)"),color:showCustom?rc:"#666"}}>Custom</button>
+          ) : (
+            <span style={{ padding:"4px 12px",borderRadius:20,fontSize:11,color:"#444",border:"1px solid rgba(255,255,255,0.05)",cursor:"default" }} title="VIP+ feature">Custom 🔒</span>
+          )}
+        </div>
+        {showCustom && isVIP && (
+          <div style={{ display:"flex", gap:8, marginBottom:16, alignItems:"center", flexWrap:"wrap" }}>
+            <span style={{ fontSize:11, color:"#666" }}>From</span>
+            <input type="date" value={customFrom} onChange={function(e){setCustomFrom(e.target.value)}} style={{ padding:"4px 8px", borderRadius:6, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.15)", color:"#ddd", fontSize:12 }} />
+            <span style={{ fontSize:11, color:"#666" }}>To</span>
+            <input type="date" value={customTo} onChange={function(e){setCustomTo(e.target.value)}} style={{ padding:"4px 8px", borderRadius:6, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.15)", color:"#ddd", fontSize:12 }} />
+          </div>
+        )}
         </div>
         <svg ref={svgRef} viewBox={"0 0 "+W+" "+H} className="s2-graph-svg" style={{ width:"100%",height:200,cursor:"crosshair",display:"block",touchAction:"none" }} onMouseMove={handleMouseMove} onMouseLeave={function(){setHoverIdx(null)}} onTouchMove={function(e){e.preventDefault();var touch=e.touches[0];var svg=svgRef.current;if(!svg)return;var rect=svg.getBoundingClientRect();var idx=Math.round((touch.clientX-rect.left)/rect.width*(sliced.length-1));setHoverIdx(Math.max(0,Math.min(sliced.length-1,idx)))}}>
           <defs><linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={lineColor} stopOpacity="0.25"/><stop offset="100%" stopColor={lineColor} stopOpacity="0.02"/></linearGradient></defs>
@@ -405,7 +431,97 @@ function GraphModal({ item, onClose }) {
   );
 }
 
-function DetailPanel({ item, onGraph, user, tier }) {
+// ─── Item Comparison Tool ─────────────────────────────────────────────────────
+function ComparisonModal({ items, onClose }) {
+  var [histData, setHistData] = React.useState(null);
+  var [range, setRange] = React.useState("3M");
+  var rangeDays = { "1M":30, "3M":90, "6M":180, "1Y":365, "All":9999 };
+  var colors = ["#4caf50","#4fc3f7","#ce93d8","#ffd700","#ff7043"];
+
+  React.useEffect(function() {
+    loadRealHistory().then(function(all) { setHistData(all); });
+  }, []);
+
+  var W = 560, H = 220, PT = 10;
+
+  var series = histData ? items.map(function(item, idx) {
+    var hist = histData[item.name];
+    if (!hist) return null;
+    var pts = genHistoryFromReal(item, hist);
+    if (!pts || pts.length < 2) return null;
+    var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - rangeDays[range]);
+    var sliced = range === "All" ? pts : pts.filter(function(p){ return p.date >= cutoff; });
+    return { item, pts: sliced, color: colors[idx] };
+  }).filter(Boolean) : [];
+
+  // Normalize to % change from first point for fair comparison
+  var allPcts = series.flatMap(function(s) {
+    var base = s.pts[0].price;
+    return s.pts.map(function(p){ return (p.price - base) / base * 100; });
+  });
+  var minPct = allPcts.length ? Math.min.apply(null, allPcts) : -10;
+  var maxPct = allPcts.length ? Math.max.apply(null, allPcts) : 10;
+  var padPct = (maxPct - minPct) * 0.1 || 5;
+  var gH = H - PT;
+
+  function xOf(i, len) { return len < 2 ? W/2 : (i / (len-1)) * W; }
+  function yOf(pct) { return PT + gH - ((pct - (minPct-padPct)) / (maxPct+padPct - (minPct-padPct))) * gH; }
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:300 }} onClick={onClose}>
+      <div style={{ background:"#16161a", border:"1px solid rgba(255,255,255,0.1)", borderRadius:18, padding:28, width:660, maxWidth:"95vw" }} onClick={function(e){e.stopPropagation()}}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+          <h3 style={{ margin:0, fontSize:16, fontWeight:700, color:"#fff" }}>📊 Price Comparison</h3>
+          <button onClick={onClose} style={{ background:"none", border:"none", color:"#666", fontSize:20, cursor:"pointer" }}>✕</button>
+        </div>
+
+        {/* Legend */}
+        <div style={{ display:"flex", gap:16, marginBottom:12, flexWrap:"wrap" }}>
+          {items.map(function(item, idx) {
+            return (
+              <div key={item.name} style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <div style={{ width:12, height:3, borderRadius:2, background:colors[idx] }} />
+                <span style={{ fontSize:11, color:"#ccc", maxWidth:140, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.name}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Range selector */}
+        <div style={{ display:"flex", gap:6, marginBottom:16 }}>
+          {Object.keys(rangeDays).map(function(r) {
+            return <button key={r} onClick={function(){setRange(r)}} style={{ padding:"4px 10px", borderRadius:20, fontSize:11, fontWeight:600, cursor:"pointer", background:range===r?"rgba(255,255,255,0.1)":"transparent", border:"1px solid "+(range===r?"rgba(255,255,255,0.3)":"rgba(255,255,255,0.1)"), color:range===r?"#fff":"#666" }}>{r}</button>;
+          })}
+        </div>
+
+        {/* Chart */}
+        {!histData && <div style={{ textAlign:"center", color:"#555", padding:"40px 0" }}>Loading price history…</div>}
+        {histData && series.length < 2 && <div style={{ textAlign:"center", color:"#555", padding:"40px 0" }}>Not enough history to compare</div>}
+        {histData && series.length >= 2 && (
+          <svg viewBox={"0 0 " + W + " " + H} style={{ width:"100%", height:H, display:"block" }}>
+            <line x1={0} y1={yOf(0)} x2={W} y2={yOf(0)} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3,3" />
+            <text x={W-4} y={yOf(0)-3} fill="#444" fontSize="9" textAnchor="end">0%</text>
+            {series.map(function(s) {
+              var base = s.pts[0].price;
+              var pcts = s.pts.map(function(p){ return (p.price - base) / base * 100; });
+              var d = pcts.map(function(pct, i){ return (i===0?"M":"L") + " " + xOf(i, pcts.length).toFixed(1) + " " + yOf(pct).toFixed(1); }).join(" ");
+              var lastPct = pcts[pcts.length-1];
+              return (
+                <g key={s.item.name}>
+                  <path d={d} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" />
+                  <text x={xOf(pcts.length-1, pcts.length)+4} y={yOf(lastPct)} fill={s.color} fontSize="9" dominantBaseline="middle">{lastPct>=0?"+":""}{lastPct.toFixed(1)}%</text>
+                </g>
+              );
+            })}
+          </svg>
+        )}
+        <div style={{ marginTop:8, fontSize:10, color:"#444", textAlign:"center" }}>Chart shows % change from start of selected period</div>
+      </div>
+    </div>
+  );
+}
+
+function DetailPanel({ item, onGraph, user, tier, compareItems, setCompareItems, setShowCompare }) {
   // Price alert state (Basic+)
   const [alertPrice, setAlertPrice] = React.useState("");
   const [alertDir, setAlertDir] = React.useState("above");
@@ -510,6 +626,29 @@ function DetailPanel({ item, onGraph, user, tier }) {
       </div>
       <button onClick={function(){onGraph(item)}} style={{ width:"100%",padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#aaa",fontSize:13,fontWeight:600,cursor:"pointer" }}>View Graph ↗</button>
 
+      {/* Compare button — VIP */}
+      {(tier === "VIP" || tier === "VIP+") && compareItems && (
+        <div style={{ marginTop:8, display:"flex", gap:6 }}>
+          {compareItems.find(function(c){ return c.name === item.name; }) ? (
+            <button onClick={function(){ setCompareItems(compareItems.filter(function(c){ return c.name !== item.name; })); }} style={{ flex:1, padding:"8px 14px", borderRadius:8, background:"rgba(206,147,216,0.15)", border:"1px solid rgba(206,147,216,0.4)", color:"#ce93d8", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+              ✓ Added to Compare
+            </button>
+          ) : (
+            <button onClick={function(){
+              if (compareItems.length >= 5) return;
+              setCompareItems(compareItems.concat([item]));
+            }} style={{ flex:1, padding:"8px 14px", borderRadius:8, background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", color:"#777", fontSize:12, fontWeight:600, cursor:compareItems.length>=5?"not-allowed":"pointer" }}>
+              {compareItems.length >= 5 ? "Compare full (5 max)" : "+ Add to Compare"}
+            </button>
+          )}
+          {compareItems.length >= 2 && (
+            <button onClick={function(){ setShowCompare(true); }} style={{ padding:"8px 14px", borderRadius:8, background:"rgba(206,147,216,0.2)", border:"1px solid rgba(206,147,216,0.5)", color:"#ce93d8", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+              Compare ({compareItems.length})
+            </button>
+          )}
+        </div>
+      )}
+
       {/* CSV Export — VIP+ */}
       <div style={{ marginTop:10 }}>
         {canExport ? (
@@ -599,12 +738,15 @@ function cleanOldMessages(itemName) {
   });
 }
 
-function sendMessage(itemName, text) {
+function sendMessage(itemName, text, displayName, tier) {
   var ref = db.ref("chats/" + chatKey(itemName));
-  ref.push({ text: filterProfanity(text), ts: Date.now() });
+  ref.push({ text: filterProfanity(text), ts: Date.now(), name: displayName || "Guest", tier: tier || "Free" });
 }
 
-function ItemChat({ item, tier }) {
+var TIER_COLORS = { "Free": "#888", "Basic": "#4fc3f7", "VIP": "#ce93d8", "VIP+": "#ffd700" };
+var TIER_BADGES = { "Free": "", "Basic": "", "VIP": "⬡ ", "VIP+": "★ " };
+
+function ItemChat({ item, tier, user }) {
   const [msgs, setMsgs] = useState([]);
   const [input, setInput] = useState("");
   const [cooldown, setCooldown] = useState(0);
@@ -643,7 +785,8 @@ function ItemChat({ item, tier }) {
 
   function handleSend() {
     if (!input.trim() || cooldown > 0) return;
-    sendMessage(item.name, input.trim());
+    var displayName = (user && (user.displayName || user.email)) || "Guest";
+    sendMessage(item.name, input.trim(), displayName, tier);
     setInput("");
     setCooldown(cdTime);
   }
@@ -664,12 +807,17 @@ function ItemChat({ item, tier }) {
       <div style={{ fontSize:12,color:"#666",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:8 }}>💬 Item Chat <span style={{ fontSize:10,color:"#4caf50",textTransform:"none" }}>● LIVE</span> <span style={{ fontSize:10,color:"#444",textTransform:"none" }}>(resets every 24h)</span></div>
       <div style={{ background:"rgba(0,0,0,0.3)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,padding:10,maxHeight:200,overflowY:"auto",marginBottom:8 }}>
         {msgs.length === 0 && <div style={{ fontSize:11,color:"#444",textAlign:"center",padding:"12px 0" }}>No messages yet — be the first!</div>}
-        {msgs.map(function(m) { return (
-          <div key={m.id} style={{ marginBottom:6 }}>
-            <span style={{ fontSize:10,color:"#555" }}>{formatTime(m.ts)}</span>
-            <span style={{ fontSize:12,color:"#ccc",marginLeft:8 }}>{m.text}</span>
-          </div>
-        )})}
+        {msgs.map(function(m) {
+          var nameColor = TIER_COLORS[m.tier] || "#888";
+          var badge = TIER_BADGES[m.tier] || "";
+          return (
+            <div key={m.id} style={{ marginBottom:6 }}>
+              <span style={{ fontSize:10, color:"#555" }}>{formatTime(m.ts)}</span>
+              {m.name && <span style={{ fontSize:11, fontWeight:600, color:nameColor, marginLeft:6 }}>{badge}{m.name}</span>}
+              <span style={{ fontSize:12, color:"#ccc", marginLeft:6 }}>{m.text}</span>
+            </div>
+          );
+        })}
       </div>
       <div style={{ display:"flex",gap:6 }}>
         <input value={input} onChange={function(e){setInput(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")handleSend()}} placeholder={cooldown>0?"Wait "+formatCd(cooldown)+"...":"Type a message..."} disabled={cooldown>0}
@@ -2017,7 +2165,229 @@ function analyseHistory(hist) {
   return { hitLow:hitLow, recovered:recovered, isBelowAvg:isBelowAvg, last3above:last3above, rangePct:rangePct, min30:min30, avg30:avg30, dataPoints:dates.length };
 }
 
-function InvestmentPanel({ setTab, setSelected, setGraphItem, lang }) {
+// ─── Weekly Market Report ─────────────────────────────────────────────────────
+function WeeklyMarketReport({ tier }) {
+  var isVIP = tier === "VIP+" || tier === "VIP";
+  var today = new Date();
+  var weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay());
+  var weekLabel = weekStart.toLocaleDateString("en-US", { month:"short", day:"numeric" }) + " – " + today.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+
+  // Top weekly gainers and losers (min price 5G, valid week% data)
+  var withWeek = ITEMS.filter(function(i){ return i.price >= 5 && i.week !== 0; });
+  var topGainers = withWeek.slice().sort(function(a,b){ return b.week - a.week; }).slice(0, 5);
+  var topLosers  = withWeek.slice().sort(function(a,b){ return a.week - b.week; }).slice(0, 5);
+
+  // Collection performance this week
+  var collWeek = {};
+  ITEMS.forEach(function(item) {
+    var coll = ITEM_COLLECTIONS[item.name];
+    if (!coll || coll === "Other" || item.week === 0) return;
+    if (!collWeek[coll]) collWeek[coll] = { sum:0, count:0 };
+    collWeek[coll].sum   += item.week;
+    collWeek[coll].count += 1;
+  });
+  var collRanked = Object.entries(collWeek)
+    .map(function(e){ return { name:e[0], avg: Math.round(e[1].sum / e[1].count * 10) / 10 }; })
+    .sort(function(a,b){ return b.avg - a.avg; });
+  var hotCollections  = collRanked.slice(0, 3);
+  var coldCollections = collRanked.slice(-3).reverse();
+
+  // Overall market mood
+  var gainers = ITEMS.filter(function(i){ return i.week > 0; }).length;
+  var losers  = ITEMS.filter(function(i){ return i.week < 0; }).length;
+  var moodPct = Math.round(gainers / (gainers + losers) * 100);
+  var mood    = moodPct >= 60 ? { label:"Bullish 🐂", color:"#4caf50" } : moodPct >= 40 ? { label:"Neutral ⚖", color:"#ffb74d" } : { label:"Bearish 🐻", color:"#ef5350" };
+
+  return (
+    <div style={{ marginBottom:36, background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, overflow:"hidden" }}>
+      {/* Header */}
+      <div style={{ padding:"18px 20px 14px", borderBottom:"1px solid rgba(255,255,255,0.06)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div>
+          <h3 style={{ margin:0, fontSize:15, fontWeight:700, color:"#fff" }}>
+            📋 Weekly Market Report
+            {!isVIP && <span style={{ marginLeft:8, fontSize:10, padding:"2px 8px", borderRadius:20, background:"rgba(206,147,216,0.15)", color:"#ce93d8", border:"1px solid rgba(206,147,216,0.3)" }}>VIP</span>}
+          </h3>
+          <div style={{ fontSize:11, color:"#555", marginTop:2 }}>{weekLabel}</div>
+        </div>
+        <div style={{ textAlign:"right" }}>
+          <div style={{ fontSize:18, fontWeight:800, color:mood.color }}>{mood.label}</div>
+          <div style={{ fontSize:10, color:"#555" }}>{moodPct}% of items up this week</div>
+        </div>
+      </div>
+
+      {/* Blurred overlay for non-VIP */}
+      <div style={{ position:"relative" }}>
+        <div style={{ padding:"16px 20px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, filter: isVIP ? "none" : "blur(6px)", pointerEvents: isVIP ? "auto" : "none" }}>
+          {/* Top Gainers */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:"#4caf50", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>📈 Top Gainers</div>
+            {topGainers.map(function(item, i) {
+              return (
+                <div key={item.name} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                  <div style={{ fontSize:12, color:"#ddd", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:"70%" }}>
+                    <span style={{ color:"#555", marginRight:6 }}>#{i+1}</span>{item.name}
+                  </div>
+                  <span style={{ fontSize:12, fontWeight:700, color:"#4caf50", flexShrink:0 }}>+{item.week.toFixed(1)}%</span>
+                </div>
+              );
+            })}
+          </div>
+          {/* Top Losers */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:"#ef5350", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>📉 Top Losers</div>
+            {topLosers.map(function(item, i) {
+              return (
+                <div key={item.name} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                  <div style={{ fontSize:12, color:"#ddd", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:"70%" }}>
+                    <span style={{ color:"#555", marginRight:6 }}>#{i+1}</span>{item.name}
+                  </div>
+                  <span style={{ fontSize:12, fontWeight:700, color:"#ef5350" }}>{item.week.toFixed(1)}%</span>
+                </div>
+              );
+            })}
+          </div>
+          {/* Hot Collections */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:"#ffb74d", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>🔥 Hot Collections</div>
+            {hotCollections.map(function(c) {
+              return (
+                <div key={c.name} style={{ display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                  <span style={{ fontSize:12, color:"#ddd" }}>{c.name}</span>
+                  <span style={{ fontSize:12, fontWeight:700, color:"#4caf50" }}>+{c.avg}% avg</span>
+                </div>
+              );
+            })}
+          </div>
+          {/* Cold Collections */}
+          <div>
+            <div style={{ fontSize:11, fontWeight:700, color:"#64b5f6", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>❄ Cooling Collections</div>
+            {coldCollections.map(function(c) {
+              return (
+                <div key={c.name} style={{ display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+                  <span style={{ fontSize:12, color:"#ddd" }}>{c.name}</span>
+                  <span style={{ fontSize:12, fontWeight:700, color:"#ef5350" }}>{c.avg}% avg</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        {!isVIP && (
+          <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:8 }}>
+            <div style={{ fontSize:14, fontWeight:700, color:"#fff" }}>🔒 VIP Feature</div>
+            <div style={{ fontSize:12, color:"#888" }}>Upgrade to VIP to see the full weekly report</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CollectionHeatMap({ setTab, tier }) {
+  var [sortBy, setSortBy] = React.useState("week");
+
+  // Compute stats per collection from live ITEMS data
+  var collectionStats = React.useMemo(function() {
+    var map = {};
+    ITEMS.forEach(function(item) {
+      var coll = ITEM_COLLECTIONS[item.name];
+      if (!coll || coll === "Other") return;
+      if (!map[coll]) map[coll] = { name:coll, items:0, totalValue:0, daySum:0, weekSum:0, monthSum:0, count:0 };
+      var s = map[coll];
+      s.items++;
+      s.totalValue += item.price;
+      if (item.day  !== 0) { s.daySum   += item.day;   s.count++; }
+      if (item.week !== 0) s.weekSum  += item.week;
+      if (item.month!== 0) s.monthSum += item.month;
+    });
+    return Object.values(map).map(function(s) {
+      return {
+        name:     s.name,
+        items:    s.items,
+        avgPrice: Math.round(s.totalValue / s.items * 10) / 10,
+        day:      Math.round(s.daySum   / s.items * 10) / 10,
+        week:     Math.round(s.weekSum  / s.items * 10) / 10,
+        month:    Math.round(s.monthSum / s.items * 10) / 10,
+      };
+    }).sort(function(a, b) {
+      return b[sortBy] - a[sortBy];
+    });
+  }, [sortBy]);
+
+  function tileColor(val) {
+    if (val >  5) return { bg:"rgba(76,175,80,0.25)",  border:"rgba(76,175,80,0.6)",   text:"#4caf50" };
+    if (val >  1) return { bg:"rgba(76,175,80,0.1)",   border:"rgba(76,175,80,0.3)",   text:"#81c784" };
+    if (val > -1) return { bg:"rgba(255,255,255,0.03)",border:"rgba(255,255,255,0.07)",text:"#666"    };
+    if (val > -5) return { bg:"rgba(239,83,80,0.1)",   border:"rgba(239,83,80,0.3)",   text:"#e57373" };
+                  return { bg:"rgba(239,83,80,0.22)",  border:"rgba(239,83,80,0.6)",   text:"#ef5350" };
+  }
+
+  var isVIP = tier === "VIP" || tier === "VIP+";
+
+  return (
+    <div style={{ marginBottom:36 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+        <div>
+          <h3 style={{ margin:0, fontSize:15, fontWeight:700, color:"#fff" }}>
+            🗺 Collection Heat Map
+            {!isVIP && <span style={{ marginLeft:8, fontSize:10, padding:"2px 8px", borderRadius:20, background:"rgba(206,147,216,0.15)", color:"#ce93d8", border:"1px solid rgba(206,147,216,0.3)" }}>Full analysis — VIP</span>}
+          </h3>
+          <p style={{ margin:"4px 0 0", fontSize:11, color:"#555" }}>
+            Average price trend per collection · click any tile to filter the market
+          </p>
+        </div>
+        <div style={{ display:"flex", gap:6 }}>
+          {["day","week","month"].map(function(s) {
+            return (
+              <button key={s} onClick={function(){setSortBy(s)}} style={{ padding:"4px 10px", borderRadius:6, fontSize:11, fontWeight:600, cursor:"pointer", background:sortBy===s?"rgba(255,255,255,0.1)":"transparent", border:"1px solid "+(sortBy===s?"rgba(255,255,255,0.2)":"rgba(255,255,255,0.07)"), color:sortBy===s?"#fff":"#555" }}>
+                {s === "day" ? "24h" : s === "week" ? "7d" : "30d"}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(130px, 1fr))", gap:8 }}>
+        {collectionStats.map(function(coll, idx) {
+          var val  = coll[sortBy];
+          var col  = tileColor(val);
+          var blur = !isVIP && idx >= 8; // VIP sees all; free sees top 8 clearly, rest blurred
+          return (
+            <div key={coll.name}
+              onClick={function(){ if (!blur) setTab && setTab("market"); }}
+              title={blur ? "Upgrade to VIP to see all collections" : coll.name}
+              style={{
+                padding:"12px 10px", borderRadius:10, cursor:blur?"default":"pointer",
+                background:col.bg, border:"1px solid "+col.border,
+                filter:blur?"blur(4px)":"none",
+                userSelect:"none", position:"relative",
+                transition:"transform 0.1s",
+              }}>
+              <div style={{ fontSize:11, fontWeight:700, color:"#ddd", marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{coll.name}</div>
+              <div style={{ fontSize:18, fontWeight:800, color:col.text }}>{val >= 0 ? "+" : ""}{val.toFixed(1)}%</div>
+              <div style={{ fontSize:9, color:"#555", marginTop:2 }}>{coll.items} items · avg {fmtPrice(coll.avgPrice)}G</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {!isVIP && (
+        <div style={{ marginTop:10, textAlign:"center", fontSize:11, color:"#555" }}>
+          Showing 8 of {collectionStats.length} collections ·{" "}
+          <span style={{ color:"#ce93d8", cursor:"pointer" }}>Upgrade to VIP to see all →</span>
+        </div>
+      )}
+
+      {/* Legend */}
+      <div style={{ display:"flex", gap:12, marginTop:10, justifyContent:"flex-end", flexWrap:"wrap" }}>
+        {[{label:"Strong ↑ >5%",c:"#4caf50"},{label:"Mild ↑",c:"#81c784"},{label:"Flat",c:"#555"},{label:"Mild ↓",c:"#e57373"},{label:"Strong ↓ <-5%",c:"#ef5350"}].map(function(l){
+          return <div key={l.label} style={{ display:"flex", alignItems:"center", gap:4, fontSize:10, color:l.c }}><div style={{ width:10, height:10, borderRadius:2, background:l.c, opacity:0.7 }} />{l.label}</div>;
+        })}
+      </div>
+    </div>
+  );
+}
+
+function InvestmentPanel({ setTab, setSelected, setGraphItem, lang, tier }) {
   var [histData, setHistData] = React.useState(null);
 
   React.useEffect(function() {
@@ -2126,6 +2496,8 @@ function InvestmentPanel({ setTab, setSelected, setGraphItem, lang }) {
 
   return (
     <div>
+      <CollectionHeatMap setTab={setTab} tier={tier} />
+      <WeeklyMarketReport tier={tier} />
       <div style={{ marginBottom:32 }}>
         <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#4caf50",letterSpacing:"0.03em" }}>📈 Predicted Gainers</h3>
         <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>Scored by momentum, acceleration, volatility, spread, and trend consistency</p>
@@ -2624,7 +2996,8 @@ function App() {
 
   function changeLang(l) { setLang(l); localStorage.setItem('s2_lang', l); }
   const [siteConfig, setSiteConfig] = useState({banner:"⚠ Reminder that prices are updated daily and might not be totally accurate",siteTitle:"STANDOFF 2",chatEnabled:true,giveawaysEnabled:true,announcement:"",announcementColor:"#ffb74d"});
-  const [lastUpdatedDate, setLastUpdatedDate] = useState(null);
+  const [compareItems, setCompareItems] = useState([]);
+  const [showCompare, setShowCompare] = useState(false);
   React.useEffect(function(){ onLatestPriceDateReady(function(d){ setLastUpdatedDate(d); }); loadRealHistory(); }, []);
 
   React.useEffect(function() {
@@ -2718,7 +3091,8 @@ function App() {
         <div style={{ fontSize:12,color:siteConfig.announcementColor||"#ffb74d",textAlign:"center" }}>{siteConfig.announcement}</div>
       </div>
       )}
-      {graphItem && <GraphModal item={graphItem} onClose={function(){setGraphItem(null)}} />}
+      {showCompare && compareItems.length >= 2 && <ComparisonModal items={compareItems} onClose={function(){setShowCompare(false)}} />}
+      {graphItem && <GraphModal item={graphItem} onClose={function(){setGraphItem(null)}} tier={tier} />}
       {showSupport && <SupportModal onClose={function(){setShowSupport(false)}} currentTier={tier} setTier={function(t){setTier(t);localStorage.setItem("s2_tier",t)}} user={user} onSignUp={function(){setShowSupport(false);setTab("account")}} />}
       {showFeedback && <FeedbackModal onClose={function(){setShowFeedback(false)}} />}
 
@@ -2752,7 +3126,7 @@ function App() {
           <h2 style={{ margin:"0 0 6px",fontSize:22,fontWeight:800,color:"#fff" }}>{t("bestInvestments",lang)}</h2>
           <p style={{ margin:"0 0 24px",fontSize:13,color:"#666" }}>AI-scored predictions based on momentum, volatility, spread, and price trends</p>
 
-          <InvestmentPanel setTab={setTab} setSelected={setSelected} setGraphItem={setGraphItem} lang={lang} />
+          <InvestmentPanel setTab={setTab} setSelected={setSelected} setGraphItem={setGraphItem} lang={lang} tier={tier} />
 
           <div style={{ padding:16,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,fontSize:11,color:"#555",textAlign:"center" }}>
             {t("disclaimer",lang)}
@@ -2809,8 +3183,8 @@ function App() {
           </div>
         </div>
         <div className="s2-detail" style={{ background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:20,position:"sticky",top:20,alignSelf:"flex-start" }}>
-          <DetailPanel item={selected} onGraph={setGraphItem} user={user} tier={tier} />
-          {siteConfig.chatEnabled && <ItemChat item={selected} tier={tier} />}
+          <DetailPanel item={selected} onGraph={setGraphItem} user={user} tier={tier} compareItems={compareItems} setCompareItems={setCompareItems} setShowCompare={setShowCompare} />
+          {siteConfig.chatEnabled && <ItemChat item={selected} tier={tier} user={user} />}
         </div>
       </div>
       </div>)}
