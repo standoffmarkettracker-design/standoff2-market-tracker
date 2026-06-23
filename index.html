@@ -3031,6 +3031,7 @@ function App() {
 
   function changeLang(l) { setLang(l); localStorage.setItem('s2_lang', l); }
   const [siteConfig, setSiteConfig] = useState({banner:"⚠ Reminder that prices are updated daily and might not be totally accurate",siteTitle:"STANDOFF 2",chatEnabled:true,giveawaysEnabled:true,announcement:"",announcementColor:"#ffb74d"});
+  const [lastUpdatedDate, setLastUpdatedDate] = useState(null);
   const [compareItems, setCompareItems] = useState([]);
   const [showCompare, setShowCompare] = useState(false);
   React.useEffect(function(){ onLatestPriceDateReady(function(d){ setLastUpdatedDate(d); }); loadRealHistory(); }, []);
