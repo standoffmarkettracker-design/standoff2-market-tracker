@@ -204,6 +204,8 @@ function ItemCard({ item, onClick, selected, onGraph }) {
 var __realHistoryCache = null;
 var __realHistoryPromise = null;
 var __latestPriceDate = null;  // set when history loads; drives the "Updated:" header
+var __latestPriceDateListeners = [];  // components subscribe to get re-renders
+function onLatestPriceDateReady(fn) { if (__latestPriceDate) { fn(__latestPriceDate); } else { __latestPriceDateListeners.push(fn); } }
 
 function loadRealHistory() {
   if (__realHistoryCache) return Promise.resolve(__realHistoryCache);
@@ -223,6 +225,8 @@ function loadRealHistory() {
       if (latest) {
         var dt = new Date(latest + "T12:00:00");
         __latestPriceDate = dt.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+        __latestPriceDateListeners.forEach(function(fn){ fn(__latestPriceDate); });
+        __latestPriceDateListeners = [];
       }
       return data;
     })
@@ -401,7 +405,77 @@ function GraphModal({ item, onClose }) {
   );
 }
 
-function DetailPanel({ item, onGraph }) {
+function DetailPanel({ item, onGraph, user, tier }) {
+  // Price alert state (Basic+)
+  const [alertPrice, setAlertPrice] = React.useState("");
+  const [alertDir, setAlertDir] = React.useState("above");
+  const [alerts, setAlerts] = React.useState([]);
+  const [alertSaved, setAlertSaved] = React.useState(false);
+
+  // Load existing alerts for this item when item or user changes
+  React.useEffect(function() {
+    if (!user || !item) return;
+    var ref = db.ref("alerts/" + user.uid);
+    ref.once("value", function(snap) {
+      var data = snap.val() || {};
+      var itemAlerts = Object.entries(data)
+        .filter(function(e){ return e[1].item === item.name; })
+        .map(function(e){ return Object.assign({id: e[0]}, e[1]); });
+      setAlerts(itemAlerts);
+    });
+  }, [user, item && item.name]);
+
+  function saveAlert() {
+    if (!user || !alertPrice) return;
+    var price = parseFloat(alertPrice);
+    if (isNaN(price) || price <= 0) return;
+    db.ref("alerts/" + user.uid).push({
+      item: item.name,
+      targetPrice: price,
+      direction: alertDir,
+      createdAt: Date.now(),
+      triggered: false
+    }).then(function() {
+      setAlertSaved(true);
+      setAlertPrice("");
+      setTimeout(function(){ setAlertSaved(false); }, 2500);
+      // Reload alerts
+      db.ref("alerts/" + user.uid).once("value", function(snap) {
+        var data = snap.val() || {};
+        var itemAlerts = Object.entries(data)
+          .filter(function(e){ return e[1].item === item.name; })
+          .map(function(e){ return Object.assign({id: e[0]}, e[1]); });
+        setAlerts(itemAlerts);
+      });
+    });
+  }
+
+  function deleteAlert(id) {
+    db.ref("alerts/" + user.uid + "/" + id).remove().then(function() {
+      setAlerts(alerts.filter(function(a){ return a.id !== id; }));
+    });
+  }
+
+  // CSV export (VIP+)
+  function exportCSV() {
+    loadRealHistory().then(function(all) {
+      var hist = all[item.name];
+      if (!hist) { alert("No price history available for this item."); return; }
+      var rows = [["Date", "Price (G)"]];
+      Object.keys(hist).sort().forEach(function(d) { rows.push([d, hist[d]]); });
+      var csv = rows.map(function(r){ return r.join(","); }).join("\n");
+      var blob = new Blob([csv], { type: "text/csv" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = item.name.replace(/[^a-z0-9]/gi, "_") + "_price_history.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  var canAlert = tier === "Basic" || tier === "VIP" || tier === "VIP+";
+  var canExport = tier === "VIP+" || tier === "VIP";
   if (!item) return (
     <div style={{ display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:12,color:"#555" }}>
       <span style={{ fontSize: 40 }}>◈</span>
@@ -435,6 +509,69 @@ function DetailPanel({ item, onGraph }) {
         <StatBar label="Volatility" value={item.vol} max={25} color="#ffb74d" />
       </div>
       <button onClick={function(){onGraph(item)}} style={{ width:"100%",padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#aaa",fontSize:13,fontWeight:600,cursor:"pointer" }}>View Graph ↗</button>
+
+      {/* CSV Export — VIP+ */}
+      <div style={{ marginTop:10 }}>
+        {canExport ? (
+          <button onClick={exportCSV} style={{ width:"100%",padding:"9px 14px",borderRadius:8,background:"rgba(255,215,0,0.08)",border:"1px solid rgba(255,215,0,0.3)",color:"#ffd700",fontSize:12,fontWeight:600,cursor:"pointer" }}>
+            ⬇ Export Price History (.csv)
+          </button>
+        ) : (
+          <div style={{ padding:"9px 14px",borderRadius:8,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",textAlign:"center",fontSize:11,color:"#444" }}>
+            ⬇ Export CSV — <span style={{ color:"#ce93d8" }}>VIP+ feature</span>
+          </div>
+        )}
+      </div>
+
+      {/* Price Alerts — Basic+ */}
+      <div style={{ marginTop:14,padding:"14px",borderRadius:10,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ fontSize:12,fontWeight:700,color:"#aaa",marginBottom:10,display:"flex",alignItems:"center",gap:6 }}>
+          🔔 Price Alerts
+          {!canAlert && <span style={{ fontSize:10,color:"#4fc3f7",marginLeft:"auto" }}>Basic+ feature</span>}
+        </div>
+        {!canAlert ? (
+          <div style={{ fontSize:11,color:"#444",textAlign:"center",padding:"8px 0" }}>Set alerts when this item crosses a target price</div>
+        ) : !user ? (
+          <div style={{ fontSize:11,color:"#444",textAlign:"center",padding:"8px 0" }}>Sign in to use price alerts</div>
+        ) : (
+          <div>
+            {/* Existing alerts */}
+            {alerts.length > 0 && (
+              <div style={{ marginBottom:10 }}>
+                {alerts.map(function(a) {
+                  return (
+                    <div key={a.id} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:6,background:"rgba(255,255,255,0.03)",marginBottom:4 }}>
+                      <span style={{ fontSize:11,color:"#aaa" }}>
+                        {a.direction === "above" ? "↑ Above" : "↓ Below"} {fmtPrice(a.targetPrice)} G
+                      </span>
+                      <button onClick={function(){deleteAlert(a.id)}} style={{ background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"0 4px" }}>✕</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {/* New alert form */}
+            <div style={{ display:"flex",gap:6 }}>
+              <select value={alertDir} onChange={function(e){setAlertDir(e.target.value)}} style={{ padding:"6px 8px",borderRadius:6,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#ccc",fontSize:11,flex:"0 0 auto" }}>
+                <option value="above">↑ Above</option>
+                <option value="below">↓ Below</option>
+              </select>
+              <input
+                type="number"
+                placeholder={"Target price (current: " + fmtPrice(item.price) + "G)"}
+                value={alertPrice}
+                onChange={function(e){setAlertPrice(e.target.value)}}
+                onKeyDown={function(e){if(e.key==="Enter")saveAlert()}}
+                style={{ flex:1,padding:"6px 10px",borderRadius:6,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#fff",fontSize:11,minWidth:0 }}
+              />
+              <button onClick={saveAlert} style={{ padding:"6px 12px",borderRadius:6,background:"rgba(79,195,247,0.15)",border:"1px solid rgba(79,195,247,0.4)",color:"#4fc3f7",fontSize:11,fontWeight:600,cursor:"pointer" }}>
+                {alertSaved ? "✓" : "Set"}
+              </button>
+            </div>
+            <div style={{ fontSize:10,color:"#444",marginTop:6 }}>Alert stored — you'll see it here when triggered. Email alerts coming soon.</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -669,10 +806,10 @@ function CryptoWallets() {
 
 function SupportModal({ onClose, currentTier, setTier, user, onSignUp }) {
   const tiers = [
-    { name: "Free", price: "$0", period: "forever", color: "#888", bg: "rgba(128,128,128,0.1)", border: "rgba(128,128,128,0.3)", features: ["Browse all 2,255 items", "Search & filter", "Price change tracking", "View price graphs", "Item chat (1 per hour)", "1 giveaway ticket per entry"], link: null },
-    { name: "Basic", price: "$1", period: "/month", color: "#4fc3f7", bg: "rgba(79,195,247,0.1)", border: "rgba(79,195,247,0.4)", features: ["Everything in Free", "Priority data updates", "Email price alerts", "Item chat (5 min cooldown)", "10 giveaway tickets per entry"], link: "crypto" },
-    { name: "VIP", price: "$10", period: "/month", color: "#ce93d8", bg: "rgba(206,147,216,0.1)", border: "rgba(206,147,216,0.4)", features: ["Everything in Basic", "Real-time price tracking", "Advanced analytics", "Item chat (30 sec cooldown)", "25 giveaway tickets per entry"], popular: true, link: "crypto" },
-    { name: "VIP+", price: "$25", period: "/month", color: "#ffd700", bg: "rgba(255,215,0,0.1)", border: "rgba(255,215,0,0.4)", features: ["Everything in VIP", "API access", "Custom price alerts", "Market trend predictions", "Item chat (30 sec cooldown)", "100 giveaway tickets per entry", "Early feature access"], link: "crypto" },
+    { name: "Free", price: "$0", period: "forever", color: "#888", bg: "rgba(128,128,128,0.1)", border: "rgba(128,128,128,0.3)", features: ["Browse all 2,354+ items", "Search & filter by collection", "Price change tracking", "View price graphs", "Best Investments tab", "Item chat (1 per hour)", "1 giveaway ticket per entry"], link: null },
+    { name: "Basic", price: "$1", period: "/month", color: "#4fc3f7", bg: "rgba(79,195,247,0.1)", border: "rgba(79,195,247,0.4)", features: ["Everything in Free", "🔔 Price alerts (set target prices)", "Priority data updates", "Item chat (5 min cooldown)", "10 giveaway tickets per entry"], link: "crypto" },
+    { name: "VIP", price: "$10", period: "/month", color: "#ce93d8", bg: "rgba(206,147,216,0.1)", border: "rgba(206,147,216,0.4)", features: ["Everything in Basic", "⬇ Export price history (CSV)", "Real-time price tracking", "Advanced analytics", "Item chat (30 sec cooldown)", "25 giveaway tickets per entry"], popular: true, link: "crypto" },
+    { name: "VIP+", price: "$25", period: "/month", color: "#ffd700", bg: "rgba(255,215,0,0.1)", border: "rgba(255,215,0,0.4)", features: ["Everything in VIP", "API access", "Market trend predictions", "Item chat (30 sec cooldown)", "100 giveaway tickets per entry", "Early feature access"], link: "crypto" },
   ];
   return (
     <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300 }}>
@@ -2249,6 +2386,8 @@ function App() {
 
   function changeLang(l) { setLang(l); localStorage.setItem('s2_lang', l); }
   const [siteConfig, setSiteConfig] = useState({banner:"⚠ Reminder that prices are updated daily and might not be totally accurate",siteTitle:"STANDOFF 2",chatEnabled:true,giveawaysEnabled:true,announcement:"",announcementColor:"#ffb74d"});
+  const [lastUpdatedDate, setLastUpdatedDate] = useState(null);
+  React.useEffect(function(){ onLatestPriceDateReady(function(d){ setLastUpdatedDate(d); }); loadRealHistory(); }, []);
 
   React.useEffect(function() {
     db.ref("config").on("value", function(snap) {
@@ -2335,7 +2474,7 @@ function App() {
           </div>
         </div>
         <div className="s2-header-right" style={{ display:"flex",alignItems:"center",gap:12 }}>
-          <div style={{ fontSize:10,color:"#444" }}>Updated: {siteConfig.lastUpdated || __latestPriceDate || "Loading…"}</div>
+          <div style={{ fontSize:10,color:"#444" }}>Updated: {siteConfig.lastUpdated || lastUpdatedDate || "Loading…"}</div>
           <select value={lang} onChange={function(e){changeLang(e.target.value)}} style={{ padding:"5px 8px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,color:"#ccc",fontSize:11,cursor:"pointer" }}>
             {Object.keys(LANGS).map(function(l){return <option key={l} value={l}>{LANGS[l].flag} {LANGS[l].name}</option>})}
           </select>
@@ -2412,7 +2551,7 @@ function App() {
           </div>
         </div>
         <div className="s2-detail" style={{ background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:20,position:"sticky",top:20,alignSelf:"flex-start" }}>
-          <DetailPanel item={selected} onGraph={setGraphItem} />
+          <DetailPanel item={selected} onGraph={setGraphItem} user={user} tier={tier} />
           {siteConfig.chatEnabled && <ItemChat item={selected} tier={tier} />}
         </div>
       </div>
