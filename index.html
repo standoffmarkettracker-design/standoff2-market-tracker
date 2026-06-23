@@ -3,19 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Standoff 2 Market Tracker — Live Prices for Skins, Knives, Cases & More</title>
-<meta name="description" content="Track 2,255+ Standoff 2 item prices in real-time. Browse skins, knives, cases, stickers, and more with price history, market stats, and investment insights.">
-<meta name="keywords" content="standoff 2, standoff2, market tracker, skin prices, knife prices, case prices, sticker prices, standoff 2 skins, standoff 2 market, standoff 2 trading, standoff 2 investment, SO2 market">
+<title>Standoff 2 Market Tracker — Live Skin Prices, Investment Tools & Price History</title>
+<meta name="description" content="Track 2,354+ Standoff 2 item prices in real-time. View price history charts, best investment picks, collection trends, and portfolio value. The most complete SO2 market tracker available.">
+<meta name="keywords" content="standoff 2, standoff2, standoff 2 market, standoff 2 skins, standoff 2 skin prices, standoff 2 knife prices, standoff 2 case prices, standoff 2 trading, standoff 2 investment, standoff 2 price tracker, SO2 market tracker, SO2 skins, SO2 prices, standoff 2 gloves, standoff 2 stickers, standoff 2 market tracker, standoff 2 item prices, standoff 2 price history, standoff 2 best skins, cheap standoff 2 skins, rare standoff 2 items, standoff 2 arcane, standoff 2 legendary, SO2 price history, standoff 2 portfolio">
 <meta name="robots" content="index, follow">
+<meta name="author" content="Standoff 2 Market Tracker">
+<meta name="theme-color" content="#0f0f12">
 <link rel="canonical" href="https://standoff2markettracker.com">
-<meta property="og:title" content="Standoff 2 Market Tracker">
-<meta property="og:description" content="Track 2,255+ Standoff 2 item prices. Live market data for skins, knives, cases, stickers & more.">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Standoff 2 Market Tracker — Live Skin Prices & Investment Tools">
+<meta property="og:description" content="Track 2,354+ Standoff 2 item prices in real-time. Price history charts, best investment picks, collection heat maps, portfolio tracker and more.">
 <meta property="og:url" content="https://standoff2markettracker.com">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Standoff 2 Market Tracker">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Standoff 2 Market Tracker">
-<meta name="twitter:description" content="Track 2,255+ Standoff 2 item prices. Live market data for skins, knives, cases, stickers & more.">
+<meta name="twitter:title" content="Standoff 2 Market Tracker — Live Skin Prices & Investment Tools">
+<meta name="twitter:description" content="Track 2,354+ Standoff 2 item prices in real-time. Price history, best investments, collection trends and portfolio tracking.">
+<meta name="twitter:site" content="@standoff2market">
+
+<!-- JSON-LD Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Standoff 2 Market Tracker",
+  "url": "https://standoff2markettracker.com",
+  "description": "Real-time price tracker for 2,354+ Standoff 2 items including skins, knives, gloves, cases, stickers and more. Features price history charts, investment signals, collection heat maps and portfolio tracking.",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "featureList": [
+    "Real-time Standoff 2 skin prices",
+    "Price history charts",
+    "Best investment picks",
+    "Collection heat map",
+    "Portfolio tracker",
+    "Price alerts",
+    "Weekly market report"
+  ]
+}
+</script>
+
 <meta name="google-site-verification" content="3p7EEBnVYfGOeNCD6eOAOtxv5QUNujVRQJUFMDU-P3Y" />
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 74'%3E%3Cdefs%3E%3ClinearGradient id='sg' x1='0' y1='0' x2='0.3' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ff8a47'/%3E%3Cstop offset='100%25' stop-color='%23e85d15'/%3E%3C/linearGradient%3E%3ClinearGradient id='ig' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%231a1a20'/%3E%3Cstop offset='100%25' stop-color='%2312121a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M32 2 L58 10 L60 30 Q60 60 32 72 Q4 60 4 30 L6 10 Z' fill='url(%23sg)'/%3E%3Cpath d='M32 7 L54 14 L56 30 Q56 56 32 67 Q8 56 8 30 L10 14 Z' fill='url(%23ig)'/%3E%3Ctext x='32' y='42' font-family='Arial' font-weight='900' font-size='22' fill='white' text-anchor='middle' dominant-baseline='central'%3ES2%3C/text%3E%3C/svg%3E">
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -410,7 +446,6 @@ function GraphModal({ item, onClose, tier }) {
             <input type="date" value={customTo} onChange={function(e){setCustomTo(e.target.value)}} style={{ padding:"4px 8px", borderRadius:6, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.15)", color:"#ddd", fontSize:12 }} />
           </div>
         )}
-        </div>
         <svg ref={svgRef} viewBox={"0 0 "+W+" "+H} className="s2-graph-svg" style={{ width:"100%",height:200,cursor:"crosshair",display:"block",touchAction:"none" }} onMouseMove={handleMouseMove} onMouseLeave={function(){setHoverIdx(null)}} onTouchMove={function(e){e.preventDefault();var touch=e.touches[0];var svg=svgRef.current;if(!svg)return;var rect=svg.getBoundingClientRect();var idx=Math.round((touch.clientX-rect.left)/rect.width*(sliced.length-1));setHoverIdx(Math.max(0,Math.min(sliced.length-1,idx)))}}>
           <defs><linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={lineColor} stopOpacity="0.25"/><stop offset="100%" stopColor={lineColor} stopOpacity="0.02"/></linearGradient></defs>
           {[0.25,0.5,0.75].map(function(t){var y=PT+t*gH;var p=(maxP+padP)-t*(maxP+padP-(minP-padP));var lbl=fmtPrice(p);return <g key={t}><line x1={0} y1={y} x2={W} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="1"/><text x={W-4} y={y-3} fill="#444" fontSize="10" textAnchor="end">{lbl}</text></g>})}
