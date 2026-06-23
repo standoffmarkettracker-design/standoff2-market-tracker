@@ -987,12 +987,32 @@ function CryptoWallets() {
   );
 }
 
+function KofiUIDCopy({ uid }) {
+  var [copied, setCopied] = React.useState(false);
+  function copy() {
+    navigator.clipboard.writeText(uid).then(function() {
+      setCopied(true);
+      setTimeout(function(){ setCopied(false); }, 2500);
+    });
+  }
+  return (
+    <div style={{ display:"flex", gap:8, alignItems:"center", justifyContent:"center" }}>
+      <div style={{ padding:"8px 12px", background:"rgba(0,0,0,0.4)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, fontFamily:"monospace", fontSize:11, color:"#aaa", letterSpacing:"0.04em", wordBreak:"break-all", flex:1, textAlign:"left" }}>
+        {uid}
+      </div>
+      <button onClick={copy} style={{ padding:"8px 14px", borderRadius:8, background:copied?"rgba(76,175,80,0.2)":"rgba(255,94,91,0.15)", border:"1px solid "+(copied?"rgba(76,175,80,0.5)":"rgba(255,94,91,0.4)"), color:copied?"#4caf50":"#ff5e5b", fontSize:12, fontWeight:700, cursor:"pointer", flexShrink:0 }}>
+        {copied ? "✓ Copied" : "Copy"}
+      </button>
+    </div>
+  );
+}
+
 function SupportModal({ onClose, currentTier, setTier, user, onSignUp }) {
   const tiers = [
     { name: "Free", price: "$0", period: "forever", color: "#888", bg: "rgba(128,128,128,0.1)", border: "rgba(128,128,128,0.3)", features: ["Browse all 2,354+ items", "Search & filter by collection", "Price change tracking", "View price graphs", "Best Investments tab", "Item chat (1 per hour)", "1 giveaway ticket per entry"], link: null },
-    { name: "Basic", price: "$1", period: "/month", color: "#4fc3f7", bg: "rgba(79,195,247,0.1)", border: "rgba(79,195,247,0.4)", features: ["Everything in Free", "🔔 Price alerts (set target prices)", "Priority data updates", "Item chat (5 min cooldown)", "10 giveaway tickets per entry"], link: "crypto" },
-    { name: "VIP", price: "$10", period: "/month", color: "#ce93d8", bg: "rgba(206,147,216,0.1)", border: "rgba(206,147,216,0.4)", features: ["Everything in Basic", "⬇ Export price history (CSV)", "Real-time price tracking", "Advanced analytics", "Item chat (30 sec cooldown)", "25 giveaway tickets per entry"], popular: true, link: "crypto" },
-    { name: "VIP+", price: "$25", period: "/month", color: "#ffd700", bg: "rgba(255,215,0,0.1)", border: "rgba(255,215,0,0.4)", features: ["Everything in VIP", "API access", "Market trend predictions", "Item chat (30 sec cooldown)", "100 giveaway tickets per entry", "Early feature access"], link: "crypto" },
+    { name: "Basic", price: "$1", period: "/month", color: "#4fc3f7", bg: "rgba(79,195,247,0.1)", border: "rgba(79,195,247,0.4)", features: ["Everything in Free", "🔔 Price alerts (set target prices)", "Priority data updates", "Item chat (5 min cooldown)", "10 giveaway tickets per entry"], link: "kofi" },
+    { name: "VIP", price: "$10", period: "/month", color: "#ce93d8", bg: "rgba(206,147,216,0.1)", border: "rgba(206,147,216,0.4)", features: ["Everything in Basic", "⬇ Export price history (CSV)", "Real-time price tracking", "Advanced analytics", "Item chat (30 sec cooldown)", "25 giveaway tickets per entry"], popular: true, link: "kofi" },
+    { name: "VIP+", price: "$25", period: "/month", color: "#ffd700", bg: "rgba(255,215,0,0.1)", border: "rgba(255,215,0,0.4)", features: ["Everything in VIP", "API access", "Market trend predictions", "Item chat (30 sec cooldown)", "100 giveaway tickets per entry", "Early feature access"], link: "kofi" },
   ];
   return (
     <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300 }}>
@@ -1021,16 +1041,41 @@ function SupportModal({ onClose, currentTier, setTier, user, onSignUp }) {
                   </div>
                 )})}
               </div>
-              <button onClick={function(){if(!user&&t.link){onSignUp();return;}if(t.link==="crypto"){document.getElementById("s2-crypto-section").scrollIntoView({behavior:"smooth"})}}} style={{ width:"100%",padding:"10px 14px",borderRadius:8,background:currentTier===t.name?"rgba(255,255,255,0.05)":t.link?t.color+"22":"rgba(255,255,255,0.03)",border:"1px solid "+(currentTier===t.name?"rgba(255,255,255,0.1)":t.link?t.color+"66":"rgba(255,255,255,0.08)"),color:currentTier===t.name?"#666":t.link?t.color:"#555",fontSize:13,fontWeight:600,cursor:currentTier===t.name||!t.link?"default":"pointer" }}>
-                {currentTier===t.name ? "Current Plan" : !user&&t.link ? "Sign in to Subscribe" : t.link ? "Subscribe" : "Current Plan"}
+              <button onClick={function(){
+                if (!user && t.link) { onSignUp(); return; }
+                if (t.link === "kofi") { window.open("https://ko-fi.com/standoff263277", "_blank"); }
+              }} style={{ width:"100%",padding:"10px 14px",borderRadius:8,background:currentTier===t.name?"rgba(255,255,255,0.05)":t.link?t.color+"22":"rgba(255,255,255,0.03)",border:"1px solid "+(currentTier===t.name?"rgba(255,255,255,0.1)":t.link?t.color+"66":"rgba(255,255,255,0.08)"),color:currentTier===t.name?"#666":t.link?t.color:"#555",fontSize:13,fontWeight:600,cursor:currentTier===t.name||!t.link?"default":"pointer" }}>
+                {currentTier===t.name ? "Current Plan" : !user&&t.link ? "Sign in to Subscribe" : t.link ? "Subscribe on Ko-fi →" : "Current Plan"}
               </button>
             </div>
           )})}
         </div>
-        <div id="s2-crypto-section" style={{ textAlign:"center",marginTop:24,marginBottom:16 }}>
-          <div style={{ fontSize:14,fontWeight:700,color:"#fff",marginBottom:4 }}>💰 Pay with Crypto</div>
-          <p style={{ margin:"0 0 16px",fontSize:11,color:"#555" }}>Send payment to one of the addresses below, then message us at camel5961 on Discord with your UID to activate your tier</p>
-          <CryptoWallets />
+        <div style={{ textAlign:"center", marginTop:24, marginBottom:16, padding:"20px", background:"rgba(255,94,91,0.06)", border:"1px solid rgba(255,94,91,0.2)", borderRadius:14 }}>
+          <div style={{ fontSize:22, marginBottom:8 }}>☕</div>
+          <div style={{ fontSize:15, fontWeight:700, color:"#fff", marginBottom:6 }}>Pay via Ko-fi</div>
+          <p style={{ margin:"0 0 14px", fontSize:12, color:"#888", lineHeight:1.6 }}>
+            Your tier activates <strong style={{ color:"#4caf50" }}>automatically</strong> — just include your UID in the Ko-fi message when you pay.
+          </p>
+
+          {/* UID copy box */}
+          {user ? (
+            <div style={{ marginBottom:16 }}>
+              <div style={{ fontSize:11, color:"#888", marginBottom:6 }}>📋 Copy your UID and paste it into the Ko-fi message</div>
+              <KofiUIDCopy uid={user.uid} />
+            </div>
+          ) : (
+            <div style={{ marginBottom:16, padding:"10px", background:"rgba(79,195,247,0.08)", borderRadius:8, fontSize:12, color:"#4fc3f7" }}>
+              ⚠ Sign in first so we know which account to activate
+            </div>
+          )}
+
+          <a href="https://ko-fi.com/standoff263277" target="_blank" rel="noopener noreferrer"
+            style={{ display:"inline-block", padding:"10px 28px", borderRadius:24, background:"#ff5e5b", color:"#fff", fontWeight:700, fontSize:14, textDecoration:"none", letterSpacing:"0.02em" }}>
+            ☕ Subscribe on Ko-fi →
+          </a>
+          <div style={{ fontSize:10, color:"#555", marginTop:10, lineHeight:1.6 }}>
+            Tier activates within seconds of payment · Renews monthly on Ko-fi
+          </div>
         </div>
         <div style={{ textAlign:"center",marginTop:12 }}>
           <div style={{ fontSize:11,color:"#555",marginBottom:10 }}>May take a few minutes for benefits to appear</div>
@@ -2382,20 +2427,32 @@ function CollectionHeatMap({ setTab, tier }) {
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(130px, 1fr))", gap:8 }}>
-        {collectionStats.map(function(coll, idx) {
-          var val  = coll[sortBy];
-          var col  = tileColor(val);
-          var blur = !isVIP && idx >= 8; // VIP sees all; free sees top 8 clearly, rest blurred
+
+        {/* For free users: show 3 locked placeholder tiles where the top performers would be */}
+        {!isVIP && [1,2,3].map(function(rank) {
+          return (
+            <div key={"locked-"+rank} style={{ padding:"12px 10px", borderRadius:10, cursor:"default", background:"rgba(206,147,216,0.05)", border:"1px solid rgba(206,147,216,0.2)", userSelect:"none", position:"relative", minHeight:72 }}>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:4 }}>
+                <div style={{ fontSize:16 }}>🔒</div>
+                <div style={{ fontSize:10, fontWeight:700, color:"#ce93d8" }}>#{rank} Hidden</div>
+                <div style={{ fontSize:9, color:"#555" }}>VIP only</div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Show collections starting from rank 4 for free users, all for VIP */}
+        {collectionStats.slice(isVIP ? 0 : 3, isVIP ? collectionStats.length : 9).map(function(coll, idx) {
+          var val = coll[sortBy];
+          var col = tileColor(val);
           return (
             <div key={coll.name}
-              onClick={function(){ if (!blur) setTab && setTab("market"); }}
-              title={blur ? "Upgrade to VIP to see all collections" : coll.name}
+              onClick={function(){ setTab && setTab("market"); }}
+              title={coll.name}
               style={{
-                padding:"12px 10px", borderRadius:10, cursor:blur?"default":"pointer",
+                padding:"12px 10px", borderRadius:10, cursor:"pointer",
                 background:col.bg, border:"1px solid "+col.border,
-                filter:blur?"blur(4px)":"none",
-                userSelect:"none", position:"relative",
-                transition:"transform 0.1s",
+                userSelect:"none", transition:"transform 0.1s",
               }}>
               <div style={{ fontSize:11, fontWeight:700, color:"#ddd", marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{coll.name}</div>
               <div style={{ fontSize:18, fontWeight:800, color:col.text }}>{val >= 0 ? "+" : ""}{val.toFixed(1)}%</div>
@@ -2407,8 +2464,8 @@ function CollectionHeatMap({ setTab, tier }) {
 
       {!isVIP && (
         <div style={{ marginTop:10, textAlign:"center", fontSize:11, color:"#555" }}>
-          Showing 8 of {collectionStats.length} collections ·{" "}
-          <span style={{ color:"#ce93d8", cursor:"pointer" }}>Upgrade to VIP to see all →</span>
+          Top 3 best-performing collections hidden ·{" "}
+          <span style={{ color:"#ce93d8", cursor:"pointer" }}>Upgrade to VIP to unlock all →</span>
         </div>
       )}
 
