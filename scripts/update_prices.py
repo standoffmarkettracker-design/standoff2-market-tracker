@@ -21,7 +21,7 @@ HEADERS = {
 
 SHOP_URL = "https://standoff-2.com/shop/"
 AJAX_URL = "https://standoff-2.com/wp-admin/admin-ajax.php"
-TABLE_ID = "2"
+TABLE_ID = "4"
 PAGE_SIZE = 3000
 
 GIVEAWAY_PINNED = {
