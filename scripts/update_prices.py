@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 """
-Standoff 2 Market Tracker - Daily Price Update Script (Playwright version)
-Loads standoff-2.com/shop in a real browser, extracts the session nonce,
-then fires the DataTables AJAX call FROM INSIDE the browser (with cookies)
-to get all 3000+ items in one request.
-Run: python scripts/update_prices.py
+Standoff 2 Market Tracker - Daily Price Update Script
+Uses Playwright to load standoff-2.com/shop in a real browser,
+extracts the session nonce, fires the DataTables AJAX from inside
+the browser (with cookies), strips HTML from names, and updates prices.
 """
 
 import json, re, sys, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
-
 SHOP_URL = "https://standoff-2.com/shop/"
 
 GIVEAWAY_PINNED = {
@@ -42,6 +40,11 @@ def parse_num(val):
         return None
 
 
+def strip_html(text):
+    """Remove HTML tags from a string."""
+    return re.sub(r"<[^>]+>", "", str(text)).strip()
+
+
 def fetch_catalog():
     from playwright.sync_api import sync_playwright
 
@@ -61,40 +64,33 @@ def fetch_catalog():
             page.goto(SHOP_URL, wait_until="domcontentloaded", timeout=60000)
         except Exception as e:
             print(f"  goto warning: {e}")
-
         page.wait_for_timeout(4000)
 
-        # Fire the DataTables AJAX call FROM INSIDE the browser
-        # This uses the browser's session cookies automatically
         print("Firing DataTables AJAX from browser context...")
         result = page.evaluate("""async () => {
-            // Get nonce from hidden input (wdtNonceFrontendEdit_4 or similar)
             const nonceInput = document.querySelector('[name*="wdtNonce"]');
-            const nonce = nonceInput ? nonceInput.value : '';
-
-            if (!nonce) return {error: 'No nonce found', html: document.body.innerHTML.slice(0,500)};
-
+            const nonce = nonceInput ? nonceInput.value : "";
+            if (!nonce) return {error: "No nonce found"};
             const body = new URLSearchParams({
-                draw: '1',
-                'columns[0][data]': '0', 'columns[0][name]': 'Name',
-                'columns[1][data]': '1', 'columns[1][name]': 'end_price',
-                'columns[2][data]': '2', 'columns[2][name]': 'delta_D',
-                'columns[3][data]': '3', 'columns[3][name]': 'delta_W',
-                'columns[4][data]': '4', 'columns[4][name]': 'delta_M',
-                'columns[5][data]': '5', 'columns[5][name]': 'delta_Y',
-                'columns[6][data]': '6', 'columns[6][name]': 'spread',
-                'columns[7][data]': '7', 'columns[7][name]': 'volatility',
-                'order[0][column]': '1', 'order[0][dir]': 'desc',
-                start: '0', length: '3000',
-                'search[value]': '', 'search[regex]': 'false',
+                draw: "1",
+                "columns[0][data]": "0", "columns[0][name]": "Name",
+                "columns[1][data]": "1", "columns[1][name]": "end_price",
+                "columns[2][data]": "2", "columns[2][name]": "delta_D",
+                "columns[3][data]": "3", "columns[3][name]": "delta_W",
+                "columns[4][data]": "4", "columns[4][name]": "delta_M",
+                "columns[5][data]": "5", "columns[5][name]": "delta_Y",
+                "columns[6][data]": "6", "columns[6][name]": "spread",
+                "columns[7][data]": "7", "columns[7][name]": "volatility",
+                "order[0][column]": "1", "order[0][dir]": "desc",
+                start: "0", length: "3000",
+                "search[value]": "", "search[regex]": "false",
                 wdtNonce: nonce
             });
-
             try {
-                const resp = await fetch('/wp-admin/admin-ajax.php?action=get_wdtable&table_id=4', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+                const resp = await fetch("/wp-admin/admin-ajax.php?action=get_wdtable&table_id=4", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {"content-type": "application/x-www-form-urlencoded; charset=UTF-8"},
                     body: body.toString()
                 });
                 const text = await resp.text();
@@ -106,35 +102,33 @@ def fetch_catalog():
 
         browser.close()
 
-    print(f"  nonce used: {result.get('nonce', 'N/A')}")
-    print(f"  response status: {result.get('status', 'N/A')}")
+    print(f"  nonce: {result.get('nonce', 'N/A')}")
+    print(f"  status: {result.get('status', 'N/A')}")
     print(f"  response length: {result.get('len', 0)}")
 
-    if 'error' in result:
+    if "error" in result:
         raise RuntimeError(f"Browser fetch error: {result['error']}")
 
-    raw = result.get('data', '')
+    raw = result.get("data", "")
     if not raw or not raw.strip():
         raise RuntimeError("Empty response from in-browser AJAX call")
 
     try:
         data = json.loads(raw)
     except Exception as e:
-        raise RuntimeError(f"JSON parse error: {e} â response preview: {raw[:200]}")
+        raise RuntimeError(f"JSON parse error: {e} - preview: {raw[:200]}")
 
-    rows = data.get('data', [])
+    rows = data.get("data", [])
     print(f"  rows received: {len(rows)}")
-        if rows:
-            print(f"  sample raw[0]: {repr(str(rows[0][0])[:300])}")
+    if rows:
+        print(f"  sample raw[0]: {repr(str(rows[0][0])[:200])}")
 
     if len(rows) < 10:
         raise RuntimeError(f"Too few rows: {len(rows)}")
 
     catalog = {}
     for row in rows:
-        raw = str(row[0])
-            import re as _re
-            name = _re.sub(r'<[^>]+>', '', raw).strip()
+        name = strip_html(row[0])
         if name:
             catalog[name] = {
                 "price": parse_num(row[1]), "day": parse_num(row[2]),
@@ -200,7 +194,7 @@ def main():
         sys.exit(1)
     updated = apply_updates(catalog, today)
     if updated == 0:
-        print("WARNING: no items matched")
+        print("WARNING: no items matched (name mismatch?)")
         sys.exit(1)
     print(f"Done. {updated} items updated for {today}.")
 
