@@ -20,7 +20,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests
+        run: |
+          pip install playwright
+          playwright install chromium --with-deps
 
       - name: Run price update script
         run: python scripts/update_prices.py
