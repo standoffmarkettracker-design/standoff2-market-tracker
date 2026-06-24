@@ -120,17 +120,21 @@ def fetch_catalog():
     try:
         data = json.loads(raw)
     except Exception as e:
-        raise RuntimeError(f"JSON parse error: {e} — response preview: {raw[:200]}")
+        raise RuntimeError(f"JSON parse error: {e} â response preview: {raw[:200]}")
 
     rows = data.get('data', [])
     print(f"  rows received: {len(rows)}")
+        if rows:
+            print(f"  sample raw[0]: {repr(str(rows[0][0])[:300])}")
 
     if len(rows) < 10:
         raise RuntimeError(f"Too few rows: {len(rows)}")
 
     catalog = {}
     for row in rows:
-        name = str(row[0]).strip()
+        raw = str(row[0])
+            import re as _re
+            name = _re.sub(r'<[^>]+>', '', raw).strip()
         if name:
             catalog[name] = {
                 "price": parse_num(row[1]), "day": parse_num(row[2]),
