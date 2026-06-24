@@ -98,6 +98,10 @@ def fetch_catalog(session, nonce):
         data=body, headers=HEADERS, timeout=60,
     )
     r.raise_for_status()
+    resp_text = r.text
+    print(f"  response preview: {repr(resp_text[:300])}")
+    if not resp_text.strip():
+        raise RuntimeError("Empty response - server rejected request")
     rows = r.json().get("data", [])
     print(f"  received {len(rows)} rows")
     catalog = {}
