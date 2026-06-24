@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Standoff 2 Market Tracker - Daily Price Update Script (Playwright version)
-Uses a real browser to intercept DataTables API calls from standoff-2.com.
+Loads standoff-2.com/shop, triggers ALL DataTables pages via AJAX,
+and extracts price data directly from the page.
 Run: python scripts/update_prices.py
 """
 
@@ -44,7 +45,7 @@ def fetch_catalog():
     from playwright.sync_api import sync_playwright
 
     catalog = {}
-    api_responses = []
+    api_data = []
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
@@ -58,64 +59,98 @@ def fetch_catalog():
         )
         page = context.new_page()
 
+        # Intercept ALL responses including pre-rendered ones
         def handle_response(response):
             if "admin-ajax.php" in response.url and response.status == 200:
                 try:
                     body = response.body()
                     text = body.decode("utf-8", errors="ignore").strip()
-                    if text.startswith("{") or text.startswith("["):
+                    if text and (text[0] in "{["):
                         data = json.loads(text)
-                        if isinstance(data, dict) and "data" in data and len(data["data"]) > 10:
-                            api_responses.append(data)
-                            print(f"  intercepted: {len(data['data'])} rows from {response.url}")
+                        if isinstance(data, dict) and "data" in data and len(data.get("data", [])) > 5:
+                            api_data.append(data)
+                            print(f"  AJAX intercepted: {len(data['data'])} rows")
                 except Exception as ex:
-                    print(f"  response parse error: {ex}")
+                    print(f"  parse err: {ex}")
 
         page.on("response", handle_response)
 
         print("Navigating to shop page...")
         try:
             page.goto(SHOP_URL, wait_until="domcontentloaded", timeout=60000)
+        except Exception as e:
+            print(f"  goto warning: {e}")
+
+        print("Waiting for page render...")
+        page.wait_for_timeout(5000)
+
+        # Try clicking "Show 100 entries" or similar to get more rows
+        try:
+            # WpDataTables often has a length select
+            page.select_option("select[name*='length'], .dataTables_length select", value="-1")
+            print("  Set page length to ALL")
+            page.wait_for_timeout(3000)
         except Exception:
             pass
 
-        print("Waiting for DataTables to load...")
-        page.wait_for_timeout(8000)
-
-        # Scroll to trigger any lazy-loaded content
+        # Scroll page to trigger any lazy loading
         page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-        page.wait_for_timeout(3000)
+        page.wait_for_timeout(2000)
 
-        # Try to find and click a DataTables element if present
-        try:
-            page.wait_for_selector("table.dataTable, .wpdatatables-wrapper", timeout=5000)
-            print("  DataTable found on page")
-        except Exception:
-            print("  No DataTable selector found, waiting more...")
-            page.wait_for_timeout(5000)
+        # Extract table data from DOM if no AJAX was captured
+        print("Extracting table data from DOM...")
+        table_data = page.evaluate("""() => {
+            const rows = [];
+            // Try wpdatatables format
+            const tables = document.querySelectorAll('table.wpdatatable, table.dataTable, .wpdatatables-wrapper table');
+            for (const table of tables) {
+                const trs = table.querySelectorAll('tbody tr');
+                for (const tr of trs) {
+                    const cells = tr.querySelectorAll('td');
+                    if (cells.length >= 2) {
+                        const rowData = Array.from(cells).map(td => td.innerText.trim());
+                        if (rowData[0]) rows.push(rowData);
+                    }
+                }
+                if (rows.length > 10) break;
+            }
+            return rows;
+        }""")
+
+        print(f"  DOM table rows extracted: {len(table_data)}")
 
         browser.close()
 
-    print(f"Total API responses captured: {len(api_responses)}")
-
-    if not api_responses:
-        raise RuntimeError("No DataTables API response intercepted from shop page")
-
-    rows = max(api_responses, key=lambda r: len(r["data"]))["data"]
-    print(f"Using response with {len(rows)} rows")
-
-    for row in rows:
-        name = str(row[0]).strip()
-        if name:
-            catalog[name] = {
-                "price": parse_num(row[1]),
-                "day":   parse_num(row[2]),
-                "week":  parse_num(row[3]),
-                "month": parse_num(row[4]),
-                "year":  parse_num(row[5]),
-                "spread":parse_num(row[6]),
-                "vol":   parse_num(row[7]),
-            }
+    # Use AJAX data if captured, otherwise use DOM data
+    if api_data:
+        rows = max(api_data, key=lambda r: len(r["data"]))["data"]
+        print(f"Using AJAX data: {len(rows)} rows")
+        for row in rows:
+            name = str(row[0]).strip()
+            if name:
+                catalog[name] = {
+                    "price": parse_num(row[1]), "day": parse_num(row[2]),
+                    "week": parse_num(row[3]), "month": parse_num(row[4]),
+                    "year": parse_num(row[5]), "spread": parse_num(row[6]),
+                    "vol": parse_num(row[7]),
+                }
+    elif table_data:
+        print(f"Using DOM data: {len(table_data)} rows")
+        for row in table_data:
+            if len(row) >= 2:
+                name = row[0].strip()
+                if name:
+                    catalog[name] = {
+                        "price": parse_num(row[1]) if len(row) > 1 else None,
+                        "day":   parse_num(row[2]) if len(row) > 2 else None,
+                        "week":  parse_num(row[3]) if len(row) > 3 else None,
+                        "month": parse_num(row[4]) if len(row) > 4 else None,
+                        "year":  parse_num(row[5]) if len(row) > 5 else None,
+                        "spread":parse_num(row[6]) if len(row) > 6 else None,
+                        "vol":   parse_num(row[7]) if len(row) > 7 else None,
+                    }
+    else:
+        raise RuntimeError("No data extracted from page (no AJAX and no DOM table rows)")
 
     return catalog
 
@@ -170,11 +205,11 @@ def main():
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
     if len(catalog) < 100:
-        print(f"ERROR: only {len(catalog)} items - aborting", file=sys.stderr)
+        print(f"ERROR: only {len(catalog)} items - aborting (got {len(catalog)})", file=sys.stderr)
         sys.exit(1)
     updated = apply_updates(catalog, today)
     if updated == 0:
-        print("WARNING: no items updated")
+        print("WARNING: no items matched")
         sys.exit(1)
     print(f"Done. {updated} items updated for {today}.")
 
