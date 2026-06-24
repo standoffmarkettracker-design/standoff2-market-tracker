@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 Standoff 2 Market Tracker - Daily Price Update Script (Playwright version)
-Uses a real browser to fetch prices from standoff-2.com, bypassing
-session/cookie requirements that block plain HTTP requests.
+Uses a real browser to intercept DataTables API calls from standoff-2.com.
 Run: python scripts/update_prices.py
 """
 
@@ -21,7 +20,6 @@ GIVEAWAY_PINNED = {
 
 
 def parse_num(val):
-    """Parse price handling English 1,234.56 and European 1.234,56 formats."""
     if val is None:
         return None
     s = str(val).strip()
@@ -43,62 +41,86 @@ def parse_num(val):
 
 
 def fetch_catalog():
-    """Use Playwright to load the shop page and intercept the DataTables API call."""
     from playwright.sync_api import sync_playwright
 
     catalog = {}
+    api_responses = []
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-dev-shm-usage"],
+        )
         context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 800},
+            locale="en-US",
         )
         page = context.new_page()
-
-        api_responses = []
 
         def handle_response(response):
             if "admin-ajax.php" in response.url and response.status == 200:
                 try:
-                    data = response.json()
-                    if "data" in data and len(data["data"]) > 10:
-                        api_responses.append(data)
-                        print(f"  intercepted API response: {len(data['data'])} rows")
-                except Exception:
-                    pass
+                    body = response.body()
+                    text = body.decode("utf-8", errors="ignore").strip()
+                    if text.startswith("{") or text.startswith("["):
+                        data = json.loads(text)
+                        if isinstance(data, dict) and "data" in data and len(data["data"]) > 10:
+                            api_responses.append(data)
+                            print(f"  intercepted: {len(data['data'])} rows from {response.url}")
+                except Exception as ex:
+                    print(f"  response parse error: {ex}")
 
         page.on("response", handle_response)
 
-        print("Loading shop page with Playwright...")
-        page.goto(SHOP_URL, wait_until="networkidle", timeout=60000)
+        print("Navigating to shop page...")
+        try:
+            page.goto(SHOP_URL, wait_until="domcontentloaded", timeout=60000)
+        except Exception:
+            pass
+
+        print("Waiting for DataTables to load...")
+        page.wait_for_timeout(8000)
+
+        # Scroll to trigger any lazy-loaded content
+        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
         page.wait_for_timeout(3000)
+
+        # Try to find and click a DataTables element if present
+        try:
+            page.wait_for_selector("table.dataTable, .wpdatatables-wrapper", timeout=5000)
+            print("  DataTable found on page")
+        except Exception:
+            print("  No DataTable selector found, waiting more...")
+            page.wait_for_timeout(5000)
 
         browser.close()
 
-        if not api_responses:
-            raise RuntimeError("No DataTables API response intercepted from shop page")
+    print(f"Total API responses captured: {len(api_responses)}")
 
-        rows = max(api_responses, key=lambda r: len(r["data"]))["data"]
-        print(f"  using response with {len(rows)} rows")
+    if not api_responses:
+        raise RuntimeError("No DataTables API response intercepted from shop page")
 
-        for row in rows:
-            name = str(row[0]).strip()
-            if name:
-                catalog[name] = {
-                    "price": parse_num(row[1]),
-                    "day":   parse_num(row[2]),
-                    "week":  parse_num(row[3]),
-                    "month": parse_num(row[4]),
-                    "year":  parse_num(row[5]),
-                    "spread":parse_num(row[6]),
-                    "vol":   parse_num(row[7]),
-                }
+    rows = max(api_responses, key=lambda r: len(r["data"]))["data"]
+    print(f"Using response with {len(rows)} rows")
+
+    for row in rows:
+        name = str(row[0]).strip()
+        if name:
+            catalog[name] = {
+                "price": parse_num(row[1]),
+                "day":   parse_num(row[2]),
+                "week":  parse_num(row[3]),
+                "month": parse_num(row[4]),
+                "year":  parse_num(row[5]),
+                "spread":parse_num(row[6]),
+                "vol":   parse_num(row[7]),
+            }
 
     return catalog
 
 
 def apply_updates(catalog, today):
-    """Update items.json and price history files."""
     items = json.loads((ROOT / "items.json").read_text())
     hist1 = json.loads((ROOT / "price_history_real_1.json").read_text())
     hist2 = json.loads((ROOT / "price_history_real_2.json").read_text())
