@@ -36,14 +36,21 @@ def get_nonce(session):
     print("Fetching nonce from shop page...")
     r = session.get(SHOP_URL, headers={"user-agent": HEADERS["user-agent"]}, timeout=30)
     r.raise_for_status()
-    m = re.search(r'"wdtNonce"\s*:\s*"([^"]+)"', r.text)
-    if not m:
-        m = re.search(r'wdtNonce[":\s]+([a-f0-9]{8,12})', r.text)
-    if not m:
-        raise RuntimeError("Could not find DataTables nonce in shop page")
-    nonce = m.group(1)
-    print(f"  nonce: {nonce}")
-    return nonce
+    html = r.text
+    # Try all known nonce formats
+    patterns = [
+        r'"wdtNonce"s*:s*"([^"]+)"',
+        r'wdtNonce[":s]+([a-f0-9]{8,12})',
+        r'"nonce"s*:s*"([a-f0-9]{8,12})"',
+        r'nonce[":s]+([a-f0-9]{8,12})',
+    ]
+    for pattern in patterns:
+        m = re.search(pattern, html)
+        if m:
+            nonce = m.group(1)
+            print(f"  nonce: {nonce}")
+            return nonce
+    raise RuntimeError("Could not find DataTables nonce in shop page")
 
 
 def parse_num(val):
