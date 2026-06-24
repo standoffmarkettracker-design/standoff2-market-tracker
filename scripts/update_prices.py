@@ -15,16 +15,11 @@ HEADERS = {
     "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
     "origin": "https://standoff-2.com",
     "referer": "https://standoff-2.com/shop/",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     "x-requested-with": "XMLHttpRequest",
-    "accept-language": "en-US,en;q=0.9",
 }
 
-SHOP_URLS = [
-    "https://standoff-2.com/shop/",
-    "https://standoff-2.com/shop/?skin=AK-47&type=unknown&rare=all&category=all&collection=all",
-    "https://standoff-2.com/",
-]
+SHOP_URL = "https://standoff-2.com/shop/"
 AJAX_URL = "https://standoff-2.com/wp-admin/admin-ajax.php"
 TABLE_ID = "2"
 PAGE_SIZE = 3000
@@ -38,44 +33,46 @@ GIVEAWAY_PINNED = {
 
 def get_nonce(session):
     """Load shop page and extract DataTables nonce."""
-    patterns = [
-        r'"wdtNonce"\s*:\s*"([^"]+)"',
-        r'wdtNonce["\s:]+([a-f0-9]{8,12})',
-        r'"nonce"\s*:\s*"([a-f0-9]{10})"',
-        r'nonce["\s:=\']+([a-f0-9]{8,12})',
-    ]
-    for url in SHOP_URLS:
-        print(f"Fetching nonce from {url}...")
-        try:
-            r = session.get(url, headers={
-                "user-agent": HEADERS["user-agent"],
-                "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "accept-language": "en-US,en;q=0.9",
-            }, timeout=30)
-            r.raise_for_status()
-            for pat in patterns:
-                m = re.search(pat, r.text)
-                if m:
-                    nonce = m.group(1)
-                    print(f"  nonce: {nonce}")
-                    return nonce
-            print(f"  nonce not found in {url}, trying next...")
-        except Exception as e:
-            print(f"  failed to fetch {url}: {e}")
+    print("Fetching nonce from shop page...")
+    r = session.get(SHOP_URL, headers={"user-agent": HEADERS["user-agent"]}, timeout=30)
+    r.raise_for_status()
+    m = re.search(r'"wdtNonce"\s*:\s*"([^"]+)"', r.text)
+    if not m:
+        m = re.search(r'wdtNonce[":\s]+([a-f0-9]{8,12})', r.text)
+    if not m:
+        raise RuntimeError("Could not find DataTables nonce in shop page")
+    nonce = m.group(1)
+    print(f"  nonce: {nonce}")
+    return nonce
 
-    # Last resort: try a known nonce format by scraping all hex strings
-    print("Trying last-resort nonce extraction...")
+
+def parse_num(val):
+    """
+    Parse a price string that may be English (1,234.56) or European (1.234,56) format.
+    BUG FIX: previous version did .replace('.','') before .replace(',','.') which
+    destroyed English-format decimals e.g. '55.44' -> 5544.0
+    """
+    if val is None:
+        return None
+    s = str(val).strip()
+    s = re.sub(r"[^\d,.\-]", "", s)
+    if not s:
+        return None
+    last_dot = s.rfind(".")
+    last_comma = s.rfind(",")
+    if last_dot > last_comma:
+        # English format: 1,234.56 — commas are thousands separators
+        s = s.replace(",", "")
+    elif last_comma > last_dot:
+        # European format: 1.234,56 — dots are thousands separators
+        s = s.replace(".", "").replace(",", ".")
+    else:
+        # No ambiguity — just strip commas
+        s = s.replace(",", "")
     try:
-        r = session.get(SHOP_URLS[0], headers={"user-agent": HEADERS["user-agent"]}, timeout=30)
-        all_nonces = re.findall(r'[a-f0-9]{10}', r.text)
-        if all_nonces:
-            nonce = all_nonces[0]
-            print(f"  guessed nonce: {nonce}")
-            return nonce
-    except Exception as e:
-        print(f"  last resort failed: {e}")
-
-    raise RuntimeError("Could not find DataTables nonce in shop page")
+        return float(s)
+    except ValueError:
+        return None
 
 
 def fetch_catalog(session, nonce):
@@ -96,26 +93,28 @@ def fetch_catalog(session, nonce):
         f"&search%5Bvalue%5D=&search%5Bregex%5D=false"
         f"&wdtNonce={nonce}"
     )
-    r = session.post(f"{AJAX_URL}?action=get_wdtable&table_id={TABLE_ID}", data=body, headers=HEADERS, timeout=60)
+    r = session.post(
+        f"{AJAX_URL}?action=get_wdtable&table_id={TABLE_ID}",
+        data=body,
+        headers=HEADERS,
+        timeout=60,
+    )
     r.raise_for_status()
     rows = r.json().get("data", [])
     print(f"  received {len(rows)} rows")
-
-    def parse_num(val):
-        if val is None: return None
-        s = re.sub(r"[^\d.\-]", "", str(val).replace(".", "").replace(",", "."))
-        try: return float(s)
-        except ValueError: return None
 
     catalog = {}
     for row in rows:
         name = str(row[0]).strip()
         if name:
             catalog[name] = {
-                "price": parse_num(row[1]), "day": parse_num(row[2]),
-                "week": parse_num(row[3]), "month": parse_num(row[4]),
-                "year": parse_num(row[5]), "spread": parse_num(row[6]),
-                "vol": parse_num(row[7]),
+                "price": parse_num(row[1]),
+                "day":   parse_num(row[2]),
+                "week":  parse_num(row[3]),
+                "month": parse_num(row[4]),
+                "year":  parse_num(row[5]),
+                "spread":parse_num(row[6]),
+                "vol":   parse_num(row[7]),
             }
     return catalog
 
@@ -126,22 +125,47 @@ def apply_updates(catalog, today):
     hist1 = json.loads((ROOT / "price_history_real_1.json").read_text())
     hist2 = json.loads((ROOT / "price_history_real_2.json").read_text())
 
+    # Build set of giveaway-pinned item names to protect
+    pinned_names = set(GIVEAWAY_PINNED.values())
+
     updated = 0
+    skipped_pinned = 0
+
     for item in items:
         name = item["name"]
+
+        # Never overwrite giveaway-pinned items
+        if name in pinned_names:
+            skipped_pinned += 1
+            continue
+
         if name not in catalog or catalog[name]["price"] is None:
             continue
+
         rec = catalog[name]
         for k in ["price", "day", "week", "month", "year", "spread", "vol"]:
-            if rec[k] is not None: item[k] = rec[k]
-        if name in hist1: hist1[name][today] = rec["price"]
-        elif name in hist2: hist2[name][today] = rec["price"]
+            if rec[k] is not None:
+                item[k] = rec[k]
+
+        if name in hist1:
+            hist1[name][today] = rec["price"]
+        elif name in hist2:
+            hist2[name][today] = rec["price"]
+
         updated += 1
 
     print(f"  updated {updated} items")
-    (ROOT / "items.json").write_text(json.dumps(items, ensure_ascii=False, separators=(",", ":")))
-    (ROOT / "price_history_real_1.json").write_text(json.dumps(hist1, ensure_ascii=False, separators=(",", ":")))
-    (ROOT / "price_history_real_2.json").write_text(json.dumps(hist2, ensure_ascii=False, separators=(",", ":")))
+    print(f"  protected {skipped_pinned} giveaway-pinned items")
+
+    (ROOT / "items.json").write_text(
+        json.dumps(items, ensure_ascii=False, separators=(",", ":"))
+    )
+    (ROOT / "price_history_real_1.json").write_text(
+        json.dumps(hist1, ensure_ascii=False, separators=(",", ":"))
+    )
+    (ROOT / "price_history_real_2.json").write_text(
+        json.dumps(hist2, ensure_ascii=False, separators=(",", ":"))
+    )
     return updated
 
 
