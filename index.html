@@ -1468,7 +1468,7 @@ function GiveawaysTab({ user, tier }) {
         var names = [];
         Object.keys(entryData).forEach(function(uid) {
           var e = entryData[uid];
-          if (e.period === endTime) {
+          if (!e.period || e.period === endTime) {
             for (var i = 0; i < (e.tickets || 1); i++) names.push(e.name);
           }
         });
