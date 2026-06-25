@@ -1412,9 +1412,9 @@ var GIVEAWAY_PINNED = {
   monthly: "S2 Mantis \"Ink Wash\""
 };
 
-function getGiveawayItem(gType) {
-  var pinnedName = GIVEAWAY_PINNED[gType];
-  var item = ITEMS.find(function(i){ return i.name === pinnedName; });
+function getGiveawayItem(gType, overrideName) {
+  var name = overrideName || GIVEAWAY_PINNED[gType];
+  var item = ITEMS.find(function(i){ return i.name === name; });
   if (item) return item;
   // Fallback only if the pinned item is ever removed from ITEMS
   var pool = ITEMS.slice(0, 50);
@@ -1434,6 +1434,8 @@ function GiveawaysTab({ user, tier }) {
   const [now, setNow] = useState(Date.now());
   const [entries, setEntries] = useState({});
   const [winners, setWinners] = useState({});
+  const [liveItems, setLiveItems] = useState({});
+  const drawnRef = React.useRef({});
 
   React.useEffect(function() {
     var iv = setInterval(function(){ setNow(Date.now()); }, 1000);
@@ -1449,18 +1451,26 @@ function GiveawaysTab({ user, tier }) {
       db.ref("giveaways/" + g.type + "/lastWinner").on("value", function(snap) {
         setWinners(function(prev) { var n = Object.assign({}, prev); n[g.type] = snap.val(); return n; });
       });
+      db.ref("giveaways/" + g.type + "/item").on("value", function(snap) {
+        var name = snap.val();
+        setLiveItems(function(prev) { var n = Object.assign({}, prev); n[g.type] = name || null; return n; });
+      });
     });
   }, []);
 
   React.useEffect(function() {
     GIVEAWAY_ITEMS.forEach(function(g) {
       var endTime = getEndTime(g.type);
-      if (now >= endTime) {
+      var periodKey = g.type + "_" + endTime;
+      if (now >= endTime && !drawnRef.current[periodKey]) {
+        drawnRef.current[periodKey] = true;
         var entryData = entries[g.type] || {};
         var names = [];
         Object.keys(entryData).forEach(function(uid) {
           var e = entryData[uid];
-          for (var i = 0; i < (e.tickets || 1); i++) names.push(e.name);
+          if (e.period === endTime) {
+            for (var i = 0; i < (e.tickets || 1); i++) names.push(e.name);
+          }
         });
         if (names.length > 0) {
           var winner = names[Math.floor(Math.random() * names.length)];
@@ -1469,14 +1479,16 @@ function GiveawaysTab({ user, tier }) {
         }
       }
     });
-  }, [now]);
+  }, [now, entries]);
 
   function handleEnter(gType) {
     if (!user) return;
     var tickets = tier==="VIP+"?100:tier==="VIP"?25:tier==="Basic"?10:1;
+    var endTime = getEndTime(gType);
     db.ref("giveaways/" + gType + "/entries/" + user.uid).set({
       name: user.displayName || user.email,
       tickets: tickets,
+      period: endTime,
       ts: Date.now()
     });
   }
@@ -1510,12 +1522,13 @@ function GiveawaysTab({ user, tier }) {
 
       <div className="s2-giveaways" style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16 }}>
         {GIVEAWAY_ITEMS.map(function(g) {
-          var item = getGiveawayItem(g.type);
+          var item = getGiveawayItem(g.type, liveItems[g.type]);
           var endTime = getEndTime(g.type);
           var remaining = endTime - now;
           var entryData = entries[g.type] || {};
           var entryCount = Object.keys(entryData).length;
-          var hasEntered = user && entryData[user.uid];
+          var myEntry = user && entryData[user.uid];
+          var hasEntered = myEntry && myEntry.period === endTime;
           var lastWinner = winners[g.type];
           var rc = RC[item.rarity] || "#888";
           var rb = RB[item.rarity] || "rgba(128,128,128,0.12)";
