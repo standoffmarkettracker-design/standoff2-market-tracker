@@ -1476,6 +1476,28 @@ function GiveawaysTab({ user, tier }) {
           var winner = names[Math.floor(Math.random() * names.length)];
           db.ref("giveaways/" + g.type + "/lastWinner").set(winner);
           db.ref("giveaways/" + g.type + "/entries").remove();
+          var currentItem = getGiveawayItem(g.type, null);
+          var basePrice = currentItem ? currentItem.price : 0;
+          if (basePrice > 0) {
+            var maxAllowed = basePrice * 1.20;
+            var pinned = GIVEAWAY_PINNED[g.type];
+            var pool = ITEMS.filter(function(i) {
+              if (!i.price || i.price <= 0) return false;
+              if (i.name === pinned) return false;
+              return Math.abs(i.price - basePrice) / basePrice <= 0.05 && i.price <= maxAllowed;
+            });
+            if (pool.length === 0) {
+              pool = ITEMS.filter(function(i) {
+                if (!i.price || i.price <= 0) return false;
+                if (i.name === pinned) return false;
+                return Math.abs(i.price - basePrice) / basePrice <= 0.15 && i.price <= maxAllowed;
+              });
+            }
+            if (pool.length > 0) {
+              var next = pool[Math.floor(Math.random() * pool.length)];
+              db.ref("giveaways/" + g.type + "/item").set(next.name);
+            }
+          }
         }
       }
     });
