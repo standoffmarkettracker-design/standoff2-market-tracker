@@ -40,7 +40,9 @@ def parse_num(val):
         return None
 
 def strip_html(text):
-    return re.sub(r"<[^>]+>", "", str(text)).strip()
+    t = re.sub(r"<[^>]+>", "", str(text))
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
 
 def load_json(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -182,6 +184,8 @@ def apply_updates(shop_catalog, market_discovered, today):
     hist1    = load_json(ROOT / "price_history_real_1.json")
     hist2    = load_json(ROOT / "price_history_real_2.json")
     coll_map = load_json(ROOT / "collections.json")
+    # Sanitize: remove corrupted entries (newlines in name or impossible prices)
+    items = [i for i in items if "\n" not in i["name"] and 0 < i.get("price", 0) <= 10_000_000]
     pinned_names   = set(GIVEAWAY_PINNED.values())
     existing_names = {item["name"] for item in items}
     updated = skipped_pinned = skipped_zero = new_items = 0
