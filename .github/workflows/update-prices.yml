@@ -6,12 +6,15 @@ on:
     - cron: '0 6 * * *'   # 06:00 UTC
     - cron: '0 12 * * *'  # 12:00 UTC
     - cron: '0 18 * * *'  # 18:00 UTC
-  workflow_dispatch:       # manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   update-prices:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    concurrency:
+      group: price-update
+      cancel-in-progress: false
 
     steps:
       - name: Checkout repository
@@ -35,5 +38,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add items.json price_history_real_1.json price_history_real_2.json collections.json
-          git diff --cached --quiet || git commit -m "chore: price update $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git pull --rebase origin main
+          git commit -m "chore: price update $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
