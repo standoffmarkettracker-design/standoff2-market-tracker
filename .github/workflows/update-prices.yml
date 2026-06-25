@@ -1,10 +1,12 @@
-name: Daily Price Update
+name: Price Update (Every 6 Hours)
 
 on:
   schedule:
-    - cron: '0 6 * * *'
-        - cron: '0 18 * * *'
-  workflow_dispatch:
+    - cron: '0 0 * * *'   # 00:00 UTC
+    - cron: '0 6 * * *'   # 06:00 UTC
+    - cron: '0 12 * * *'  # 12:00 UTC
+    - cron: '0 18 * * *'  # 18:00 UTC
+  workflow_dispatch:       # manual trigger from GitHub UI
 
 jobs:
   update-prices:
@@ -28,10 +30,10 @@ jobs:
       - name: Run price update script
         run: python scripts/update_prices.py
 
-      - name: Commit and push if prices changed
+      - name: Commit and push if data changed
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add price_history_real_1.json price_history_real_2.json items.json
-          git diff --cached --quiet || git commit -m "chore: daily price update $(date -u '+%Y-%m-%d')"
+          git add items.json price_history_real_1.json price_history_real_2.json collections.json
+          git diff --cached --quiet || git commit -m "chore: price update $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
