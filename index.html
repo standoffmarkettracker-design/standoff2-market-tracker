@@ -1477,6 +1477,7 @@ function GiveawaysTab({ user, tier }) {
           var winner = names[Math.floor(Math.random() * names.length)];
           db.ref("giveaways/" + g.type + "/lastWinner").set(winner);
           db.ref("giveaways/" + g.type + "/entries").remove();
+          db.ref("giveaways/winnerHistory").push({type:g.type,winner:winner,item:getGiveawayItem(g.type,null).name,ts:Date.now()});
           var currentItem = getGiveawayItem(g.type, null);
           var basePrice = currentItem ? currentItem.price : 0;
           if (basePrice > 0) {
@@ -1584,12 +1585,7 @@ function GiveawaysTab({ user, tier }) {
                 <button onClick={function(){handleEnter(g.type)}} style={{ width:"100%",padding:"10px",borderRadius:8,background:g.color+"22",border:"1px solid "+g.color+"66",color:g.color,fontSize:13,fontWeight:700,cursor:"pointer" }}>Enter ({tickets} ticket{tickets!==1?"s":""})</button>
               )}
 
-              {lastWinner && (
-                <div style={{ marginTop:10,padding:"8px 10px",background:"rgba(255,215,0,0.08)",border:"1px solid rgba(255,215,0,0.2)",borderRadius:8,textAlign:"center" }}>
-                  <div style={{ fontSize:10,color:"#888",textTransform:"uppercase",letterSpacing:"0.05em" }}>Last Winner</div>
-                  <div style={{ fontSize:13,fontWeight:700,color:"#ffd700",marginTop:2 }}>🏆 {lastWinner}</div>
-                </div>
-              )}
+
             </div>
           );
         })}
@@ -1649,6 +1645,40 @@ function PriceHistoryAdmin() {
       {snapshots.length === 0 && <div style={{ color:"#555",fontSize:12 }}>No snapshots yet. Save your first one!</div>}
       {snapshots.map(function(date) {
         return <div key={date} style={{ padding:"6px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:6,marginBottom:4,fontSize:12,color:"#888" }}>📅 {date}</div>;
+      })}
+    </div>
+  );
+}
+
+function GiveawayWinnersAdmin() {
+  const [history, setHistory] = useState([]);
+  React.useEffect(function() {
+    db.ref("giveaways/winnerHistory").orderByChild("ts").on("value", function(snap) {
+      var list = [];
+      snap.forEach(function(child) { list.unshift(Object.assign({id:child.key}, child.val())); });
+      setHistory(list);
+    });
+  }, []);
+  function fmtDate(ts) { var d = new Date(ts); return d.toLocaleDateString() + " " + d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}); }
+  var typeColors = {weekly:"#4fc3f7", biweekly:"#ce93d8", monthly:"#ffd700"};
+  return (
+    <div>
+      <div style={{ fontSize:12,color:"#555",marginBottom:16 }}>{history.length} winner{history.length!==1?"s":""} recorded</div>
+      {history.length===0 && <div style={{ color:"#555",fontSize:13,textAlign:"center",padding:20 }}>No winners yet — they will appear here automatically</div>}
+      {history.map(function(w) {
+        var c = typeColors[w.type] || "#888";
+        return (
+          <div key={w.id} style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"12px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+            <div style={{ display:"flex",alignItems:"center",gap:12 }}>
+              <span style={{ fontSize:11,padding:"3px 8px",borderRadius:20,background:c+"22",color:c,fontWeight:700,textTransform:"capitalize",border:"1px solid "+c+"44" }}>{w.type}</span>
+              <div>
+                <div style={{ fontSize:13,fontWeight:700,color:"#fff" }}>🏆 {w.winner}</div>
+                <div style={{ fontSize:11,color:"#555",marginTop:2 }}>Prize: {w.item}</div>
+              </div>
+            </div>
+            <div style={{ fontSize:11,color:"#555",textAlign:"right" }}>{fmtDate(w.ts)}</div>
+          </div>
+        );
       })}
     </div>
   );
@@ -1796,7 +1826,7 @@ function AdminPanel({ user }) {
     return (
       <div>
         <div style={{ display:"flex",gap:8,marginBottom:20 }}>
-          {[{id:"users",label:"👥 Users"},{id:"feedback",label:"📩 Feedback"},{id:"settings",label:"⚙ Site Settings"},{id:"announce",label:"📢 Announcements"},{id:"prices",label:"📊 Prices"},{id:"danger",label:"🔴 Danger Zone"}].map(function(t){return(
+          {[{id:"users",label:"👥 Users"},{id:"winners",label:"🏆 Winners"},{id:"feedback",label:"📩 Feedback"},{id:"settings",label:"⚙ Site Settings"},{id:"announce",label:"📢 Announcements"},{id:"prices",label:"📊 Prices"},{id:"danger",label:"🔴 Danger Zone"}].map(function(t){return(
             <button key={t.id} onClick={function(){setAdminTab(t.id)}} style={{ padding:"8px 14px",borderRadius:8,background:adminTab===t.id?"rgba(255,107,53,0.15)":"rgba(255,255,255,0.04)",border:"1px solid "+(adminTab===t.id?"rgba(255,107,53,0.5)":"rgba(255,255,255,0.08)"),color:adminTab===t.id?"#ff6b35":"#888",fontSize:12,fontWeight:600,cursor:"pointer" }}>{t.label}</button>
           )})}
         </div>
@@ -1898,6 +1928,10 @@ function AdminPanel({ user }) {
 
         {adminTab === "prices" && (
           <PriceHistoryAdmin />
+        )}
+
+        {adminTab === "winners" && (
+          <GiveawayWinnersAdmin />
         )}
 
         {adminTab === "danger" && (
