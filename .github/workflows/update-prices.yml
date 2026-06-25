@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5.6.0
@@ -38,7 +40,9 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add items.json price_history_real_1.json price_history_real_2.json collections.json
-          git diff --cached --quiet && echo "No changes" && exit 0
-          git pull --rebase origin main
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git fetch origin main
+          git reset --soft origin/main
+          git add items.json price_history_real_1.json price_history_real_2.json collections.json
           git commit -m "chore: price update $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push
+          git push origin main
