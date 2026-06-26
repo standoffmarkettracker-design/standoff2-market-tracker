@@ -41,8 +41,18 @@ def parse_num(val):
 
 def strip_html(text):
     t = re.sub(r"<[^>]+>", "", str(text))
-    t = re.sub(r"\s+", " ", t).strip()
+    t = re.sub(r"[\r\n\t]+", " ", t)
+    t = re.sub(r" {2,}", " ", t).strip()
     return t
+
+def is_valid_name(name: str) -> bool:
+    if not name or len(name) < 3 or len(name) > 120:
+        return False
+    if "\n" in name or "\r" in name or "\t" in name:
+        return False
+    if name.count("  ") > 2:
+        return False
+    return True
 
 def load_json(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -174,7 +184,7 @@ def fetch_market_discovery():
     for item in dom_items + json_items:
         name = item.get("name","").strip()
         price = parse_num(item.get("price",0))
-        if name and len(name) > 2 and price and price > 0:
+        if is_valid_name(name) and price and 0 < price <= 10_000_000:
             all_found[name] = {"price": price, "collection": item.get("collection","").strip(), "source": item.get("source","dom")}
     print(f"  [market] unique valid items: {len(all_found)}")
     return all_found
@@ -217,7 +227,7 @@ def apply_updates(shop_catalog, market_discovered, today):
         if name not in existing_names and name not in pinned_names and name not in all_new:
             all_new[name] = {"price": rec["price"], "day": None, "week": None, "month": None, "year": None, "spread": None, "vol": None, "collection": rec.get("collection", coll_map.get(name,"")), "source": "market"}
     for name, rec in all_new.items():
-        if not rec["price"] or rec["price"] <= 0:
+        if not is_valid_name(name) or not rec["price"] or rec["price"] <= 0 or rec["price"] > 10_000_000:
             continue
         items.append({"name": name, "price": rec["price"], "day": rec["day"] or 0, "week": rec["week"] or 0, "month": rec["month"] or 0, "year": rec["year"] or 0, "spread": rec["spread"] or 0, "vol": rec["vol"] or 0, "type": "", "rarity": ""})
         target_hist = hist1 if len(hist1) < 1200 else hist2
