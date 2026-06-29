@@ -50,8 +50,9 @@ def detect_adb_device():
 def log(msg):
     ts = datetime.now().strftime("%H:%M:%S")
     line = f"[{ts}] {msg}"
-    print(line, flush=True)
-    with open(LOG_FILE, "a") as f:
+    print(line, flush=True, end="\n")
+    sys.stdout.flush()
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(line + "\n")
 
 def fb_get(path):
