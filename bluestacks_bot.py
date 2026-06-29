@@ -31,7 +31,7 @@ except ImportError:
 FIREBASE_URL = "https://standoff-2-tracker-default-rtdb.firebaseio.com"
 ADB_DEVICE   = "localhost:5555"   # auto-detected below
 LOG_FILE     = Path("bluestacks_bot.log")
-API_KEY      = os.environ.get("ANTHROPIC_API_KEY", "")
+API_KEY      = os.environ.get("ANTHROPIC_API_KEY") or (open("api_key.txt").read().strip() if __import__('pathlib').Path("api_key.txt").exists() else "")
 POLL_SECS    = 5
 
 def detect_adb_device():
@@ -269,7 +269,8 @@ def process_claim(uid, claim):
 
 def main():
     if not API_KEY:
-        print("\nERROR: set ANTHROPIC_API_KEY=sk-ant-...")
+        print("\nERROR: No API key found.")
+        print("Create a file called api_key.txt in this folder with just your key inside.")
         sys.exit(1)
 
     detect_adb_device()
