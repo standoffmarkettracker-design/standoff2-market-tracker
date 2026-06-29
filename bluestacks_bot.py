@@ -29,10 +29,20 @@ except ImportError:
     from PIL import Image
 
 FIREBASE_URL = "https://standoff-2-tracker-default-rtdb.firebaseio.com"
-ADB_DEVICE   = "localhost:5555"
+ADB_DEVICE   = "localhost:5555"   # auto-detected below
 LOG_FILE     = Path("bluestacks_bot.log")
 API_KEY      = os.environ.get("ANTHROPIC_API_KEY", "")
 POLL_SECS    = 5
+
+def detect_adb_device():
+    """Auto-detect the BlueStacks ADB device."""
+    result = subprocess.run("adb devices", shell=True, capture_output=True, text=True).stdout
+    for line in result.splitlines():
+        if "device" in line and "List" not in line:
+            device = line.split()[0]
+            log(f"Auto-detected ADB device: {device}")
+            return device
+    return "localhost:5555"
 
 def log(msg):
     ts = datetime.now().strftime("%H:%M:%S")
@@ -67,10 +77,20 @@ def adb(cmd):
     return result.stdout.strip()
 
 def adb_screenshot():
-    adb("shell screencap -p /sdcard/s2_bot_cap.png")
-    adb("pull /sdcard/s2_bot_cap.png s2_cap.png")
+    global ADB_DEVICE
+    # Try screencap
+    out = adb("shell screencap -p /sdcard/s2_bot_cap.png")
+    if "error" in out.lower() or "failed" in out.lower():
+        log(f"  screencap warning: {out}")
+    pull = adb("pull /sdcard/s2_bot_cap.png s2_cap.png")
+    if not Path("s2_cap.png").exists():
+        raise RuntimeError(f"Screenshot pull failed: {pull}")
     with open("s2_cap.png", "rb") as f:
-        return base64.standard_b64encode(f.read()).decode()
+        data = f.read()
+    if len(data) < 1000:
+        raise RuntimeError(f"Screenshot too small ({len(data)} bytes) — ADB may not be connected")
+    log(f"  Screenshot: {len(data)//1024}KB")
+    return base64.standard_b64encode(data).decode()
 
 def adb_tap(x, y):
     adb(f"shell input tap {x} {y}")
@@ -118,21 +138,19 @@ def find_and_buy_ingame(seller, item_name, list_price):
     state = ask_claude("What screen is currently showing in this Standoff 2 app? Is the marketplace/shop open? One sentence.", shot)
     log(f"  Current state: {state}")
 
-    if "market" not in state.lower() and "shop" not in state.lower() and "store" not in state.lower():
-        log("Step 2: Navigating to marketplace...")
-        shot = adb_screenshot()
-        coords = get_tap_coords(
-            "Find the marketplace, shop, or market icon/button in this Standoff 2 screenshot. Usually a shopping cart or store icon in the bottom navigation.",
-            shot
-        )
-        if coords:
-            adb_tap(*coords)
-            time.sleep(2)
-            shot = adb_screenshot()
-        else:
-            log("  Could not find marketplace button")
+    log("Step 2: Navigating to marketplace...")
+    shot = adb_screenshot()
+    coords = get_tap_coords(
+        "This is Standoff 2 mobile game. Find the MARKET or SHOP tab/button - it could be in the bottom navigation bar, "
+        "a shopping cart icon, or a tab labeled Market/Shop/Store. Give coordinates to tap it.",
+        shot
+    )
+    if coords:
+        adb_tap(*coords)
+        time.sleep(3)
+        log("  Tapped market button")
     else:
-        log("Step 2: Already in marketplace area")
+        log("  Market button not found — may already be there")
 
     log(f"Step 3: Searching for '{item_name}'...")
     shot = adb_screenshot()
@@ -256,6 +274,8 @@ def main():
         print(f"\nERROR: BlueStacks not connected. Run: adb connect localhost:5555")
         sys.exit(1)
 
+    global ADB_DEVICE
+    ADB_DEVICE = detect_adb_device()
     log("="*55)
     log("  Standoff 2 BlueStacks Bot (ADB + Claude Vision)")
     log("="*55)
