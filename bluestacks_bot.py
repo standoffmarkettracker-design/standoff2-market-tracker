@@ -35,7 +35,15 @@ except ImportError:
 FIREBASE_URL = "https://standoff-2-tracker-default-rtdb.firebaseio.com"
 ADB_DEVICE   = "localhost:5555"   # auto-detected below
 LOG_FILE     = Path("bluestacks_bot.log")
-API_KEY      = os.environ.get("ANTHROPIC_API_KEY") or (open("api_key.txt").read().strip() if __import__('pathlib').Path("api_key.txt").exists() else "")
+def _load_api_key():
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not key and Path("api_key.txt").exists():
+        # utf-8-sig strips BOM added by Windows Notepad/PowerShell Out-File
+        key = open("api_key.txt", encoding="utf-8-sig").read().strip()
+    # Ensure key is pure ASCII (no hidden unicode chars)
+    key = key.encode("ascii", "ignore").decode("ascii")
+    return key
+API_KEY = _load_api_key()
 POLL_SECS    = 5
 
 def detect_adb_device():
