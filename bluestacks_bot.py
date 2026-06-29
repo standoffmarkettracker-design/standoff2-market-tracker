@@ -35,13 +35,16 @@ API_KEY      = os.environ.get("ANTHROPIC_API_KEY", "")
 POLL_SECS    = 5
 
 def detect_adb_device():
-    """Auto-detect the BlueStacks ADB device."""
+    """Auto-detect the BlueStacks ADB device and set global ADB_DEVICE."""
+    global ADB_DEVICE
     result = subprocess.run("adb devices", shell=True, capture_output=True, text=True).stdout
     for line in result.splitlines():
         if "device" in line and "List" not in line:
             device = line.split()[0]
+            ADB_DEVICE = device
             log(f"Auto-detected ADB device: {device}")
             return device
+    log("WARNING: No ADB device found, defaulting to localhost:5555")
     return "localhost:5555"
 
 def log(msg):
@@ -265,17 +268,11 @@ def process_claim(uid, claim):
 
 
 def main():
-    global ADB_DEVICE
     if not API_KEY:
         print("\nERROR: set ANTHROPIC_API_KEY=sk-ant-...")
         sys.exit(1)
 
-    devices = subprocess.run("adb devices", shell=True, capture_output=True, text=True).stdout
-    if ADB_DEVICE not in devices and "emulator" not in devices:
-        print(f"\nERROR: BlueStacks not connected. Run: adb connect localhost:5555")
-        sys.exit(1)
-
-    ADB_DEVICE = detect_adb_device()
+    detect_adb_device()
     log("="*55)
     log("  Standoff 2 BlueStacks Bot (ADB + Claude Vision)")
     log("="*55)
