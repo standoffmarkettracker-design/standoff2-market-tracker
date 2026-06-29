@@ -53,13 +53,12 @@ def detect_adb_device():
 
 def log(msg):
     ts = datetime.now().strftime("%H:%M:%S")
-    line = f"[{ts}] {msg}"
-    try:
-        print(line, flush=True)
-    except UnicodeEncodeError:
-        print(line.encode("ascii","replace").decode(), flush=True)
+    # Strip all non-ASCII characters to avoid Windows console encoding errors
+    safe_msg = msg.encode("ascii", "replace").decode("ascii")
+    line = f"[{ts}] {safe_msg}"
+    print(line, flush=True)
     with open(LOG_FILE, "a", encoding="utf-8") as f:
-        f.write(line + "\n")
+        f.write(f"[{ts}] {msg}\n")
 
 def fb_get(path):
     try:
