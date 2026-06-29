@@ -1011,9 +1011,9 @@ function KofiUIDCopy({ uid }) {
 function SupportModal({ onClose, currentTier, setTier, user, onSignUp }) {
   const tiers = [
     { name: "Free", price: "$0", period: "forever", color: "#888", bg: "rgba(128,128,128,0.1)", border: "rgba(128,128,128,0.3)", features: ["Browse all 2,354+ items", "Search & filter by collection", "Price change tracking", "View price graphs", "Best Investments tab", "Item chat (1 per hour)", "1 giveaway ticket per entry"], link: null },
-    { name: "Basic", price: "$1", period: "/month", color: "#4fc3f7", bg: "rgba(79,195,247,0.1)", border: "rgba(79,195,247,0.4)", features: ["Everything in Free", "🔔 Price alerts (set target prices)", "Priority data updates", "Item chat (5 min cooldown)", "10 giveaway tickets per entry"], link: "kofi" },
-    { name: "VIP", price: "$10", period: "/month", color: "#ce93d8", bg: "rgba(206,147,216,0.1)", border: "rgba(206,147,216,0.4)", features: ["Everything in Basic", "⬇ Export price history (CSV)", "Real-time price tracking", "Advanced analytics", "Item chat (30 sec cooldown)", "25 giveaway tickets per entry"], popular: true, link: "kofi" },
-    { name: "VIP+", price: "$25", period: "/month", color: "#ffd700", bg: "rgba(255,215,0,0.1)", border: "rgba(255,215,0,0.4)", features: ["Everything in VIP", "API access", "Market trend predictions", "Item chat (30 sec cooldown)", "100 giveaway tickets per entry", "Early feature access"], link: "kofi" },
+    { name: "Basic", price: "$1", period: "/month", color: "#4fc3f7", bg: "rgba(79,195,247,0.1)", border: "rgba(79,195,247,0.4)", features: ["Everything in Free", "💰 10 G daily OR 300 G monthly allowance", "🔔 Price alerts (set target prices)", "Priority data updates", "Item chat (5 min cooldown)", "10 giveaway tickets per entry"], link: "kofi" },
+    { name: "VIP", price: "$10", period: "/month", color: "#ce93d8", bg: "rgba(206,147,216,0.1)", border: "rgba(206,147,216,0.4)", features: ["Everything in Basic", "💰 67 G daily OR 2,000 G monthly allowance", "⬇ Export price history (CSV)", "Real-time price tracking", "Advanced analytics", "Item chat (30 sec cooldown)", "25 giveaway tickets per entry"], popular: true, link: "kofi" },
+    { name: "VIP+", price: "$25", period: "/month", color: "#ffd700", bg: "rgba(255,215,0,0.1)", border: "rgba(255,215,0,0.4)", features: ["Everything in VIP", "💰 200 G daily OR 6,000 G monthly allowance", "API access", "Market trend predictions", "Item chat (30 sec cooldown)", "100 giveaway tickets per entry", "Early feature access"], link: "kofi" },
   ];
   return (
     <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300 }}>
@@ -1905,7 +1905,7 @@ function AdminPanel({ user }) {
     return (
       <div>
         <div style={{ display:"flex",gap:8,marginBottom:20 }}>
-          {[{id:"users",label:"👥 Users"},{id:"winners",label:"🏆 Winners"},{id:"feedback",label:"📩 Feedback"},{id:"settings",label:"⚙ Site Settings"},{id:"announce",label:"📢 Announcements"},{id:"prices",label:"📊 Prices"},{id:"danger",label:"🔴 Danger Zone"}].map(function(t){return(
+          {[{id:"users",label:"👥 Users"},{id:"claims",label:"💰 Claims"},{id:"winners",label:"🏆 Winners"},{id:"feedback",label:"📩 Feedback"},{id:"settings",label:"⚙ Site Settings"},{id:"announce",label:"📢 Announcements"},{id:"prices",label:"📊 Prices"},{id:"danger",label:"🔴 Danger Zone"}].map(function(t){return(
             <button key={t.id} onClick={function(){setAdminTab(t.id)}} style={{ padding:"8px 14px",borderRadius:8,background:adminTab===t.id?"rgba(255,107,53,0.15)":"rgba(255,255,255,0.04)",border:"1px solid "+(adminTab===t.id?"rgba(255,107,53,0.5)":"rgba(255,255,255,0.08)"),color:adminTab===t.id?"#ff6b35":"#888",fontSize:12,fontWeight:600,cursor:"pointer" }}>{t.label}</button>
           )})}
         </div>
@@ -2009,6 +2009,7 @@ function AdminPanel({ user }) {
           <PriceHistoryAdmin />
         )}
 
+        {adminTab === "claims" && (<ClaimsAdminTab />)}
         {adminTab === "winners" && (
           <GiveawayWinnersAdmin />
         )}
