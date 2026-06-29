@@ -258,7 +258,15 @@ def process_claim(uid, claim):
         return
 
     fb_patch(f"allowanceClaims/{uid}", {"status": "processing"})
-    success = find_and_buy_ingame(seller, item_name, list_price)
+    try:
+        success = find_and_buy_ingame(seller, item_name, list_price)
+    except Exception as e:
+        safe_e = str(e).encode("ascii","replace").decode()
+        log(f"Purchase error: {safe_e}")
+        import traceback
+        tb = traceback.format_exc().encode("ascii","replace").decode()
+        log(tb)
+        success = False
 
     if success:
         fb_patch(f"allowanceClaims/{uid}", {
@@ -297,7 +305,8 @@ def main():
             else:
                 log("No pending claims...")
         except Exception as e:
-            log(f"Poll error: {e}")
+            safe_e = str(e).encode("ascii","replace").decode()
+            log(f"Poll error: {safe_e}")
         time.sleep(POLL_SECS)
 
 
