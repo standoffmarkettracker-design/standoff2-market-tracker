@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import sys, io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 """
 Standoff 2 BlueStacks Allowance Bot
 Uses ADB to control BlueStacks + Claude vision to find and buy items
@@ -12,7 +16,7 @@ Run:
   python bluestacks_bot.py
 """
 
-import os, json, time, base64, subprocess, urllib.request, sys
+import os, json, time, base64, subprocess, urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
