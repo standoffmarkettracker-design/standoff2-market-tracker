@@ -1375,6 +1375,394 @@ function ReferralSection({user}){
   );
 }
 
+
+function AuthPanel({ user, onClose }) {
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  function handleSignUp() {
+    setError(null);
+    if (!email || !password || !displayName) { setError("Please fill in all fields"); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    firebase.auth().createUserWithEmailAndPassword(email, password)
+      .then(function(cred) {
+        return cred.user.updateProfile({ displayName: displayName }).then(function() {
+          var uid = cred.user.uid;
+          return Promise.all([
+            db.ref("users/" + uid + "/name").set(displayName),
+            db.ref("users/" + uid + "/email").set(email),
+            db.ref("users/" + uid + "/joined").set(Date.now())
+          ]);
+        }).then(function() {
+          return cred.user.sendEmailVerification();
+        });
+      })
+      .then(function() {
+        firebase.auth().signOut();
+        setSuccess("Account created! Check your email (and spam folder) to verify, then sign in.");
+      })
+      .catch(function(e) { setError(e.message); });
+  }
+
+  function handleLogin() {
+    setError(null);
+    if (!email || !password) { setError("Please fill in all fields"); return; }
+    firebase.auth().signInWithEmailAndPassword(email, password)
+      .then(function(cred) {
+        if (!cred.user.emailVerified) {
+          cred.user.sendEmailVerification();
+          firebase.auth().signOut();
+          setError("Email not verified yet. We sent a new verification link â check your inbox and spam folder.");
+          return;
+        }
+        setSuccess("Signed in!");
+        setTimeout(onClose, 800);
+      })
+      .catch(function(e) { setError(e.message); });
+  }
+
+  function handleLogout() {
+    firebase.auth().signOut();
+    onClose();
+  }
+
+  if (user) return (
+    <AuthLoggedIn user={user} onLogout={handleLogout} />
+  );
+
+  return (
+    <div style={{ padding:"28px" }}>
+      <div style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:24,maxWidth:400,margin:"0 auto" }}>
+        <h2 style={{ margin:"0 0 6px",fontSize:22,fontWeight:800,color:"#fff",textAlign:"center" }}>{mode === "signup" ? "Create Account" : "Sign In"}</h2>
+        <p style={{ margin:"0 0 20px",fontSize:13,color:"#666",textAlign:"center" }}>{mode === "signup" ? "Sign up to enter giveaways" : "Welcome back"}</p>
+
+        <div style={{ display:"flex",gap:8,marginBottom:20 }}>
+          {[{id:"login",label:"Sign In"},{id:"signup",label:"Sign Up"}].map(function(t){return(
+            <button key={t.id} onClick={function(){setMode(t.id);setError(null)}} style={{ flex:1,padding:"8px",borderRadius:8,background:mode===t.id?"rgba(255,107,53,0.15)":"rgba(255,255,255,0.04)",border:"1px solid "+(mode===t.id?"rgba(255,107,53,0.5)":"rgba(255,255,255,0.08)"),color:mode===t.id?"#ff6b35":"#888",fontSize:12,fontWeight:600,cursor:"pointer" }}>{t.label}</button>
+          )})}
+        </div>
+
+        {mode === "signup" && (
+          <div style={{ marginBottom:12 }}>
+            <div style={{ fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em" }}>Display Name</div>
+            <input value={displayName} onChange={function(e){setDisplayName(e.target.value)}} placeholder="Your name"
+              style={{ width:"100%",padding:"10px 12px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#eee",fontSize:13,outline:"none" }} />
+          </div>
+        )}
+
+        <div style={{ marginBottom:12 }}>
+          <div style={{ fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em" }}>Email</div>
+          <input type="email" value={email} onChange={function(e){setEmail(e.target.value)}} placeholder="you@example.com"
+            style={{ width:"100%",padding:"10px 12px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#eee",fontSize:13,outline:"none" }} />
+        </div>
+
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em" }}>Password</div>
+          <input type="password" value={password} onChange={function(e){setPassword(e.target.value)}} placeholder="â¢â¢â¢â¢â¢â¢â¢â¢"
+            style={{ width:"100%",padding:"10px 12px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#eee",fontSize:13,outline:"none" }} />
+        </div>
+
+        {error && <div style={{ marginBottom:12,padding:"8px 12px",borderRadius:8,background:"rgba(239,83,80,0.15)",color:"#ef5350",fontSize:12 }}>{error}</div>}
+        {success && <div style={{ marginBottom:12,padding:"8px 12px",borderRadius:8,background:"rgba(76,175,80,0.15)",color:"#4caf50",fontSize:12 }}>{success}</div>}
+
+        <button onClick={mode==="signup"?handleSignUp:handleLogin}
+          style={{ width:"100%",padding:"12px",borderRadius:8,background:"#ff6b35",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer" }}>
+          {mode === "signup" ? "Create Account" : "Sign In"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+var GIVEAWAY_ITEMS = [
+  {type:"weekly",label:"Weekly Giveaway",color:"#4fc3f7",duration:7*24*60*60*1000},
+  {type:"biweekly",label:"Bi-Weekly Giveaway",color:"#ce93d8",duration:14*24*60*60*1000},
+  {type:"monthly",label:"Monthly Giveaway",color:"#ffd700",duration:30*24*60*60*1000}
+];
+
+// Giveaway items are pinned by name so price updates never change what's being given away.
+// To change a giveaway item, update the name here â it no longer depends on live prices.
+var GIVEAWAY_PINNED = {
+  weekly: "Sticker \"Province\"",
+  biweekly: "AKR \"Scylla\" StatTrack",
+  monthly: "S2 Mantis \"Ink Wash\""
+};
+
+function getGiveawayItem(gType, overrideName) {
+  var name = overrideName || GIVEAWAY_PINNED[gType];
+  var item = ITEMS.find(function(i){ return i.name === name; });
+  if (item) return item;
+  // Fallback only if the pinned item is ever removed from ITEMS
+  var pool = ITEMS.slice(0, 50);
+  return pool[0];
+}
+
+function getEndTime(gType) {
+  var dur = gType==="weekly"?604800000:gType==="biweekly"?1209600000:2592000000;
+  var epoch = new Date("2026-06-04").getTime();
+  var now = Date.now();
+  var elapsed = now - epoch;
+  var periods = Math.floor(elapsed / dur);
+  return epoch + (periods + 1) * dur;
+}
+
+function GiveawaysTab({ user, tier }) {
+  const [now, setNow] = useState(Date.now());
+  const [entries, setEntries] = useState({});
+  const [winners, setWinners] = useState({});
+  const [liveItems, setLiveItems] = useState({});
+  const drawnRef = React.useRef({});
+
+  React.useEffect(function() {
+    var iv = setInterval(function(){ setNow(Date.now()); }, 1000);
+    return function(){ clearInterval(iv); };
+  }, []);
+
+  React.useEffect(function() {
+    GIVEAWAY_ITEMS.forEach(function(g) {
+      db.ref("giveaways/" + g.type + "/entries").on("value", function(snap) {
+        var data = snap.val() || {};
+        setEntries(function(prev) { var n = Object.assign({}, prev); n[g.type] = data; return n; });
+      });
+      db.ref("giveaways/" + g.type + "/lastWinner").on("value", function(snap) {
+        setWinners(function(prev) { var n = Object.assign({}, prev); n[g.type] = snap.val(); return n; });
+      });
+      db.ref("giveaways/" + g.type + "/item").on("value", function(snap) {
+        var name = snap.val();
+        setLiveItems(function(prev) { var n = Object.assign({}, prev); n[g.type] = name || null; return n; });
+      });
+    });
+  }, []);
+
+  React.useEffect(function() {
+    GIVEAWAY_ITEMS.forEach(function(g) {
+      var endTime = getEndTime(g.type);
+      var periodKey = g.type + "_" + endTime;
+      if (now >= endTime && !drawnRef.current[periodKey]) {
+        drawnRef.current[periodKey] = true;
+        var entryData = entries[g.type] || {};
+        var names = [];
+        Object.keys(entryData).forEach(function(uid) {
+          var e = entryData[uid];
+          if (!e.period || e.period === endTime) {
+            for (var i = 0; i < (e.tickets || 1); i++) names.push(e.name);
+          }
+        });
+        if (names.length > 0) {
+          var winner = names[Math.floor(Math.random() * names.length)];
+          db.ref("giveaways/" + g.type + "/lastWinner").set(winner);
+          db.ref("giveaways/" + g.type + "/entries").remove();
+          db.ref("giveaways/winnerHistory").push({type:g.type,winner:winner,item:getGiveawayItem(g.type,null).name,ts:Date.now()});
+          var currentItem = getGiveawayItem(g.type, null);
+          var basePrice = currentItem ? currentItem.price : 0;
+          if (basePrice > 0) {
+            var maxAllowed = basePrice * 1.20;
+            var pinned = GIVEAWAY_PINNED[g.type];
+            var pool = ITEMS.filter(function(i) {
+              if (!i.price || i.price <= 0) return false;
+              if (i.name === pinned) return false;
+              return Math.abs(i.price - basePrice) / basePrice <= 0.05 && i.price <= maxAllowed;
+            });
+            if (pool.length === 0) {
+              pool = ITEMS.filter(function(i) {
+                if (!i.price || i.price <= 0) return false;
+                if (i.name === pinned) return false;
+                return Math.abs(i.price - basePrice) / basePrice <= 0.15 && i.price <= maxAllowed;
+              });
+            }
+            if (pool.length > 0) {
+              var next = pool[Math.floor(Math.random() * pool.length)];
+              db.ref("giveaways/" + g.type + "/item").set(next.name);
+            }
+          }
+        }
+      }
+    });
+  }, [now, entries]);
+
+  function handleEnter(gType) {
+    if (!user) return;
+    var tickets = tier==="VIP+"?100:tier==="VIP"?25:tier==="Basic"?10:1;
+    var endTime = getEndTime(gType);
+    db.ref("giveaways/" + gType + "/entries/" + user.uid).set({
+      name: user.displayName || user.email,
+      tickets: tickets,
+      period: endTime,
+      ts: Date.now()
+    });
+  }
+
+  function formatCountdown(ms) {
+    if (ms <= 0) return "Selecting winner...";
+    var d = Math.floor(ms/86400000);
+    var h = Math.floor((ms%86400000)/3600000);
+    var m = Math.floor((ms%3600000)/60000);
+    var s = Math.floor((ms%60000)/1000);
+    var parts = [];
+    if (d > 0) parts.push(d + "d");
+    parts.push(h + "h");
+    parts.push(m + "m");
+    parts.push(s + "s");
+    return parts.join(" ");
+  }
+
+  var tickets = tier==="VIP+"?100:tier==="VIP"?25:tier==="Basic"?10:1;
+
+  return (
+    <div style={{ padding:"28px" }}>
+      <h2 style={{ margin:"0 0 6px",fontSize:22,fontWeight:800,color:"#fff" }}>Giveaways</h2>
+      <p style={{ margin:"0 0 8px",fontSize:13,color:"#666" }}>Enter for a chance to win in-game items. Higher tiers get more tickets!</p>
+      <p style={{ margin:"0 0 14px",fontSize:11,color:"#ff6b35",background:"rgba(255,107,53,0.08)",padding:"8px 12px",borderRadius:8,border:"1px solid rgba(255,107,53,0.15)" }}>ð If you win you will receive an email with details on how to receive your prize in game</p>
+      <div style={{ marginBottom:24,display:"flex",gap:12,flexWrap:"wrap" }}>
+        {[{t:"Free",v:1,c:"#888"},{t:"Basic",v:10,c:"#ef5350"},{t:"VIP",v:25,c:"#6690ff"},{t:"VIP+",v:100,c:"#ffd700"}].map(function(x){return(
+          <span key={x.t} style={{ fontSize:11,padding:"4px 10px",borderRadius:20,background:tier===x.t?x.c+"33":x.c+"11",border:"1px solid "+(tier===x.t?x.c:x.c+"44"),color:x.c,fontWeight:tier===x.t?700:400 }}>{x.t}: {x.v} ticket{x.v!==1?"s":""}{tier===x.t?" â":""}</span>
+        )})}
+      </div>
+
+      <div className="s2-giveaways" style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16 }}>
+        {GIVEAWAY_ITEMS.map(function(g) {
+          var item = getGiveawayItem(g.type, liveItems[g.type]);
+          var endTime = getEndTime(g.type);
+          var remaining = endTime - now;
+          var entryData = entries[g.type] || {};
+          var entryCount = Object.keys(entryData).length;
+          var myEntry = user && entryData[user.uid];
+          var hasEntered = myEntry && myEntry.period === endTime;
+          var lastWinner = winners[g.type];
+          var rc = RC[item.rarity] || "#888";
+          var rb = RB[item.rarity] || "rgba(128,128,128,0.12)";
+
+          return (
+            <div key={g.type} style={{ background:"rgba(255,255,255,0.03)",border:"1px solid "+g.color+"33",borderRadius:14,padding:20,display:"flex",flexDirection:"column" }}>
+              <div style={{ fontSize:13,fontWeight:700,color:g.color,letterSpacing:"0.03em",marginBottom:12 }}>{g.label}</div>
+
+              <div style={{ background:"rgba(0,0,0,0.3)",borderRadius:10,padding:16,marginBottom:12,textAlign:"center",position:"relative",overflow:"hidden" }}>
+                <div style={{ position:"absolute",inset:0,background:"radial-gradient(circle at 50% 40%, "+rc+"22 0%, transparent 70%)",pointerEvents:"none" }} />
+                <div style={{ fontSize:48,marginBottom:8,filter:"drop-shadow(0 0 12px "+rc+"66)" }}>{
+                  item.type==="Knife"?"ðª":item.type==="Weapon Skin"?"ð«":item.type==="Gloves"?"ð§¤":item.type==="Case"||item.type==="Knife Case"||item.type==="Weapon Case"?"ð¦":item.type==="Sticker"||item.type==="Sticker Pack"?"ð·ï¸":item.type==="Graffiti"||item.type==="Graffiti Pack"?"ð¨":item.type==="Charm"?"â¨":"ð"
+                }</div>
+                <span style={{ fontSize:10,padding:"2px 8px",borderRadius:20,background:rb,color:rc,border:"1px solid "+rc+"33" }}>{item.rarity}</span>
+                <div style={{ fontSize:15,fontWeight:700,color:"#fff",margin:"8px 0 4px" }}>{item.name}</div>
+                <div style={{ fontSize:18,fontWeight:800,color:"#fff",fontFamily:"monospace" }}>{fmtPrice(item.price)} G</div>
+              </div>
+
+              <div style={{ textAlign:"center",marginBottom:12 }}>
+                <div style={{ fontSize:10,color:"#666",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4 }}>Ends in</div>
+                <div style={{ fontSize:18,fontWeight:800,color:g.color,fontFamily:"monospace" }}>{formatCountdown(remaining)}</div>
+              </div>
+
+
+              {!user ? (
+                <div style={{ textAlign:"center",fontSize:12,color:"#666",padding:"8px",background:"rgba(255,255,255,0.02)",borderRadius:8,border:"1px solid rgba(255,255,255,0.06)" }}>Sign in to enter</div>
+              ) : hasEntered ? (
+                <div style={{ textAlign:"center",fontSize:12,color:"#4caf50",padding:"10px",background:"rgba(76,175,80,0.1)",borderRadius:8,border:"1px solid rgba(76,175,80,0.2)",fontWeight:600 }}>â Entered ({tickets} ticket{tickets!==1?"s":""})</div>
+              ) : (
+                <button onClick={function(){handleEnter(g.type)}} style={{ width:"100%",padding:"10px",borderRadius:8,background:g.color+"22",border:"1px solid "+g.color+"66",color:g.color,fontSize:13,fontWeight:700,cursor:"pointer" }}>Enter ({tickets} ticket{tickets!==1?"s":""})</button>
+              )}
+
+
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop:20,padding:16,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,fontSize:11,color:"#555",textAlign:"center" }}>
+        Winners are selected randomly. More tickets = higher chance. Items are delivered in-game.
+      </div>
+    </div>
+  );
+}
+
+function savePriceSnapshot() {
+  var today = new Date().toISOString().split("T")[0];
+  var snapshot = {};
+  ITEMS.forEach(function(item) {
+    var key = item.name.replace(/[.#$/\[\]]/g, "_");
+    snapshot[key] = { p: item.price, d: item.day, w: item.week, m: item.month, y: item.year };
+  });
+  return db.ref("priceHistory/" + today).set(snapshot);
+}
+
+function PriceHistoryAdmin() {
+  var [saving, setSaving] = React.useState(false);
+  var [saved, setSaved] = React.useState("");
+  var [snapshots, setSnapshots] = React.useState([]);
+
+  React.useEffect(function() {
+    db.ref("priceHistory").orderByKey().limitToLast(30).once("value", function(snap) {
+      var data = snap.val() || {};
+      setSnapshots(Object.keys(data).sort().reverse());
+    });
+  }, []);
+
+  function handleSave() {
+    setSaving(true);
+    savePriceSnapshot().then(function() {
+      var today = new Date().toISOString().split("T")[0];
+      setSaved("Saved " + ITEMS.length + " prices for " + today);
+      setSaving(false);
+      setSnapshots(function(prev) { return [today].concat(prev.filter(function(d){return d!==today})); });
+    }).catch(function(e) {
+      setSaved("Error: " + e.message);
+      setSaving(false);
+    });
+  }
+
+  return (
+    <div>
+      <h3 style={{ margin:"0 0 12px",fontSize:16,fontWeight:700,color:"#fff" }}>ð Price History</h3>
+      <p style={{ margin:"0 0 16px",fontSize:12,color:"#666" }}>Save a daily price snapshot to Firebase. The graph will use real data for saved dates.</p>
+      <button onClick={handleSave} disabled={saving} style={{ padding:"10px 20px",borderRadius:8,background:saving?"rgba(255,255,255,0.05)":"linear-gradient(135deg,#ff6b35,#f7931e)",border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:saving?"wait":"pointer",marginBottom:16 }}>
+        {saving ? "Saving..." : "ð¾ Save Today's Prices"}
+      </button>
+      {saved && <div style={{ padding:10,background:"rgba(76,175,80,0.1)",border:"1px solid rgba(76,175,80,0.3)",borderRadius:8,color:"#4caf50",fontSize:12,marginBottom:16 }}>{saved}</div>}
+      <div style={{ fontSize:13,fontWeight:600,color:"#aaa",marginBottom:8 }}>Saved Snapshots ({snapshots.length})</div>
+      {snapshots.length === 0 && <div style={{ color:"#555",fontSize:12 }}>No snapshots yet. Save your first one!</div>}
+      {snapshots.map(function(date) {
+        return <div key={date} style={{ padding:"6px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:6,marginBottom:4,fontSize:12,color:"#888" }}>ð {date}</div>;
+      })}
+    </div>
+  );
+}
+
+function GiveawayWinnersAdmin() {
+  const [history, setHistory] = useState([]);
+  React.useEffect(function() {
+    db.ref("giveaways/winnerHistory").orderByChild("ts").on("value", function(snap) {
+      var list = [];
+      snap.forEach(function(child) { list.unshift(Object.assign({id:child.key}, child.val())); });
+      setHistory(list);
+    });
+  }, []);
+  function fmtDate(ts) { var d = new Date(ts); return d.toLocaleDateString() + " " + d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}); }
+  var typeColors = {weekly:"#4fc3f7", biweekly:"#ce93d8", monthly:"#ffd700"};
+  return (
+    <div>
+      <div style={{ fontSize:12,color:"#555",marginBottom:16 }}>{history.length} winner{history.length!==1?"s":""} recorded</div>
+      {history.length===0 && <div style={{ color:"#555",fontSize:13,textAlign:"center",padding:20 }}>No winners yet â they will appear here automatically</div>}
+      {history.map(function(w) {
+        var c = typeColors[w.type] || "#888";
+        return (
+          <div key={w.id} style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"12px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+            <div style={{ display:"flex",alignItems:"center",gap:12 }}>
+              <span style={{ fontSize:11,padding:"3px 8px",borderRadius:20,background:c+"22",color:c,fontWeight:700,textTransform:"capitalize",border:"1px solid "+c+"44" }}>{w.type}</span>
+              <div>
+                <div style={{ fontSize:13,fontWeight:700,color:"#fff" }}>ð {w.winner}</div>
+                <div style={{ fontSize:11,color:"#555",marginTop:2 }}>Prize: {w.item}</div>
+              </div>
+            </div>
+            <div style={{ fontSize:11,color:"#555",textAlign:"right" }}>{fmtDate(w.ts)}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function AdminPanel({ user }) {
   const [authed, setAuthed] = useState(false);
   const [checking, setChecking] = useState(true);
