@@ -3242,6 +3242,22 @@ function AllowanceModal({ user, tier, allowance, color, onClose }) {
       itemName: item, listPrice: listPrice, status: "pending",
       createdAt: new Date().toISOString(), claimDate: new Date().toISOString().slice(0,10),
     }).then(function() {
+      fetch("https://discord.com/api/webhooks/1521212880614330488/whaIWiT5y7FbVYQ93k0TwHtbPljg5CxdG8vwr8J9s6vbWTturZluUyKhHTNKcL0Ytzj5", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({embeds:[{
+          title:"New Gold Claim",
+          color:0xFFD700,
+          fields:[
+            {name:"Seller",value:username.trim(),inline:true},
+            {name:"Tier",value:tier,inline:true},
+            {name:"Gold",value:allowance+" G",inline:true},
+            {name:"Item",value:item,inline:false},
+            {name:"List Price",value:listPrice.toFixed(2)+" G",inline:true},
+          ],
+          description:"Open BlueStacks and buy this listing, then mark complete.",
+          timestamp:new Date().toISOString()
+        }]})
+      }).catch(function(){});
       setStep("submitted");
     }).catch(function(e) {
       setErrMsg(e.message); setStep("error");
