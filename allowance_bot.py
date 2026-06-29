@@ -59,7 +59,7 @@ def save_cookies(cookies):
     log(f"Session saved -> {SESSION_FILE}")
 
 async def ensure_logged_in(page, context):
-    await page.goto(BASE_URL + "/en", wait_until="domcontentloaded")
+    await page.goto(BASE_URL + "/shop/", wait_until="domcontentloaded")
     await page.wait_for_timeout(2500)
     try:
         await page.locator("a[href*='/profile'], [class*='avatar'], [class*='profile'], .user-name").first.wait_for(timeout=4000)
