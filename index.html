@@ -3043,6 +3043,197 @@ function PortfolioPanel({ user, setTab }) {
   );
 }
 
+
+// ─── Gold Allowance Panel ──────────────────────────────────────────────────────
+var ALLOWANCE_ITEMS = [
+  'P90 "Unstoppable"','SM1014 "Bolt"','M60 "Turret"','M4 "Powergame"',
+  'SM1014 "Triton"','M110 "Dark Pact"','UMP45 "Heatwave"','M60 "Warp"',
+  'F/S "Polymer"','FN FAL "Charred Wood"','Akimbo Uzi "Skull"','P90 "Oracle"',
+  'AKR "Worm"','Desert Eagle "Violet Flame"','SPAS "Waypoint"',
+];
+var ALLOWANCE_DAILY = { "Basic": 10, "VIP": 67, "VIP+": 200 };
+var ALLOWANCE_COLORS = { "Basic": "#4fc3f7", "VIP": "#ce93d8", "VIP+": "#ffd700" };
+
+function AllowancePanel({ user, tier }) {
+  var allowance = ALLOWANCE_DAILY[tier];
+  var color     = ALLOWANCE_COLORS[tier] || "#888";
+  var [claimData,  setClaimData]  = React.useState(null);
+  var [modal,      setModal]      = React.useState(false);
+  var [dataLoaded, setDataLoaded] = React.useState(false);
+
+  React.useEffect(function() {
+    if (!user) return;
+    var ref = db.ref("allowanceClaims/" + user.uid);
+    ref.on("value", function(snap) { setClaimData(snap.val()); setDataLoaded(true); });
+    return function() { ref.off(); };
+  }, [user]);
+
+  if (!user) return (
+    <div style={{ padding:40, textAlign:"center" }}>
+      <div style={{ fontSize:36, marginBottom:16 }}>🔒</div>
+      <div style={{ color:"#aaa", fontSize:15, marginBottom:16 }}>Sign in to access your daily gold allowance.</div>
+    </div>
+  );
+
+  if (!allowance) return (
+    <div style={{ padding:40, textAlign:"center" }}>
+      <div style={{ fontSize:36, marginBottom:16 }}>🔒</div>
+      <div style={{ color:"#aaa", fontSize:15, marginBottom:8 }}>No active subscription.</div>
+      <div style={{ color:"#555", fontSize:13 }}>Upgrade to Basic, VIP, or VIP+ to claim daily gold.</div>
+    </div>
+  );
+
+  var today         = new Date().toISOString().slice(0,10);
+  var lastClaim     = claimData && (claimData.lastClaimDate || claimData.claimDate);
+  var status        = claimData && claimData.status;
+  var alreadyClaimed = lastClaim === today && status === "complete";
+  var isPending     = status === "pending" || status === "processing";
+
+  return (
+    <div style={{ maxWidth:580, margin:"0 auto", padding:"32px 24px" }}>
+      <div style={{ marginBottom:28 }}>
+        <h2 style={{ margin:"0 0 6px", fontSize:22, fontWeight:800, color:"#fff" }}>💰 Daily Gold Allowance</h2>
+        <p style={{ margin:0, fontSize:13, color:"#666" }}>Claim your daily gold by listing a cheap skin on the marketplace. Resets at 00:00 UTC.</p>
+      </div>
+
+      {/* Claim card */}
+      <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid " + (alreadyClaimed||isPending ? "rgba(255,255,255,0.06)" : color+"44"), borderRadius:16, padding:"28px 24px", position:"relative", overflow:"hidden", marginBottom:20 }}>
+        {!alreadyClaimed && !isPending && <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:"linear-gradient(90deg,transparent," + color + ",transparent)" }} />}
+
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+          <div style={{ color:"#555", fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase" }}>Daily Allowance</div>
+          {alreadyClaimed && <div style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#666" }}>✓ CLAIMED TODAY</div>}
+          {isPending && <div style={{ background:"rgba(255,215,0,0.1)", border:"1px solid rgba(255,215,0,0.3)", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#ffd700" }}>⏳ PROCESSING</div>}
+        </div>
+
+        <div style={{ color:color, fontSize:42, fontWeight:800, fontFamily:"monospace", letterSpacing:"-0.02em", marginBottom:4 }}>
+          {allowance.toLocaleString()}<span style={{ fontSize:18, color:"#ffd166", fontFamily:"sans-serif", marginLeft:8 }}>G</span>
+        </div>
+        <div style={{ color:"#555", fontSize:13, marginBottom:24 }}>{tier} tier · resets tomorrow at 00:00 UTC</div>
+
+        {alreadyClaimed && <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:10, padding:14, color:"#444", fontSize:13, textAlign:"center" }}>You've claimed today's allowance. Come back tomorrow!</div>}
+
+        {isPending && claimData && (
+          <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid " + color + "33", borderRadius:10, padding:18 }}>
+            <div style={{ color:"#555", fontSize:11, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:12 }}>{status==="processing"?"Bot is buying your item…":"Waiting for bot"}</div>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}><span style={{ color:"#666", fontSize:13 }}>Item</span><span style={{ color:"#eee", fontWeight:600 }}>{claimData.itemName}</span></div>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}><span style={{ color:"#666", fontSize:13 }}>List price</span><span style={{ color:"#ffd166", fontWeight:700 }}>{claimData.listPrice} G</span></div>
+            <div style={{ display:"flex", justifyContent:"space-between" }}><span style={{ color:"#666", fontSize:13 }}>Status</span><span style={{ color:status==="processing"?"#ffd700":"#666", fontWeight:600 }}>{status==="processing"?"Bot buying now…":"Pending"}</span></div>
+          </div>
+        )}
+
+        {!alreadyClaimed && !isPending && (
+          <button onClick={function(){setModal(true)}} style={{ width:"100%", padding:"14px 0", background:"linear-gradient(135deg," + color + "28," + color + "10)", border:"1px solid " + color + "77", borderRadius:10, color:color, fontWeight:700, fontSize:15, cursor:"pointer", letterSpacing:"0.04em" }}>
+            Claim {allowance.toLocaleString()} G →
+          </button>
+        )}
+      </div>
+
+      {/* How it works */}
+      <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, padding:20 }}>
+        <div style={{ color:"#555", fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:16 }}>How it works</div>
+        {[["Click Claim","We assign you a cheap skin and a unique listing price."],["List the skin","List it on the Standoff 2 marketplace at the exact price shown."],["Submit","Enter your in-game username and submit your claim."],["Gold arrives","Our bot finds your listing, buys it, and sends your full allowance instantly."]].map(function(step,i) {
+          return (
+            <div key={i} style={{ display:"flex", gap:12, marginBottom: i<3?14:0, alignItems:"flex-start" }}>
+              <div style={{ width:20, height:20, borderRadius:5, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", justifyContent:"center", color:"#555", fontSize:11, fontWeight:700, flexShrink:0, marginTop:2 }}>{i+1}</div>
+              <div><div style={{ color:"#ddd", fontWeight:600, fontSize:13, marginBottom:2 }}>{step[0]}</div><div style={{ color:"#555", fontSize:12, lineHeight:1.5 }}>{step[1]}</div></div>
+            </div>
+          );
+        })}
+      </div>
+
+      {modal && <AllowanceModal user={user} tier={tier} allowance={allowance} color={color} onClose={function(){setModal(false)}} />}
+    </div>
+  );
+}
+
+function AllowanceModal({ user, tier, allowance, color, onClose }) {
+  var [step,      setStep]      = React.useState("instructions");
+  var [username,  setUsername]  = React.useState("");
+  var [errMsg,    setErrMsg]    = React.useState("");
+  var item      = React.useRef(ALLOWANCE_ITEMS[Math.floor(Math.random()*ALLOWANCE_ITEMS.length)]).current;
+  var listPrice = React.useRef(parseFloat((allowance + 0.12 + Math.random()*0.75).toFixed(2))).current;
+
+  function handleSubmit() {
+    if (!username.trim()) return;
+    setStep("submitting");
+    db.ref("allowanceClaims/" + user.uid).set({
+      uid: user.uid, displayName: user.displayName||"", email: user.email||"",
+      tier: tier, allowance: allowance, username: username.trim(),
+      itemName: item, listPrice: listPrice, status: "pending",
+      createdAt: new Date().toISOString(), claimDate: new Date().toISOString().slice(0,10),
+    }).then(function() {
+      setStep("submitted");
+    }).catch(function(e) {
+      setErrMsg(e.message); setStep("error");
+    });
+  }
+
+  return (
+    <div onClick={function(e){if(e.target===e.currentTarget)onClose()}} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:20 }}>
+      <div style={{ background:"#12151c", border:"1px solid " + color + "44", borderRadius:16, padding:"32px 28px", width:"100%", maxWidth:440, position:"relative" }}>
+        <div style={{ position:"absolute", top:0, left:0, right:0, height:2, borderRadius:"16px 16px 0 0", background:"linear-gradient(90deg,transparent," + color + ",transparent)" }} />
+        <button onClick={onClose} style={{ position:"absolute", top:14, right:16, background:"none", border:"none", color:"#555", fontSize:20, cursor:"pointer" }}>✕</button>
+        <div style={{ color:"#555", fontSize:11, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Daily Gold Claim</div>
+        <div style={{ color:color, fontSize:26, fontWeight:800, marginBottom:22 }}>{allowance.toLocaleString()} G</div>
+
+        {step === "instructions" && (
+          <div>
+            <div style={{ background:"rgba(0,0,0,0.3)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:18, marginBottom:18 }}>
+              <div style={{ color:"#555", fontSize:11, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:12 }}>Your listing</div>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}><span style={{ color:"#666", fontSize:13 }}>Item</span><span style={{ color:"#eee", fontWeight:600, fontSize:13 }}>{item}</span></div>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:12 }}><span style={{ color:"#666", fontSize:13 }}>List at exactly</span><span style={{ color:"#ffd166", fontWeight:800, fontSize:20 }}>{listPrice.toFixed(2)} G</span></div>
+              <div style={{ borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:10, display:"flex", justifyContent:"space-between", fontSize:11, color:"#444" }}>
+                <span>{allowance} G allowance + {(listPrice-allowance).toFixed(2)} G offset</span>
+                <span style={{ color:"#555" }}>= {listPrice.toFixed(2)} G</span>
+              </div>
+            </div>
+            <div style={{ color:"#666", fontSize:13, lineHeight:1.6, marginBottom:18 }}>
+              List <strong style={{ color:"#ddd" }}>{item}</strong> on the marketplace at exactly <strong style={{ color:"#ffd166" }}>{listPrice.toFixed(2)} G</strong>. The bot will buy it and send you <strong style={{ color:color }}>{allowance.toLocaleString()} G</strong>.
+            </div>
+            <div style={{ marginBottom:14 }}>
+              <div style={{ color:"#555", fontSize:11, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Your in-game username</div>
+              <input value={username} onChange={function(e){setUsername(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")handleSubmit()}} placeholder="e.g. CamelS2" style={{ width:"100%", background:"rgba(0,0,0,0.3)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"11px 14px", color:"#eee", fontSize:14, outline:"none", fontFamily:"inherit" }} />
+            </div>
+            <button onClick={handleSubmit} disabled={!username.trim()} style={{ width:"100%", padding:"13px 0", background: username.trim()?"linear-gradient(135deg,"+color+"33,"+color+"18)":"rgba(255,255,255,0.03)", border:"1px solid "+(username.trim()?color+"88":"rgba(255,255,255,0.08)"), borderRadius:8, color:username.trim()?color:"#444", fontWeight:700, fontSize:14, cursor:username.trim()?"pointer":"not-allowed", letterSpacing:"0.05em" }}>
+              Submit Claim →
+            </button>
+          </div>
+        )}
+
+        {step === "submitting" && (
+          <div style={{ textAlign:"center", padding:"24px 0" }}>
+            <style>{"@keyframes s2spin{to{transform:rotate(360deg)}}"}</style>
+            <div style={{ fontSize:32, marginBottom:12, display:"inline-block", animation:"s2spin 1s linear infinite" }}>⟳</div>
+            <div style={{ color:"#666", fontSize:14 }}>Submitting your claim…</div>
+          </div>
+        )}
+
+        {step === "submitted" && (
+          <div style={{ textAlign:"center", padding:"24px 0" }}>
+            <div style={{ fontSize:48, marginBottom:12 }}>📋</div>
+            <div style={{ color:"#4ade80", fontSize:17, fontWeight:700, marginBottom:8 }}>Claim submitted!</div>
+            <div style={{ color:"#666", fontSize:13, lineHeight:1.6, marginBottom:14 }}>
+              Now list <strong style={{ color:"#ddd" }}>{item}</strong> at <strong style={{ color:"#ffd166" }}>{listPrice.toFixed(2)} G</strong> on the marketplace. The bot will process it shortly.
+            </div>
+            <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:14, fontSize:12, color:"#555" }}>
+              You can close this window — your claim is saved and will process automatically.
+            </div>
+          </div>
+        )}
+
+        {step === "error" && (
+          <div style={{ textAlign:"center", padding:"16px 0" }}>
+            <div style={{ color:"#ff6b6b", fontWeight:700, marginBottom:8 }}>Error submitting claim</div>
+            <div style={{ color:"#666", fontSize:13, marginBottom:18 }}>{errMsg}</div>
+            <button onClick={function(){setStep("instructions")}} style={{ background:"transparent", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color:"#666", padding:"9px 20px", cursor:"pointer", fontSize:13 }}>Try again</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PlayerTrackerPanel({ user, tier, setTab }) {
   var [searchQ, setSearchQ] = React.useState("");
   var [foundProfile, setFoundProfile] = React.useState(null);
@@ -3278,7 +3469,7 @@ function App() {
       </div>
 
       <div className="s2-tabs" style={{ display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"portfolio",label:"📊 Portfolio"},{id:"inventory",label:"📦 "+t("myInventory",lang)},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
+        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"portfolio",label:"📊 Portfolio"},{id:"inventory",label:"📦 "+t("myInventory",lang)},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"allowance",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
           <button key={t.id} onClick={function(){setTab(t.id)}} style={{ padding:"12px 24px",background:tab===t.id?"rgba(255,255,255,0.05)":"transparent",border:"none",borderBottom:tab===t.id?"2px solid #ff6b35":"2px solid transparent",color:tab===t.id?"#fff":"#666",fontSize:13,fontWeight:600,cursor:"pointer",letterSpacing:"0.03em" }}>{t.label}</button>
         )})}
       </div>
@@ -3300,6 +3491,8 @@ function App() {
       {tab === "inventory" && <InventoryPanel lang={lang} setTab={setTab} setSelected={setSelected} setGraphItem={setGraphItem} user={user} />}
 
       {tab === "players" && <PlayerTrackerPanel user={user} tier={tier} setTab={setTab} />}
+
+      {tab === "allowance" && <AllowancePanel user={user} tier={tier} />}
 
       {tab === "giveaways" && <GiveawaysTab user={user} tier={tier} />}
 
