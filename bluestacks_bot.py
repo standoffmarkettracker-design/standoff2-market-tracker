@@ -265,6 +265,7 @@ def process_claim(uid, claim):
 
 
 def main():
+    global ADB_DEVICE
     if not API_KEY:
         print("\nERROR: set ANTHROPIC_API_KEY=sk-ant-...")
         sys.exit(1)
@@ -274,7 +275,6 @@ def main():
         print(f"\nERROR: BlueStacks not connected. Run: adb connect localhost:5555")
         sys.exit(1)
 
-    global ADB_DEVICE
     ADB_DEVICE = detect_adb_device()
     log("="*55)
     log("  Standoff 2 BlueStacks Bot (ADB + Claude Vision)")
