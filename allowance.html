@@ -102,6 +102,28 @@ function ClaimModal({ user, tier, allowance, color, onClose }) {
         listPrice, status: "pending",
         createdAt: new Date().toISOString(), claimDate: today,
       });
+      // Send Discord notification
+      try {
+        await fetch("https://discord.com/api/webhooks/1521212880614330488/whaIWiT5y7FbVYQ93k0TwHtbPljg5CxdG8vwr8J9s6vbWTturZluUyKhHTNKcL0Ytzj5", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            embeds: [{
+              title: "💰 New Gold Allowance Claim",
+              color: 0xFFD700,
+              fields: [
+                { name: "Seller Username", value: username.trim(), inline: true },
+                { name: "Tier", value: tier, inline: true },
+                { name: "Allowance", value: allowance + " G", inline: true },
+                { name: "Item to Buy", value: item, inline: false },
+                { name: "List Price", value: listPrice.toFixed(2) + " G", inline: true },
+              ],
+              description: "Open BlueStacks, find the listing and buy it, then mark complete in Firebase.",
+              timestamp: new Date().toISOString()
+            }]
+          })
+        });
+      } catch(e) { console.log("Discord notify failed:", e); }
       setStep("submitted");
     } catch(e) { setErrMsg(e.message); setStep("error"); }
   }
