@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Gold Allowance — Standoff 2 Market Tracker</title>
+<meta name="theme-color" content="#0f0f12">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyDX-FZZVvr2XguDvHZUonJokgTAs9O19CY",
+    authDomain: "standoff-2-tracker.firebaseapp.com",
+    databaseURL: "https://standoff-2-tracker-default-rtdb.firebaseio.com",
+    projectId: "standoff-2-tracker",
+    storageBucket: "standoff-2-tracker.firebasestorage.app",
+    messagingSenderId: "576315107843",
+    appId: "1:576315107843:web:452af4251cfc60fd2b3c36"
+  });
+  var db = firebase.database();
+  var auth = firebase.auth();
+</script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0f0f12; color: #e0e8f0; font-family: 'Inter', 'Segoe UI', sans-serif; min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const TIERS = {
+  "Basic":  { color: "#4fc3f7", daily: 10   },
+  "VIP":    { color: "#ce93d8", daily: 67   },
+  "VIP+":   { color: "#ffd700", daily: 200  },
+};
+
+const CHEAP_ITEMS = [
+  'P90 "Unstoppable"', 'SM1014 "Bolt"', 'M60 "Turret"',
+  'M4 "Powergame"', 'SM1014 "Triton"', 'M110 "Dark Pact"',
+  'UMP45 "Heatwave"', 'M60 "Warp"', 'F/S "Polymer"',
+  'FN FAL "Charred Wood"', 'Akimbo Uzi "Skull"', 'P90 "Oracle"',
+  'AKR "Worm"', 'Desert Eagle "Violet Flame"', 'SPAS "Waypoint"',
+];
+
+function pickItem() {
+  return CHEAP_ITEMS[Math.floor(Math.random() * CHEAP_ITEMS.length)];
+}
+function calcListPrice(allowance) {
+  const offset = 0.12 + Math.random() * (0.87 - 0.12);
+  return parseFloat((allowance + offset).toFixed(2));
+}
+function todayUTC() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function LoginScreen() {
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+  async function signIn() {
+    setLoading(true); setError("");
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await auth.signInWithPopup(provider);
+    } catch(e) { setError(e.message); setLoading(false); }
+  }
+  return (
+    <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <div style={{ background:"#12151c", border:"1px solid #1e2330", borderRadius:16, padding:"40px 32px", maxWidth:400, width:"100%", textAlign:"center" }}>
+        <div style={{ fontSize:48, marginBottom:16 }}>🛡️</div>
+        <h1 style={{ fontSize:22, fontWeight:800, marginBottom:8 }}>Daily Gold Allowance</h1>
+        <p style={{ color:"#5a6070", fontSize:14, marginBottom:32, lineHeight:1.6 }}>Sign in with the same Google account you use on standoff2markettracker.com to claim your daily gold.</p>
+        {error && <div style={{ background:"#1a0f0f", border:"1px solid #ff444444", borderRadius:8, padding:12, color:"#ff6b6b", fontSize:13, marginBottom:16 }}>{error}</div>}
+        <button onClick={signIn} disabled={loading} style={{ width:"100%", padding:"14px 0", background:"linear-gradient(135deg, #ff8a4722, #ff8a4711)", border:"1px solid #ff8a4777", borderRadius:10, color:"#ff8a47", fontWeight:700, fontSize:15, cursor: loading ? "not-allowed" : "pointer" }}>
+          {loading ? "Signing in…" : "Sign in with Google →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ClaimModal({ user, tier, allowance, color, onClose }) {
+  const [step, setStep] = React.useState("instructions");
+  const [username, setUsername] = React.useState("");
+  const [item]      = React.useState(pickItem);
+  const [listPrice] = React.useState(() => calcListPrice(allowance));
+  const [errMsg, setErrMsg] = React.useState("");
+
+  async function handleSubmit() {
+    if (!username.trim()) return;
+    setStep("submitting");
+    try {
+      const today = todayUTC();
+      await db.ref("allowanceClaims/" + user.uid).set({
+        uid: user.uid, displayName: user.displayName || "",
+        email: user.email || "", tier, allowance,
+        username: username.trim(), itemName: item,
+        listPrice, status: "pending",
+        createdAt: new Date().toISOString(), claimDate: today,
+      });
+      setStep("submitted");
+    } catch(e) { setErrMsg(e.message); setStep("error"); }
+  }
+
+  return (
+    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }} style={{ position:"fixed", inset:0, background:"#000000BB", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100, padding:20 }}>
+      <div style={{ background:"#12151c", border:"1px solid " + color + "44", borderRadius:16, padding:"32px 28px", width:"100%", maxWidth:460, position:"relative" }}>
+        <div style={{ position:"absolute", top:0, left:0, right:0, height:2, borderRadius:"16px 16px 0 0", background:"linear-gradient(90deg, transparent, " + color + ", transparent)" }} />
+        <button onClick={onClose} style={{ position:"absolute", top:16, right:16, background:"none", border:"none", color:"#5a6070", fontSize:20, cursor:"pointer" }}>✕</button>
+        <div style={{ color:"#5a6070", fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:4 }}>Daily Gold Claim</div>
+        <div style={{ color, fontSize:28, fontWeight:800, marginBottom:24 }}>{allowance.toLocaleString()} G</div>
+
+        {step === "instructions" && (<>
+          <div style={{ background:"#0a0c10", border:"1px solid #1e2330", borderRadius:10, padding:20, marginBottom:20 }}>
+            <div style={{ color:"#5a6070", fontSize:11, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:14 }}>Your listing</div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+              <span style={{ color:"#8090a0", fontSize:13 }}>Item</span>
+              <span style={{ color:"#e0e8f0", fontWeight:600, fontSize:14 }}>{item}</span>
+            </div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+              <span style={{ color:"#8090a0", fontSize:13 }}>List at exactly</span>
+              <span style={{ color:"#ffd166", fontWeight:800, fontSize:22 }}>{listPrice.toFixed(2)} G</span>
+            </div>
+            <div style={{ borderTop:"1px solid #1e2330", paddingTop:12, display:"flex", justifyContent:"space-between", fontSize:12, color:"#3a4555" }}>
+              <span>{allowance} G allowance + {(listPrice - allowance).toFixed(2)} G offset</span>
+              <span style={{ color:"#5a6070" }}>= {listPrice.toFixed(2)} G</span>
+            </div>
+          </div>
+          <div style={{ color:"#8090a0", fontSize:13, lineHeight:1.65, marginBottom:20 }}>
+            List <strong style={{ color:"#e0e8f0" }}>{item}</strong> at exactly <strong style={{ color:"#ffd166" }}>{listPrice.toFixed(2)} G</strong>. Bot will buy it and send you <strong style={{ color }}>{allowance.toLocaleString()} G</strong>.
+          </div>
+          <div style={{ marginBottom:16 }}>
+            <div style={{ color:"#5a6070", fontSize:11, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Your in-game username</div>
+            <input value={username} onChange={e => setUsername(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} placeholder="e.g. CamelS2" style={{ width:"100%", background:"#0a0c10", border:"1px solid #2a3040", borderRadius:8, padding:"12px 14px", color:"#e0e8f0", fontSize:14, outline:"none", fontFamily:"inherit" }} />
+          </div>
+          <button onClick={handleSubmit} disabled={!username.trim()} style={{ width:"100%", padding:"14px 0", background: username.trim() ? "linear-gradient(135deg, " + color + "33, " + color + "18)" : "#1a1d24", border:"1px solid " + (username.trim() ? color + "88" : "#2a3040"), borderRadius:8, color: username.trim() ? color : "#3a4050", fontWeight:700, fontSize:14, cursor: username.trim() ? "pointer" : "not-allowed", letterSpacing:"0.05em" }}>Submit Claim →</button>
+        </>)}
+
+        {step === "submitting" && (<div style={{ textAlign:"center", padding:"28px 0" }}><style>{"@keyframes spin { to { transform: rotate(360deg); } }"}</style><div style={{ fontSize:36, marginBottom:14, display:"inline-block", animation:"spin 1s linear infinite" }}>⟳</div><div style={{ color:"#8090a0", fontSize:14 }}>Submitting…</div></div>)}
+
+        {step === "submitted" && (<div style={{ textAlign:"center", padding:"28px 0" }}>
+          <div style={{ fontSize:52, marginBottom:14 }}>📋</div>
+          <div style={{ color:"#4ade80", fontSize:18, fontWeight:700, marginBottom:8 }}>Claim submitted!</div>
+          <div style={{ color:"#8090a0", fontSize:14, lineHeight:1.6, marginBottom:16 }}>List <strong style={{ color:"#e0e8f0" }}>{item}</strong> at <strong style={{ color:"#ffd166" }}>{listPrice.toFixed(2)} G</strong>. Bot will process it shortly.</div>
+          <div style={{ background:"#0a0c10", border:"1px solid #1e2330", borderRadius:10, padding:16, fontSize:13, color:"#5a6070" }}>You can close this window — your claim is saved.</div>
+        </div>)}
+
+        {step === "error" && (<div style={{ textAlign:"center", padding:"20px 0" }}>
+          <div style={{ color:"#ff6b6b", fontWeight:700, marginBottom:8 }}>Error</div>
+          <div style={{ color:"#8090a0", fontSize:13, marginBottom:20 }}>{errMsg}</div>
+          <button onClick={() => setStep("instructions")} style={{ background:"transparent", border:"1px solid #2a3040", borderRadius:8, color:"#8090a0", padding:"10px 20px", cursor:"pointer" }}>Try again</button>
+        </div>)}
+      </div>
+    </div>
+  );
+}
+
+function ClaimPage({ user, tier, lastClaimDate, claimStatus, claimData }) {
+  const [modal, setModal] = React.useState(false);
+  const today = todayUTC();
+  const alreadyClaimed = lastClaimDate === today;
+  const isPending = claimStatus === "pending" || claimStatus === "processing";
+  const t = TIERS[tier];
+  function signOut() { auth.signOut(); }
+
+  return (
+    <div style={{ maxWidth:620, margin:"0 auto", padding:"40px 20px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:40 }}>
+        <div>
+          <div style={{ color:"#5a6070", fontSize:11, letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:8 }}>Standoff 2 Market Tracker</div>
+          <h1 style={{ fontSize:26, fontWeight:800, letterSpacing:"-0.02em" }}>Daily Gold Allowance</h1>
+        </div>
+        <button onClick={signOut} style={{ background:"none", border:"1px solid #1e2330", borderRadius:8, color:"#5a6070", padding:"8px 14px", fontSize:12, cursor:"pointer" }}>Sign out</button>
+      </div>
+
+      {!t && (
+        <div style={{ background:"#12151c", border:"1px solid #1e2330", borderRadius:16, padding:32, textAlign:"center" }}>
+          <div style={{ fontSize:36, marginBottom:16 }}>🔒</div>
+          <div style={{ fontWeight:700, fontSize:16, marginBottom:8 }}>No Active Subscription</div>
+          <div style={{ color:"#5a6070", fontSize:14 }}>You need a Basic, VIP, or VIP+ subscription to claim daily gold.</div>
+          <a href="https://standoff2markettracker.com" style={{ display:"inline-block", marginTop:20, color:"#ff8a47", fontSize:13 }}>← Back to market tracker</a>
+        </div>
+      )}
+
+      {t && (<>
+        <div style={{ background:"#12151c", border:"1px solid " + t.color + "33", borderRadius:10, padding:"12px 18px", marginBottom:20, display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:8, height:8, borderRadius:"50%", background:t.color }} />
+          <span style={{ color:"#8090a0", fontSize:13 }}>Signed in as <strong style={{ color:"#e0e8f0" }}>{user.displayName || user.email}</strong> · Tier: <strong style={{ color:t.color }}>{tier}</strong></span>
+        </div>
+
+        <div style={{ background:"#12151c", border:"1px solid " + (alreadyClaimed || isPending ? "#2a2d35" : t.color + "44"), borderRadius:16, padding:"32px 28px", position:"relative", overflow:"hidden", marginBottom:24 }}>
+          {!alreadyClaimed && !isPending && (<div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:"linear-gradient(90deg, transparent, " + t.color + ", transparent)" }} />)}
+
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+            <div style={{ color:"#5a6070", fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase" }}>Daily Allowance</div>
+            {alreadyClaimed && <div style={{ background:"#1e2330", border:"1px solid #2a3040", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#5a6070" }}>✓ CLAIMED TODAY</div>}
+            {isPending && <div style={{ background:"#1a1500", border:"1px solid #ffd70044", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#ffd700" }}>⏳ PROCESSING</div>}
+          </div>
+
+          <div style={{ color:t.color, fontSize:44, fontWeight:800, fontFamily:"monospace", letterSpacing:"-0.02em", marginBottom:6 }}>
+            {t.daily.toLocaleString()}<span style={{ fontSize:20, color:"#ffd166", fontFamily:"sans-serif", marginLeft:8 }}>G</span>
+          </div>
+          <div style={{ color:"#5a6070", fontSize:13, marginBottom:28 }}>{tier} tier · resets tomorrow at 00:00 UTC</div>
+
+          {alreadyClaimed && <div style={{ background:"#0a0c10", border:"1px solid #1e2330", borderRadius:10, padding:16, color:"#3a4050", fontSize:13, textAlign:"center" }}>You've already claimed today's allowance. Come back tomorrow!</div>}
+
+          {isPending && claimData && (
+            <div style={{ background:"#0a0c10", border:"1px solid " + t.color + "33", borderRadius:10, padding:20 }}>
+              <div style={{ color:"#5a6070", fontSize:11, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:14 }}>{claimStatus === "processing" ? "Bot is buying your item…" : "Waiting for bot to process"}</div>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}><span style={{ color:"#8090a0", fontSize:13 }}>Item</span><span style={{ color:"#e0e8f0", fontWeight:600 }}>{claimData.itemName}</span></div>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}><span style={{ color:"#8090a0", fontSize:13 }}>List price</span><span style={{ color:"#ffd166", fontWeight:700 }}>{claimData.listPrice} G</span></div>
+              <div style={{ display:"flex", justifyContent:"space-between" }}><span style={{ color:"#8090a0", fontSize:13 }}>Status</span><span style={{ color: claimStatus === "processing" ? "#ffd700" : "#8090a0", fontWeight:600 }}>{claimStatus === "processing" ? "Bot buying now…" : "Pending — run the bot script"}</span></div>
+            </div>
+          )}
+
+          {!alreadyClaimed && !isPending && (
+            <button onClick={() => setModal(true)} onMouseEnter={e => e.currentTarget.style.background = t.color + "38"} onMouseLeave={e => e.currentTarget.style.background = "linear-gradient(135deg, " + t.color + "28, " + t.color + "10)"} style={{ width:"100%", padding:"16px 0", background:"linear-gradient(135deg, " + t.color + "28, " + t.color + "10)", border:"1px solid " + t.color + "77", borderRadius:10, color:t.color, fontWeight:700, fontSize:16, cursor:"pointer", letterSpacing:"0.04em", transition:"background 0.15s" }}>
+              Claim {t.daily.toLocaleString()} G →
+            </button>
+          )}
+        </div>
+
+        <div style={{ background:"#12151c", border:"1px solid #1e2330", borderRadius:12, padding:24 }}>
+          <div style={{ color:"#5a6070", fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:18 }}>How it works</div>
+          {[["Click Claim","We assign you a cheap skin and a unique listing price."],["List the skin","List it on the Standoff 2 marketplace at the exact price shown."],["Submit","Enter your username. Claim is saved to our system."],["Gold arrives","Bot finds your listing, buys it, and your allowance arrives instantly."]].map(([title,desc],i) => (
+            <div key={i} style={{ display:"flex", gap:14, marginBottom: i < 3 ? 16 : 0, alignItems:"flex-start" }}>
+              <div style={{ width:22, height:22, borderRadius:5, background:"#1a1d24", border:"1px solid #2a3040", display:"flex", alignItems:"center", justifyContent:"center", color:"#5a6070", fontSize:11, fontWeight:700, flexShrink:0, marginTop:2 }}>{i+1}</div>
+              <div><div style={{ color:"#e0e8f0", fontWeight:600, fontSize:14, marginBottom:2 }}>{title}</div><div style={{ color:"#5a6070", fontSize:13, lineHeight:1.5 }}>{desc}</div></div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop:16, color:"#2a3040", fontSize:12, textAlign:"center" }}>One claim per day · Resets 00:00 UTC · Instant once bot processes</div>
+      </>)}
+
+      {modal && t && <ClaimModal user={user} tier={tier} allowance={t.daily} color={t.color} onClose={() => setModal(false)} />}
+    </div>
+  );
+}
+
+function App() {
+  const [user,        setUser]        = React.useState(null);
+  const [authLoading, setAuthLoading] = React.useState(true);
+  const [tier,        setTier]        = React.useState(null);
+  const [claimData,   setClaimData]   = React.useState(null);
+
+  React.useEffect(() => {
+    return auth.onAuthStateChanged(u => { setUser(u); setAuthLoading(false); });
+  }, []);
+
+  React.useEffect(() => {
+    if (!user) { setTier(null); setClaimData(null); return; }
+    const tierRef  = db.ref("users/" + user.uid + "/tier");
+    const claimRef = db.ref("allowanceClaims/" + user.uid);
+    tierRef.on("value",  snap => setTier(snap.val() || "Free"));
+    claimRef.on("value", snap => setClaimData(snap.val()));
+    return () => { tierRef.off(); claimRef.off(); };
+  }, [user]);
+
+  if (authLoading) return <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center" }}><div style={{ color:"#5a6070" }}>Loading…</div></div>;
+  if (!user) return <LoginScreen />;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const lastClaimDate = claimData?.lastClaimDate || claimData?.claimDate || null;
+  const claimStatus   = claimData?.status || null;
+  const alreadyClaimed = lastClaimDate === today && claimStatus === "complete";
+
+  return <ClaimPage user={user} tier={tier} lastClaimDate={alreadyClaimed ? today : null} claimStatus={claimStatus} claimData={claimData} />;
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>
