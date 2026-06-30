@@ -1763,6 +1763,75 @@ function GiveawayWinnersAdmin() {
   );
 }
 
+
+// ─── Referral Claims Admin ────────────────────────────────────────────────────
+function ReferralClaimsAdmin() {
+  var [claims, setClaims] = React.useState([]);
+  React.useEffect(function() {
+    db.ref("referralClaims").on("value", function(snap) {
+      var list = [];
+      snap.forEach(function(userSnap) {
+        userSnap.forEach(function(claimSnap) {
+          list.push(Object.assign({ _uid: userSnap.key, _tier: claimSnap.key }, claimSnap.val()));
+        });
+      });
+      list.sort(function(a,b){ return (b.claimedAt||0)-(a.claimedAt||0); });
+      setClaims(list);
+    });
+    return function(){ db.ref("referralClaims").off(); };
+  }, []);
+
+  function markProcessed(uid, tier) {
+    db.ref("referralClaims/" + uid + "/" + tier + "/processed").set(true);
+  }
+
+  function fmtDate(ts) {
+    if (!ts) return "—";
+    var d = new Date(ts);
+    return d.toLocaleDateString() + " " + d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+  }
+
+  var pending = claims.filter(function(c){ return !c.processed; });
+  var done = claims.filter(function(c){ return c.processed; });
+
+  return (
+    <div>
+      <div style={{ fontSize:12,color:"#555",marginBottom:16 }}>
+        {pending.length} pending · {done.length} processed
+      </div>
+      {claims.length === 0 && (
+        <div style={{ color:"#555",fontSize:13,textAlign:"center",padding:20 }}>No claims yet</div>
+      )}
+      {claims.map(function(c) {
+        var tierInfo = REFERRAL_LEVEL_TIERS.find(function(t){ return t.name === c._tier || t.id === c._tier; });
+        var color = tierInfo ? tierInfo.color : "#888";
+        var icon = tierInfo ? tierInfo.icon : "🔗";
+        return (
+          <div key={c._uid + c._tier} style={{ background:"rgba(255,255,255,0.03)",border:"1px solid "+(c.processed?"rgba(255,255,255,0.05)":color+"44"),borderRadius:10,padding:"14px 16px",marginBottom:10,opacity:c.processed?0.5:1 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
+              <div>
+                <div style={{ fontSize:13,fontWeight:700,color:c.processed?"#666":color }}>{icon} {c._tier} reward</div>
+                <div style={{ fontSize:11,color:"#888",marginTop:2 }}>{c.displayName || c.email || c._uid}</div>
+                <div style={{ fontSize:10,color:"#555",marginTop:2 }}>{c.referralCount} referrals · claimed {fmtDate(c.claimedAt)}</div>
+                <div style={{ fontSize:11,color:"#aaa",marginTop:6,padding:"5px 10px",background:"rgba(255,255,255,0.04)",borderRadius:6,display:"inline-block" }}>
+                  Reward: {c.reward}
+                </div>
+              </div>
+              {!c.processed && (
+                <button onClick={function(){ markProcessed(c._uid, c._tier); }}
+                  style={{ padding:"7px 14px",borderRadius:8,background:"rgba(76,175,80,0.15)",border:"1px solid rgba(76,175,80,0.4)",color:"#4caf50",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0 }}>
+                  Mark Done
+                </button>
+              )}
+              {c.processed && <div style={{ fontSize:11,color:"#4caf50",fontWeight:600 }}>✓ Done</div>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function AdminPanel({ user }) {
   const [authed, setAuthed] = useState(false);
   const [checking, setChecking] = useState(true);
