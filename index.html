@@ -3605,22 +3605,20 @@ function App() {
         db.ref("users/" + u.uid + "/isAdmin").once("value", function(snap) {
           if (snap.val() === true) setShowAdmin(true);
         });
-        // Process referral: check if this user was referred and hasn't been credited yet
+        // Process referral: record that this user was referred. Crediting the
+        // referrer (referralCount, monthlyReferrals, referrals/{referrer}/referred/{uid})
+        // now happens server-side in the creditReferral Cloud Function, triggered
+        // off referredBy below. The client no longer writes to another user's
+        // node directly — that was an exploitable cross-user write (anyone could
+        // set localStorage.s2_ref to any uid and credit themselves a referral).
         var pendingRef = localStorage.getItem("s2_ref");
         if (pendingRef && pendingRef !== u.uid) {
           db.ref("referrals/" + u.uid + "/referredBy").once("value", function(snap) {
             if (!snap.val()) {
-              // First time — record referral and credit both users
               var batch = {};
               batch["referrals/" + u.uid + "/referredBy"] = pendingRef;
               batch["referrals/" + u.uid + "/joinedAt"]   = Date.now();
-              batch["referrals/" + pendingRef + "/referred/" + u.uid] = Date.now();
               db.ref().update(batch);
-              // Give referrer +5 bonus giveaway tickets (stored as a bonus multiplier)
-              var _mo=new Date(),_mk=_mo.getFullYear()+"-"+String(_mo.getMonth()+1).padStart(2,"0");db.ref("monthlyReferrals/"+_mk+"/"+pendingRef).transaction(function(c){return(c||0)+1;});
-              db.ref("users/" + pendingRef + "/referralCount").transaction(function(count) {
-                return (count || 0) + 1;
-              });
               localStorage.removeItem("s2_ref");
             }
           });
