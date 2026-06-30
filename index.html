@@ -1193,8 +1193,6 @@ function AuthLoggedIn({ user, onLogout }) {
 
         {/* Profile pic */}
         <ProfilePicSection user={user} />
-        {/* Referral section */}
-        <ReferralSection user={user} />
 
         <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:24 }}>
           <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:4 }}>🎮 Player Tracker Profile</div>
@@ -1241,25 +1239,6 @@ function AuthLoggedIn({ user, onLogout }) {
   );
 }
 
-// ─── Referral Level System ────────────────────────────────────────────────────
-var REWARD_POOL=["Graffiti \"Champions\" Packed","Graffiti \"Race Winner\" Packed","Graffiti \"Arena King\" Packed","M16 \"Cutting Edge\"","SM1014 \"Cyberline\"","FAMAS \"Protocol\"","M4 \"Catalyst\"","UMP45 \"Professional\""];
-var BRONZE_POOL=REWARD_POOL;
-var SILVER_POOL=REWARD_POOL;
-var GOLD_POOL=REWARD_POOL;
-var DIAMOND_POOL=REWARD_POOL;
-var LEGEND_POOL=REWARD_POOL;
-
-var REFERRAL_LEVEL_TIERS=[
-  {id:"bronze",name:"Bronze",icon:"🥉",color:"#cd7f32",bg:"rgba(205,127,50,0.1)",border:"rgba(205,127,50,0.3)",refsPerLevel:1,pool:BRONZE_POOL,tierUpReward:"+10 giveaway tickets",tierUpIcon:"🎟️",tierUpColor:"#4caf50",frameColor:"#cd7f32",frameAnimated:false},
-  {id:"silver",name:"Silver",icon:"🥈",color:"#b0bec5",bg:"rgba(176,190,197,0.08)",border:"rgba(176,190,197,0.25)",refsPerLevel:2,pool:SILVER_POOL,tierUpReward:"+25 giveaway tickets",tierUpIcon:"🎟️",tierUpColor:"#4caf50",frameColor:"#b0bec5",frameAnimated:false},
-  {id:"gold",name:"Gold",icon:"🥇",color:"#ffd700",bg:"rgba(255,215,0,0.08)",border:"rgba(255,215,0,0.25)",refsPerLevel:3,pool:GOLD_POOL,tierUpReward:"+50 tickets + 1 week Basic",tierUpIcon:"🎟️",tierUpColor:"#2196f3",frameColor:"#ffd700",frameAnimated:false},
-  {id:"diamond",name:"Diamond",icon:"💎",color:"#82b1ff",bg:"rgba(130,177,255,0.08)",border:"rgba(130,177,255,0.25)",refsPerLevel:4,pool:DIAMOND_POOL,tierUpReward:"2 weeks Basic + 1 week VIP",tierUpIcon:"⭐",tierUpColor:"#9c27b0",frameColor:"#82b1ff",frameAnimated:true},
-  {id:"legend",name:"Legend",icon:"👑",color:"#ff6b35",bg:"rgba(255,107,53,0.08)",border:"rgba(255,107,53,0.25)",refsPerLevel:5,pool:LEGEND_POOL,tierUpReward:"1 week VIP per 10 levels",tierUpIcon:"⭐",tierUpColor:"#ff6b35",frameColor:"#ff6b35",frameAnimated:true},
-];
-
-function getReferralLevelState(n){var rem=n;for(var ti=0;ti<REFERRAL_LEVEL_TIERS.length;ti++){var cap=10*REFERRAL_LEVEL_TIERS[ti].refsPerLevel;if(rem<cap||ti===REFERRAL_LEVEL_TIERS.length-1){return{tierIdx:ti,tier:REFERRAL_LEVEL_TIERS[ti],level:Math.min(10,Math.floor(rem/REFERRAL_LEVEL_TIERS[ti].refsPerLevel)),refsIntoLevel:rem%REFERRAL_LEVEL_TIERS[ti].refsPerLevel,totalRefs:n};}rem-=cap;}}
-function getReferralTierStartRef(idx){var t=0;for(var i=0;i<idx;i++)t+=10*REFERRAL_LEVEL_TIERS[i].refsPerLevel;return t;}
-
 // ─── Profile Picture System ────────────────────────────────────────────────────
 var AVATAR_PRESETS=["⚔️","🎯","🔫","💀","🛡️","🏆","💣","🎮","🐺","🦊","🐯","🦅","🐲","🦁","🐻","🦝","🌊","🔥","⚡","🌙"];
 
@@ -1271,7 +1250,7 @@ function ProfilePicSection({user}){
   return(
     <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:24,marginBottom:16}}>
       <div style={{fontSize:14,fontWeight:700,color:"#fff",marginBottom:4}}>🖼 Profile Picture</div>
-      <div style={{fontSize:12,color:"#666",marginBottom:18}}>Pick an avatar. Reach referral tiers to unlock exclusive frames.</div>
+      <div style={{fontSize:12,color:"#666",marginBottom:18}}>Pick an avatar.</div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:20}}>
         <div style={{width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36}}>{selectedAvatar}</div>
         <div style={{fontSize:12,color:"#888",marginTop:8}}>Your avatar</div>
@@ -1279,101 +1258,10 @@ function ProfilePicSection({user}){
       <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:16}}>
         {AVATAR_PRESETS.map(function(emoji){var sel=emoji===selectedAvatar;return(<div key={emoji} onClick={function(){setSelectedAvatar(emoji);}} style={{aspectRatio:"1",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,border:"2px solid "+(sel?"#4caf50":"rgba(255,255,255,0.08)"),background:sel?"rgba(76,175,80,0.12)":"rgba(255,255,255,0.04)",cursor:"pointer"}}>{emoji}</div>);})}
       </div>
-      <div style={{fontSize:11,color:"#555",fontWeight:600,letterSpacing:"0.05em",marginBottom:10}}>REFERRAL TIER FRAMES</div>
-      <div style={{display:"flex",justifyContent:"space-around",marginBottom:16}}>
-        {REFERRAL_LEVEL_TIERS.map(function(t){return(<div key={t.id} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}><div style={{position:"relative",width:44,height:44,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{t.icon}</div><div style={{position:"absolute",inset:0,borderRadius:"50%",border:"2px solid "+t.frameColor,boxShadow:t.frameAnimated?"0 0 8px "+t.frameColor+"88":"none"}}/></div><div style={{fontSize:9,fontWeight:600,color:t.frameColor}}>{t.name}</div></div>);})}
-      </div>
       <button onClick={saveAvatar} style={{width:"100%",padding:12,borderRadius:10,background:saved?"rgba(76,175,80,0.25)":"rgba(76,175,80,0.15)",border:"1px solid rgba(76,175,80,0.4)",color:saved?"#81c784":"#4caf50",fontSize:13,fontWeight:700,cursor:"pointer"}}>{saved?"✓ Saved!":"Save Profile Picture"}</button>
     </div>
   );
 }
-
-// ─── Monthly Leaderboard ───────────────────────────────────────────────────────
-var LEADERBOARD_REWARDS={1:"3,000g",2:"1,500g",3:"1,000g",4:"400g",5:"400g",6:"250g",7:"250g",8:"250g",9:"250g",10:"250g"};
-
-function MonthlyLeaderboard({user}){
-  var [entries,setEntries]=React.useState([]);
-  var [userRank,setUserRank]=React.useState(null);
-  var now=new Date();
-  var monthKey=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
-  var monthName=now.toLocaleString("default",{month:"long"})+" "+now.getFullYear();
-  var daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-  var daysLeft=daysInMonth-now.getDate();
-  var monthPct=Math.round(((now.getDate())/daysInMonth)*100);
-  React.useEffect(function(){
-    db.ref("monthlyReferrals/"+monthKey).orderByValue().limitToLast(10).on("value",function(snap){
-      var list=[];snap.forEach(function(child){list.push({uid:child.key,refs:child.val()});});
-      list.sort(function(a,b){return b.refs-a.refs;});
-      var promises=list.map(function(e){return db.ref("users/"+e.uid+"/displayName").once("value").then(function(s){e.name=s.val()||"Anonymous";});});
-      Promise.all(promises).then(function(){setEntries(list);var myIdx=list.findIndex(function(e){return user&&e.uid===user.uid;});setUserRank(myIdx>=0?myIdx+1:null);});
-    });
-    return function(){db.ref("monthlyReferrals/"+monthKey).off();};
-  },[monthKey,user&&user.uid]);
-  var RS={1:{bg:"rgba(255,215,0,0.08)",border:"rgba(255,215,0,0.3)",icon:"🥇",color:"#ffd700"},2:{bg:"rgba(176,190,197,0.08)",border:"rgba(176,190,197,0.3)",icon:"🥈",color:"#b0bec5"},3:{bg:"rgba(205,127,50,0.1)",border:"rgba(205,127,50,0.3)",icon:"🥉",color:"#cd7f32"}};
-  return(
-    <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:24}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-        <div style={{fontSize:14,fontWeight:700,color:"#fff"}}>🏆 Monthly Leaderboard</div>
-        <div style={{fontSize:11,color:"#555"}}>{monthName}</div>
-      </div>
-      <div style={{marginBottom:16}}>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#555",marginBottom:4}}><span>Month progress</span><span style={{color:"#ff6b35"}}>⏱ {daysLeft}d left</span></div>
-        <div style={{background:"rgba(255,255,255,0.06)",borderRadius:99,height:5,overflow:"hidden"}}><div style={{width:monthPct+"%",height:"100%",background:"linear-gradient(90deg,#ff6b35,#ffd700)",borderRadius:99}}/></div>
-      </div>
-      {user&&userRank&&(<div style={{padding:"10px 14px",borderRadius:10,background:"rgba(33,150,243,0.08)",border:"1px solid rgba(33,150,243,0.2)",display:"flex",alignItems:"center",gap:12,marginBottom:14}}><div style={{fontSize:20,fontWeight:800,color:"#2196f3"}}>#{userRank}</div><div style={{flex:1}}><div style={{fontSize:12,fontWeight:700,color:"#fff"}}>Your position</div><div style={{fontSize:10,color:"#888",marginTop:1}}>{userRank<=10?"You're in the top 10! 🎉":"Keep referring to climb!"}</div></div>{userRank<=10&&<div style={{fontSize:13,fontWeight:800,color:"#ffd700"}}>💰 {LEADERBOARD_REWARDS[userRank]}</div>}</div>)}
-      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
-        {entries.length===0&&<div style={{fontSize:12,color:"#444",textAlign:"center",padding:20}}>No referrals yet this month — be the first!</div>}
-        {entries.map(function(e,i){var rank=i+1;var rs=RS[rank]||{bg:"rgba(255,255,255,0.02)",border:"rgba(255,255,255,0.06)",icon:null,color:"#666"};var isYou=user&&e.uid===user.uid;return(<div key={e.uid} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:10,background:rs.bg,border:"1px solid "+(isYou?"rgba(255,255,255,0.15)":rs.border)}}>{rs.icon?<div style={{fontSize:18,width:28,textAlign:"center"}}>{rs.icon}</div>:<div style={{fontSize:14,fontWeight:800,color:rs.color,width:28,textAlign:"center"}}>{rank}</div>}<div style={{flex:1,fontSize:13,fontWeight:600,color:"#ddd"}}>{e.name}{isYou&&<span style={{fontSize:10,color:"#2196f3",fontWeight:700,marginLeft:6}}>YOU</span>}<span style={{fontSize:11,color:"#555",fontWeight:400,marginLeft:4}}>· {e.refs} refs</span></div><div style={{fontSize:12,fontWeight:700,color:"#ffd700"}}>💰 {LEADERBOARD_REWARDS[rank]}</div></div>);})}
-      </div>
-      <div style={{fontSize:10,color:"#444",textAlign:"center"}}>Gold rewards distributed at month end · Top 10 only</div>
-    </div>
-  );
-}
-
-function ReferralSection({user}){
-  var [referralCount,setReferralCount]=React.useState(0);
-  var [copied,setCopied]=React.useState(false);
-  React.useEffect(function(){if(!user)return;db.ref("users/"+user.uid+"/referralCount").on("value",function(snap){setReferralCount(snap.val()||0);});return function(){db.ref("users/"+user.uid+"/referralCount").off();};},[user&&user.uid]);
-  var referralLink="https://standoff2markettracker.com?ref="+user.uid;
-  var s=getReferralLevelState(referralCount);
-  var tier=s.tier;
-  var nextTier=s.tierIdx<REFERRAL_LEVEL_TIERS.length-1?REFERRAL_LEVEL_TIERS[s.tierIdx+1]:null;
-  var tierPct=Math.min(100,(s.level/10)*100);
-  var levelPct=tier.refsPerLevel>1?Math.min(100,(s.refsIntoLevel/tier.refsPerLevel)*100):0;
-  var globalIdx=0;for(var ti2=0;ti2<s.tierIdx;ti2++)globalIdx+=10;globalIdx+=s.level;
-  var nextSkin=s.level<10?tier.pool[globalIdx%tier.pool.length]:"—";
-  function copyLink(){navigator.clipboard.writeText(referralLink).then(function(){setCopied(true);setTimeout(function(){setCopied(false);},2000);});}
-  return(
-    <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:24}}>
-      <div style={{fontSize:14,fontWeight:700,color:"#fff",marginBottom:4}}>🔗 Refer a Friend</div>
-      <div style={{fontSize:12,color:"#666",marginBottom:18,lineHeight:1.5}}>Earn skin drops for every level and unlock tier rewards. Reach Diamond & Legend for animated profile frames!</div>
-      <div style={{display:"flex",alignItems:"center",gap:14,padding:14,borderRadius:12,background:tier.bg,border:"1px solid "+tier.border,marginBottom:16}}>
-        <div style={{fontSize:28}}>{tier.icon}</div>
-        <div style={{flex:1}}><div style={{fontSize:16,fontWeight:800,color:tier.color}}>{tier.name} Tier</div><div style={{fontSize:11,color:"#888",marginTop:2}}>{tier.refsPerLevel} ref{tier.refsPerLevel>1?"s":""}/level · {nextTier?nextTier.name+" at level 10":"Max tier"}</div></div>
-        <div style={{textAlign:"right"}}><div style={{fontSize:24,fontWeight:800,color:tier.color}}>{s.level}<span style={{fontSize:12,color:"#555"}}>/10</span></div><div style={{fontSize:10,color:"#777"}}>LEVELS</div></div>
-      </div>
-      <div style={{marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#555",marginBottom:4}}><span style={{color:tier.color,fontWeight:600}}>{tier.name} progress</span>{nextTier?<span>{10-s.level} levels to {nextTier.name}</span>:<span style={{color:tier.color}}>👑 Max Tier!</span>}</div><div style={{background:"rgba(255,255,255,0.06)",borderRadius:99,height:7,overflow:"hidden"}}><div style={{width:tierPct+"%",height:"100%",background:tier.color,borderRadius:99,transition:"width 0.4s"}}/></div></div>
-      {s.level<10&&tier.refsPerLevel>1&&(<div style={{marginBottom:16}}><div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#555",marginBottom:4}}><span>Next level</span><span>{s.refsIntoLevel}/{tier.refsPerLevel} refs</span></div><div style={{background:"rgba(255,255,255,0.06)",borderRadius:99,height:4,overflow:"hidden"}}><div style={{width:levelPct+"%",height:"100%",background:tier.color+"88",borderRadius:99,transition:"width 0.4s"}}/></div></div>)}
-      <div style={{display:"flex",gap:10,marginBottom:16}}>
-        <div style={{flex:2,background:tier.bg,border:"1px solid "+tier.border,borderRadius:10,padding:"10px 12px"}}><div style={{fontSize:10,color:"#888",marginBottom:4}}>🎁 Next Level Drop</div><div style={{fontSize:12,fontWeight:600,color:tier.color,lineHeight:1.4}}>{nextSkin}</div><div style={{fontSize:9,color:"#444",marginTop:3}}>{tier.pool.length} possible skins in pool</div></div>
-        {nextTier?(<div style={{flex:1,background:nextTier.bg,border:"1px solid "+nextTier.border,borderRadius:10,padding:"10px 12px",textAlign:"center"}}><div style={{fontSize:18,marginBottom:4}}>{tier.tierUpIcon}</div><div style={{fontSize:10,color:"#888",marginBottom:3}}>Tier-Up</div><div style={{fontSize:11,fontWeight:700,color:tier.tierUpColor}}>{tier.tierUpReward}</div></div>):(<div style={{flex:1,background:"rgba(255,107,53,0.08)",border:"1px solid rgba(255,107,53,0.2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}><div style={{fontSize:18,marginBottom:4}}>⭐</div><div style={{fontSize:10,color:"#888",marginBottom:3}}>Every 10 Levels</div><div style={{fontSize:11,fontWeight:700,color:"#ff6b35"}}>1 week VIP</div></div>)}
-      </div>
-      <div style={{fontSize:11,color:"#555",fontWeight:600,letterSpacing:"0.05em",marginBottom:8}}>TIER ROAD MAP</div>
-      <div style={{display:"flex",borderRadius:10,overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)",marginBottom:16}}>
-        {REFERRAL_LEVEL_TIERS.map(function(t2,ti3){var isActive=ti3===s.tierIdx,isPast=ti3<s.tierIdx;return(<div key={t2.id} style={{flex:1,padding:"8px 4px",textAlign:"center",background:isActive?t2.bg:isPast?"rgba(255,255,255,0.03)":"transparent",outline:isActive?"2px solid "+t2.color:"none",outlineOffset:"-2px",opacity:isPast?0.55:isActive?1:0.3}}><div style={{fontSize:15}}>{t2.icon}{isPast?" ✓":""}</div><div style={{fontSize:9,marginTop:3,fontWeight:600,color:t2.color}}>{t2.name}</div><div style={{fontSize:8,color:"#555",marginTop:2}}>{getReferralTierStartRef(ti3)}+</div></div>);})}
-      </div>
-      <div style={{fontSize:11,color:"#555",fontWeight:600,letterSpacing:"0.05em",marginBottom:8}}>TIER-UP REWARDS</div>
-      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
-        {REFERRAL_LEVEL_TIERS.slice(0,-1).map(function(from,ti4){var to=REFERRAL_LEVEL_TIERS[ti4+1];var unlocked=s.tierIdx>ti4,isCur=s.tierIdx===ti4;return(<div key={from.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:unlocked?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.02)",border:"1px solid "+(isCur?from.color+"55":unlocked?"rgba(255,255,255,0.07)":"rgba(255,255,255,0.04)"),opacity:unlocked||isCur?1:0.4}}><div style={{fontSize:13}}>{from.icon}→{to.icon}</div><div style={{flex:1,fontSize:11,color:"#aaa"}}>{from.name} → {to.name}</div><div style={{fontSize:11,fontWeight:700,color:from.tierUpColor}}>{from.tierUpIcon} {from.tierUpReward}</div>{unlocked&&<div style={{fontSize:11,color:"#4caf50",marginLeft:4}}>✓</div>}</div>);})}
-        <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:s.tierIdx===4?"rgba(255,107,53,0.06)":"rgba(255,255,255,0.02)",border:"1px solid "+(s.tierIdx===4?"rgba(255,107,53,0.3)":"rgba(255,255,255,0.04)"),opacity:s.tierIdx===4?1:0.35}}><div style={{fontSize:13}}>👑</div><div style={{flex:1,fontSize:11,color:"#aaa"}}>Legend · Every 10 levels</div><div style={{fontSize:11,fontWeight:700,color:"#ff6b35"}}>⭐ 1 week VIP</div></div>
-      </div>
-      <div style={{fontSize:11,color:"#666",marginBottom:6}}>Your referral link</div>
-      <div style={{display:"flex",gap:8}}><div style={{flex:1,padding:"9px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:8,fontSize:11,color:"#777",fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{referralLink}</div><button onClick={copyLink} style={{padding:"9px 16px",borderRadius:8,background:copied?"rgba(76,175,80,0.2)":"rgba(255,255,255,0.06)",border:"1px solid "+(copied?"rgba(76,175,80,0.5)":"rgba(255,255,255,0.1)"),color:copied?"#4caf50":"#aaa",fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0}}>{copied?"✓ Copied!":"Copy"}</button></div>
-      <div style={{fontSize:10,color:"#444",marginTop:8}}>Referral credits are tracked automatically when friends sign up.</div>
-    </div>
-  );
-}
-
 
 function AuthPanel({ user, onClose }) {
   const [mode, setMode] = useState("login");
@@ -1760,74 +1648,6 @@ function GiveawayWinnersAdmin() {
   );
 }
 
-
-// ─── Referral Claims Admin ────────────────────────────────────────────────────
-function ReferralClaimsAdmin() {
-  var [claims, setClaims] = React.useState([]);
-  React.useEffect(function() {
-    db.ref("referralClaims").on("value", function(snap) {
-      var list = [];
-      snap.forEach(function(userSnap) {
-        userSnap.forEach(function(claimSnap) {
-          list.push(Object.assign({ _uid: userSnap.key, _tier: claimSnap.key }, claimSnap.val()));
-        });
-      });
-      list.sort(function(a,b){ return (b.claimedAt||0)-(a.claimedAt||0); });
-      setClaims(list);
-    });
-    return function(){ db.ref("referralClaims").off(); };
-  }, []);
-
-  function markProcessed(uid, tier) {
-    db.ref("referralClaims/" + uid + "/" + tier + "/processed").set(true);
-  }
-
-  function fmtDate(ts) {
-    if (!ts) return "—";
-    var d = new Date(ts);
-    return d.toLocaleDateString() + " " + d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-  }
-
-  var pending = claims.filter(function(c){ return !c.processed; });
-  var done = claims.filter(function(c){ return c.processed; });
-
-  return (
-    <div>
-      <div style={{ fontSize:12,color:"#555",marginBottom:16 }}>
-        {pending.length} pending · {done.length} processed
-      </div>
-      {claims.length === 0 && (
-        <div style={{ color:"#555",fontSize:13,textAlign:"center",padding:20 }}>No claims yet</div>
-      )}
-      {claims.map(function(c) {
-        var tierInfo = REFERRAL_LEVEL_TIERS.find(function(t){ return t.name === c._tier || t.id === c._tier; });
-        var color = tierInfo ? tierInfo.color : "#888";
-        var icon = tierInfo ? tierInfo.icon : "🔗";
-        return (
-          <div key={c._uid + c._tier} style={{ background:"rgba(255,255,255,0.03)",border:"1px solid "+(c.processed?"rgba(255,255,255,0.05)":color+"44"),borderRadius:10,padding:"14px 16px",marginBottom:10,opacity:c.processed?0.5:1 }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
-              <div>
-                <div style={{ fontSize:13,fontWeight:700,color:c.processed?"#666":color }}>{icon} {c._tier} reward</div>
-                <div style={{ fontSize:11,color:"#888",marginTop:2 }}>{c.displayName || c.email || c._uid}</div>
-                <div style={{ fontSize:10,color:"#555",marginTop:2 }}>{c.referralCount} referrals · claimed {fmtDate(c.claimedAt)}</div>
-                <div style={{ fontSize:11,color:"#aaa",marginTop:6,padding:"5px 10px",background:"rgba(255,255,255,0.04)",borderRadius:6,display:"inline-block" }}>
-                  Reward: {c.reward}
-                </div>
-              </div>
-              {!c.processed && (
-                <button onClick={function(){ markProcessed(c._uid, c._tier); }}
-                  style={{ padding:"7px 14px",borderRadius:8,background:"rgba(76,175,80,0.15)",border:"1px solid rgba(76,175,80,0.4)",color:"#4caf50",fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0 }}>
-                  Mark Done
-                </button>
-              )}
-              {c.processed && <div style={{ fontSize:11,color:"#4caf50",fontWeight:600 }}>✓ Done</div>}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 function AdminPanel({ user }) {
   const [authed, setAuthed] = useState(false);
@@ -3230,10 +3050,6 @@ function PortfolioPanel({ user, setTab }) {
 
 // ─── Gold Allowance Panel ──────────────────────────────────────────────────────
 
-function LeaderboardsPanel({ user }) {
-  return (<div style={{maxWidth:680,margin:"0 auto",padding:"32px 24px"}}><h2 style={{margin:"0 0 6px",fontSize:22,fontWeight:800,color:"#fff"}}>Leaderboards</h2><p style={{margin:"0 0 24px",fontSize:13,color:"#666"}}>Top referrers this month.</p><MonthlyLeaderboard user={user} /></div>);
-}
-
 function CollectionPanel({ user, lang, setTab, setSelected, setGraphItem }) {
   var [subTab, setSubTab] = React.useState("portfolio");
   return (<div><div style={{display:"flex",borderBottom:"1px solid rgba(255,255,255,0.07)",padding:"0 20px"}}>{[{id:"portfolio",label:"Portfolio"},{id:"inventory",label:"Inventory"}].map(function(st){var active=subTab===st.id;return <button key={st.id} onClick={function(){setSubTab(st.id)}} style={{padding:"12px 20px",background:"none",border:"none",borderBottom:active?"2px solid #fff":"2px solid transparent",color:active?"#fff":"#555",fontWeight:active?700:400,fontSize:13,cursor:"pointer",marginBottom:"-1px"}}>{st.label}</button>;})}</div>{subTab==="portfolio"&&<PortfolioPanel user={user} setTab={setTab} />}{subTab==="inventory"&&<InventoryPanel lang={lang} setTab={setTab} setSelected={setSelected} setGraphItem={setGraphItem} user={user} />}</div>);
@@ -3554,15 +3370,6 @@ function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [lang, setLang] = useState(function(){ return localStorage.getItem('s2_lang') || 'en'; });
 
-  // Capture referral code from URL on first load
-  React.useEffect(function() {
-    var params = new URLSearchParams(location.search);
-    var ref = params.get("ref");
-    if (ref && ref.length > 4) {
-      localStorage.setItem("s2_ref", ref);
-    }
-  }, []);
-
   function changeLang(l) { setLang(l); localStorage.setItem('s2_lang', l); }
   const [siteConfig, setSiteConfig] = useState({banner:"⚠ Reminder that prices are updated daily and might not be totally accurate",siteTitle:"STANDOFF 2",chatEnabled:true,giveawaysEnabled:true,announcement:"",announcementColor:"#ffb74d"});
   const [lastUpdatedDate, setLastUpdatedDate] = useState(null);
@@ -3605,24 +3412,7 @@ function App() {
         db.ref("users/" + u.uid + "/isAdmin").once("value", function(snap) {
           if (snap.val() === true) setShowAdmin(true);
         });
-        // Process referral: record that this user was referred. Crediting the
-        // referrer (referralCount, monthlyReferrals, referrals/{referrer}/referred/{uid})
-        // now happens server-side in the creditReferral Cloud Function, triggered
-        // off referredBy below. The client no longer writes to another user's
-        // node directly — that was an exploitable cross-user write (anyone could
-        // set localStorage.s2_ref to any uid and credit themselves a referral).
-        var pendingRef = localStorage.getItem("s2_ref");
-        if (pendingRef && pendingRef !== u.uid) {
-          db.ref("referrals/" + u.uid + "/referredBy").once("value", function(snap) {
-            if (!snap.val()) {
-              var batch = {};
-              batch["referrals/" + u.uid + "/referredBy"] = pendingRef;
-              batch["referrals/" + u.uid + "/joinedAt"]   = Date.now();
-              db.ref().update(batch);
-              localStorage.removeItem("s2_ref");
-            }
-          });
-        }
+
       } else {
         setShowAdmin(false);
       }
@@ -3684,7 +3474,7 @@ function App() {
       </div>
 
       <div className="s2-tabs" style={{ display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"collection",label:"📊 Collection"},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"leaderboards",label:"🏆 Leaderboards"},{id:"allowance",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
+        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"collection",label:"📊 Collection"},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"allowance",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
           <button key={t.id} onClick={function(){setTab(t.id)}} style={{ padding:"12px 24px",background:tab===t.id?"rgba(255,255,255,0.05)":"transparent",border:"none",borderBottom:tab===t.id?"2px solid #ff6b35":"2px solid transparent",color:tab===t.id?"#fff":"#666",fontSize:13,fontWeight:600,cursor:"pointer",letterSpacing:"0.03em" }}>{t.label}</button>
         )})}
       </div>
@@ -3707,7 +3497,6 @@ function App() {
 
       {tab === "players" && <PlayerTrackerPanel user={user} tier={tier} setTab={setTab} />}
 
-      {tab === "leaderboards" && <LeaderboardsPanel user={user} />}
       {tab === "allowance" && <AllowancePanel user={user} tier={tier} />}
 
       {tab === "giveaways" && <GiveawaysTab user={user} tier={tier} />}
