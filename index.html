@@ -3433,6 +3433,9 @@ function App() {
       if(sort==="day")return b.day-a.day;
       if(sort==="week")return b.week-a.week;
       if(sort==="year")return b.year-a.year;
+      if(sort==="spread")return (b.spread||0)-(a.spread||0);
+      if(sort==="vol")return (b.vol||0)-(a.vol||0);
+      if(sort==="profit")return (b.price*(b.day||0)/100)-(a.price*(a.day||0)/100);
       return 0;
     });
 
@@ -3539,6 +3542,9 @@ function App() {
               <option value="day">{t("sort24h",lang)}</option>
               <option value="week">{t("sort7d",lang)}</option>
               <option value="year">{t("sort1y",lang)}</option>
+              <option value="spread">Sort: Spread</option>
+              <option value="vol">Sort: Volatility</option>
+              <option value="profit">Sort: Profit/Day</option>
             </select>
           </div>
           <div style={{ fontSize:11,color:"#444",marginBottom:10 }}>{filtered.length.toLocaleString()} item{filtered.length!==1?"s":""}</div>
