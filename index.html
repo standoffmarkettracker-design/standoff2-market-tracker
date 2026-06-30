@@ -3096,7 +3096,11 @@ function AllowancePanel({ user, tier }) {
   var lastClaim     = claimData && (claimData.lastClaimDate || claimData.claimDate);
   var status        = claimData && claimData.status;
   var alreadyClaimed = lastClaim === today && status === "complete";
-  var isPending     = status === "pending" || status === "processing";
+  // A pending/processing claim only blocks new claims if it is from TODAY.
+  // If a claim got stuck (e.g. bot was down) and the date has rolled over,
+  // it auto-unsticks here so the user can claim again the next day instead
+  // of being locked out forever.
+  var isPending     = (status === "pending" || status === "processing") && lastClaim === today;
 
   return (
     <div style={{ maxWidth:580, margin:"0 auto", padding:"32px 24px" }}>
