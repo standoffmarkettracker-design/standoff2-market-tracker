@@ -1195,8 +1195,7 @@ function AuthLoggedIn({ user, onLogout }) {
         <ProfilePicSection user={user} />
         {/* Referral section */}
         <ReferralSection user={user} />
-        {/* Monthly leaderboard */}
-        <MonthlyLeaderboard user={user} />
+
         <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:24 }}>
           <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:4 }}>🎮 Player Tracker Profile</div>
           <div style={{ fontSize:12, color:"#555", marginBottom:16 }}>Set a username so other players can search for and view your inventory in the Player Tracker tab.</div>
@@ -1642,9 +1641,7 @@ function GiveawaysTab({ user, tier }) {
 
               <div style={{ background:"rgba(0,0,0,0.3)",borderRadius:10,padding:16,marginBottom:12,textAlign:"center",position:"relative",overflow:"hidden" }}>
                 <div style={{ position:"absolute",inset:0,background:"radial-gradient(circle at 50% 40%, "+rc+"22 0%, transparent 70%)",pointerEvents:"none" }} />
-                <div style={{ fontSize:48,marginBottom:8,filter:"drop-shadow(0 0 12px "+rc+"66)" }}>{
-                  item.type==="Knife"?"ðª":item.type==="Weapon Skin"?"ð«":item.type==="Gloves"?"ð§¤":item.type==="Case"||item.type==="Knife Case"||item.type==="Weapon Case"?"ð¦":item.type==="Sticker"||item.type==="Sticker Pack"?"ð·ï¸":item.type==="Graffiti"||item.type==="Graffiti Pack"?"ð¨":item.type==="Charm"?"â¨":"ð"
-                }</div>
+                <div style={{fontSize:13,fontWeight:700,marginBottom:8,padding:"4px 12px",borderRadius:20,background:rb,color:rc,border:"1px solid "+rc+"44",display:"inline-block"}}>{item.type==="Knife"?"Knife":item.type==="Weapon Skin"?"Weapon":item.type==="Gloves"?"Gloves":(item.type||"").includes("Case")?"Case":(item.type||"").includes("Sticker")?"Sticker":(item.type||"").includes("Graffiti")?"Graffiti":item.type==="Charm"?"Charm":"Item"}</div>
                 <span style={{ fontSize:10,padding:"2px 8px",borderRadius:20,background:rb,color:rc,border:"1px solid "+rc+"33" }}>{item.rarity}</span>
                 <div style={{ fontSize:15,fontWeight:700,color:"#fff",margin:"8px 0 4px" }}>{item.name}</div>
                 <div style={{ fontSize:18,fontWeight:800,color:"#fff",fontFamily:"monospace" }}>{fmtPrice(item.price)} G</div>
@@ -1913,6 +1910,44 @@ function AdminPanel({ user }) {
     </div>
   );
 
+
+function ClaimsAdminTab() {
+  var [claims, setClaims] = React.useState({});
+  React.useEffect(function() {
+    db.ref("allowanceClaims").on("value", function(snap) { setClaims(snap.val()||{}); });
+    return function() { db.ref("allowanceClaims").off(); };
+  }, []);
+  function markComplete(uid) { db.ref("allowanceClaims/"+uid).update({status:"complete",completedAt:new Date().toISOString(),lastClaimDate:new Date().toISOString().slice(0,10),error:null}); }
+  function markFailed(uid) { db.ref("allowanceClaims/"+uid).update({status:"failed",error:"manually_rejected"}); }
+  var list = Object.entries(claims).sort(function(a,b){return (b[1].createdAt||"").localeCompare(a[1].createdAt||"");});
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div style={{fontWeight:700,fontSize:15,color:"#fff"}}>Gold Allowance Claims</div>
+        <div style={{fontSize:12,color:"#555"}}>{list.length} total</div>
+      </div>
+      {list.length===0 && <div style={{color:"#555",fontSize:13,textAlign:"center",padding:32}}>No claims yet</div>}
+      {list.map(function(entry){var uid=entry[0];var claim=entry[1];var sc=claim.status==="complete"?"#4ade80":claim.status==="pending"?"#ffd700":"#ff6b6b";return(
+        <div key={uid} style={{background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"14px 16px",marginBottom:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+            <div><div style={{fontWeight:700,fontSize:13,color:"#e0e8f0"}}>{claim.displayName||uid.slice(0,12)}</div><div style={{fontSize:11,color:"#555"}}>{claim.tier} - {claim.allowance}G - {claim.claimDate}</div></div>
+            <div style={{fontSize:11,fontWeight:700,color:sc,textTransform:"uppercase"}}>{claim.status}</div>
+          </div>
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <div style={{background:"rgba(255,255,255,0.04)",borderRadius:6,padding:"4px 10px",fontSize:12,color:"#ccc"}}>Seller: <strong>{claim.username}</strong></div>
+            <div style={{background:"rgba(255,215,0,0.1)",border:"1px solid rgba(255,215,0,0.2)",borderRadius:6,padding:"4px 10px",fontSize:12,color:"#ffd700"}}>{claim.itemName} @ {claim.listPrice}G</div>
+          </div>
+          {(claim.status==="pending"||claim.status==="processing"||claim.status==="failed")&&(
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={function(){markComplete(uid)}} style={{flex:1,padding:"8px 0",background:"rgba(74,222,128,0.15)",border:"1px solid rgba(74,222,128,0.4)",borderRadius:7,color:"#4ade80",fontWeight:700,fontSize:12,cursor:"pointer"}}>Mark Complete</button>
+              <button onClick={function(){markFailed(uid)}} style={{padding:"8px 14px",background:"rgba(255,107,107,0.1)",border:"1px solid rgba(255,107,107,0.3)",borderRadius:7,color:"#ff6b6b",fontWeight:700,fontSize:12,cursor:"pointer"}}>Reject</button>
+            </div>
+          )}
+        </div>
+      );})}
+    </div>
+  );
+}
   function AdminTabs() {
     const [adminTab, setAdminTab] = useState("users");
     const [config, setConfig] = useState({banner:"",announcement:"",siteTitle:"STANDOFF 2",chatEnabled:true,giveawaysEnabled:true});
@@ -3194,6 +3229,15 @@ function PortfolioPanel({ user, setTab }) {
 
 
 // ─── Gold Allowance Panel ──────────────────────────────────────────────────────
+
+function LeaderboardsPanel({ user }) {
+  return (<div style={{maxWidth:680,margin:"0 auto",padding:"32px 24px"}}><h2 style={{margin:"0 0 6px",fontSize:22,fontWeight:800,color:"#fff"}}>Leaderboards</h2><p style={{margin:"0 0 24px",fontSize:13,color:"#666"}}>Top referrers this month.</p><MonthlyLeaderboard user={user} /></div>);
+}
+
+function CollectionPanel({ user, lang, setTab, setSelected, setGraphItem }) {
+  var [subTab, setSubTab] = React.useState("portfolio");
+  return (<div><div style={{display:"flex",borderBottom:"1px solid rgba(255,255,255,0.07)",padding:"0 20px"}}>{[{id:"portfolio",label:"Portfolio"},{id:"inventory",label:"Inventory"}].map(function(st){var active=subTab===st.id;return <button key={st.id} onClick={function(){setSubTab(st.id)}} style={{padding:"12px 20px",background:"none",border:"none",borderBottom:active?"2px solid #fff":"2px solid transparent",color:active?"#fff":"#555",fontWeight:active?700:400,fontSize:13,cursor:"pointer",marginBottom:"-1px"}}>{st.label}</button>;})}</div>{subTab==="portfolio"&&<PortfolioPanel user={user} setTab={setTab} />}{subTab==="inventory"&&<InventoryPanel lang={lang} setTab={setTab} setSelected={setSelected} setGraphItem={setGraphItem} user={user} />}</div>);
+}
 var ALLOWANCE_ITEMS = [
   'P90 "Unstoppable"','SM1014 "Bolt"','M60 "Turret"','M4 "Powergame"',
   'SM1014 "Triton"','M110 "Dark Pact"','UMP45 "Heatwave"','M60 "Warp"',
@@ -3635,12 +3679,12 @@ function App() {
       </div>
 
       <div className="s2-tabs" style={{ display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"portfolio",label:"📊 Portfolio"},{id:"inventory",label:"📦 "+t("myInventory",lang)},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"allowance",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
+        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"collection",label:"📊 Collection"},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"leaderboards",label:"🏆 Leaderboards"},{id:"allowance",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
           <button key={t.id} onClick={function(){setTab(t.id)}} style={{ padding:"12px 24px",background:tab===t.id?"rgba(255,255,255,0.05)":"transparent",border:"none",borderBottom:tab===t.id?"2px solid #ff6b35":"2px solid transparent",color:tab===t.id?"#fff":"#666",fontSize:13,fontWeight:600,cursor:"pointer",letterSpacing:"0.03em" }}>{t.label}</button>
         )})}
       </div>
 
-      {tab === "portfolio" && <PortfolioPanel user={user} setTab={setTab} />}
+      {tab === "collection" && <CollectionPanel user={user} lang={lang} setTab={setTab} setSelected={setSelected} setGraphItem={setGraphItem} />}
       {tab === "investments" && (
         <div style={{ padding:"28px" }}>
           <h2 style={{ margin:"0 0 6px",fontSize:22,fontWeight:800,color:"#fff" }}>{t("bestInvestments",lang)}</h2>
@@ -3654,10 +3698,11 @@ function App() {
         </div>
       )}
 
-      {tab === "inventory" && <InventoryPanel lang={lang} setTab={setTab} setSelected={setSelected} setGraphItem={setGraphItem} user={user} />}
+      
 
       {tab === "players" && <PlayerTrackerPanel user={user} tier={tier} setTab={setTab} />}
 
+      {tab === "leaderboards" && <LeaderboardsPanel user={user} />}
       {tab === "allowance" && <AllowancePanel user={user} tier={tier} />}
 
       {tab === "giveaways" && <GiveawaysTab user={user} tier={tier} />}
