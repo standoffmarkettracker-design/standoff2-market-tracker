@@ -3055,10 +3055,10 @@ function CollectionPanel({ user, lang, setTab, setSelected, setGraphItem }) {
   return (<div><div style={{display:"flex",borderBottom:"1px solid rgba(255,255,255,0.07)",padding:"0 20px"}}>{[{id:"portfolio",label:"Portfolio"},{id:"inventory",label:"Inventory"}].map(function(st){var active=subTab===st.id;return <button key={st.id} onClick={function(){setSubTab(st.id)}} style={{padding:"12px 20px",background:"none",border:"none",borderBottom:active?"2px solid #fff":"2px solid transparent",color:active?"#fff":"#555",fontWeight:active?700:400,fontSize:13,cursor:"pointer",marginBottom:"-1px"}}>{st.label}</button>;})}</div>{subTab==="portfolio"&&<PortfolioPanel user={user} setTab={setTab} />}{subTab==="inventory"&&<InventoryPanel lang={lang} setTab={setTab} setSelected={setSelected} setGraphItem={setGraphItem} user={user} />}</div>);
 }
 var ALLOWANCE_ITEMS = [
-  'P90 "Unstoppable"','SM1014 "Bolt"','M60 "Turret"','M4 "Powergame"',
-  'SM1014 "Triton"','M110 "Dark Pact"','UMP45 "Heatwave"','M60 "Warp"',
-  'F/S "Polymer"','FN FAL "Charred Wood"','Akimbo Uzi "Skull"','P90 "Oracle"',
-  'AKR "Worm"','Desert Eagle "Violet Flame"','SPAS "Waypoint"',
+  'FAMAS "Protocol"','UMP45 "Professional"','M4 "Catalyst"',
+  'Graffiti "Champions" Packed','Graffiti "Race Winner" Packed',
+  'Graffiti "Arena King" Packed','Graffiti "Mind Games" Packed',
+  'Graffiti "Go Go Go!" Packed',
 ];
 var ALLOWANCE_DAILY = { "Basic": 10, "VIP": 67, "VIP+": 200 };
 var ALLOWANCE_COLORS = { "Basic": "#4fc3f7", "VIP": "#ce93d8", "VIP+": "#ffd700" };
