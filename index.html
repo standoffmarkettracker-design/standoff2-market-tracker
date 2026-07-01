@@ -103,6 +103,7 @@ body{margin:0;background:#0f0f12}
   .s2-detail{scroll-margin-top:10px}
   .s2-item-graph-btn{display:flex!important;width:100%;margin-top:6px;padding:8px!important;font-size:12px!important}
   .s2-support-modal{width:95vw!important;padding:16px!important}
+  @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(1.3)}}
   .s2-feedback-modal{width:95vw!important;padding:16px!important}
 }
 @media(max-width:480px){
@@ -1037,7 +1038,11 @@ function SupportModal({ onClose, currentTier, setTier, user, onSignUp }) {
                 {t.features.map(function(f){return(
                   <div key={f} style={{ display:"flex",alignItems:"center",gap:8,marginBottom:8 }}>
                     <span style={{ color:t.color,fontSize:12 }}>✓</span>
-                    <span style={{ fontSize:12,color:"#aaa" }}>{f}</span>
+                    {f.startsWith("💰") ? (
+                      <span style={{ fontSize:12,color:"#ffd700",fontWeight:700,borderBottom:"2px solid #ff4444",paddingBottom:"1px" }}>{f}</span>
+                    ) : (
+                      <span style={{ fontSize:12,color:"#aaa" }}>{f}</span>
+                    )}
                   </div>
                 )})}
               </div>
@@ -3528,7 +3533,7 @@ function App() {
             {Object.keys(LANGS).map(function(l){return <option key={l} value={l}>{LANGS[l].flag} {LANGS[l].name}</option>})}
           </select>
           <button onClick={function(){setShowFeedback(true)}} style={{ padding:"6px 14px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,color:"#aaa",fontSize:11,fontWeight:600,letterSpacing:"0.05em",cursor:"pointer" }}>{t("feedback",lang)}</button>
-          <button onClick={function(){setShowSupport(true)}} style={{ padding:"6px 14px",background:"linear-gradient(135deg,#ff6b35,#f7931e)",border:"none",borderRadius:6,color:"#fff",fontSize:11,fontWeight:700,letterSpacing:"0.05em",cursor:"pointer" }}>{t("support",lang)}</button>
+          <div style={{ position:"relative", display:"inline-block" }}><button onClick={function(){setShowSupport(true)}} style={{ padding:"6px 14px",background:"linear-gradient(135deg,#ff6b35,#f7931e)",border:"none",borderRadius:6,color:"#fff",fontSize:11,fontWeight:700,letterSpacing:"0.05em",cursor:"pointer" }}>{t("support",lang)}</button><span style={{ position:"absolute",top:-4,right:-4,width:9,height:9,background:"#ff2244",borderRadius:"50%",border:"1.5px solid #0f0f12",boxShadow:"0 0 6px #ff2244aa",animation:"pulse-dot 1.8s ease-in-out infinite",display:"block" }} /></div>
         </div>
       </div>
 
