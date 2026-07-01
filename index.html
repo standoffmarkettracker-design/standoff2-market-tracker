@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Standoff 2 Market Tracker — Live Skin Prices, Investment Tools & Price History</title>
+<title>Standoff 2 Market Tracker â Live Skin Prices, Investment Tools & Price History</title>
 <meta name="description" content="Track 2,354+ Standoff 2 item prices in real-time. View price history charts, best investment picks, collection trends, and portfolio value. The most complete SO2 market tracker available.">
 <meta name="keywords" content="standoff 2, standoff2, standoff 2 market, standoff 2 skins, standoff 2 skin prices, standoff 2 knife prices, standoff 2 case prices, standoff 2 trading, standoff 2 investment, standoff 2 price tracker, SO2 market tracker, SO2 skins, SO2 prices, standoff 2 gloves, standoff 2 stickers, standoff 2 market tracker, standoff 2 item prices, standoff 2 price history, standoff 2 best skins, cheap standoff 2 skins, rare standoff 2 items, standoff 2 arcane, standoff 2 legendary, SO2 price history, standoff 2 portfolio">
 <meta name="robots" content="index, follow">
@@ -12,7 +12,7 @@
 <link rel="canonical" href="https://standoff2markettracker.com">
 
 <!-- Open Graph -->
-<meta property="og:title" content="Standoff 2 Market Tracker — Live Skin Prices & Investment Tools">
+<meta property="og:title" content="Standoff 2 Market Tracker â Live Skin Prices & Investment Tools">
 <meta property="og:description" content="Track 2,354+ Standoff 2 item prices in real-time. Price history charts, best investment picks, collection heat maps, portfolio tracker and more.">
 <meta property="og:url" content="https://standoff2markettracker.com">
 <meta property="og:type" content="website">
@@ -21,7 +21,7 @@
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Standoff 2 Market Tracker — Live Skin Prices & Investment Tools">
+<meta name="twitter:title" content="Standoff 2 Market Tracker â Live Skin Prices & Investment Tools">
 <meta name="twitter:description" content="Track 2,354+ Standoff 2 item prices in real-time. Price history, best investments, collection trends and portfolio tracking.">
 <meta name="twitter:site" content="@standoff2market">
 
@@ -103,7 +103,7 @@ body{margin:0;background:#0f0f12}
   .s2-detail{scroll-margin-top:10px}
   .s2-item-graph-btn{display:flex!important;width:100%;margin-top:6px;padding:8px!important;font-size:12px!important}
   .s2-support-modal{width:95vw!important;padding:16px!important}
-  @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(1.3)}}
+  @keyframes pulse-dot{0%{opacity:1;transform:scale(1);box-shadow:0 0 0 0 rgba(255,34,68,0.7)}70%{opacity:0.9;transform:scale(1.15);box-shadow:0 0 0 5px rgba(255,34,68,0)}100%{opacity:1;transform:scale(1);box-shadow:0 0 0 0 rgba(255,34,68,0)}}
   .s2-feedback-modal{width:95vw!important;padding:16px!important}
 }
 @media(max-width:480px){
@@ -118,7 +118,7 @@ body{margin:0;background:#0f0f12}
 const { useState, useRef, useEffect } = React;
 
 // ITEMS and ITEM_COLLECTIONS are loaded from items.json / collections.json
-// at startup by the bootstrap script — see the <script> block at page bottom.
+// at startup by the bootstrap script â see the <script> block at page bottom.
 var ITEMS = window.ITEMS;
 var ITEM_COLLECTIONS = window.ITEM_COLLECTIONS;
 
@@ -130,54 +130,54 @@ var ITEM_IMAGES = {
 };
 
 var LANGS = {
-  en:{flag:"🇬🇧",name:"English"},es:{flag:"🇪🇸",name:"Español"},fr:{flag:"🇫🇷",name:"Français"},de:{flag:"🇩🇪",name:"Deutsch"},ru:{flag:"🇷🇺",name:"Русский"},pl:{flag:"🇵🇱",name:"Polski"}
+  en:{flag:"ð¬ð§",name:"English"},es:{flag:"ðªð¸",name:"EspaÃ±ol"},fr:{flag:"ð«ð·",name:"FranÃ§ais"},de:{flag:"ð©ðª",name:"Deutsch"},ru:{flag:"ð·ðº",name:"Ð ÑÑÑÐºÐ¸Ð¹"},pl:{flag:"ðµð±",name:"Polski"}
 };
 var T = {
-  market:{en:"Market",es:"Mercado",fr:"Marché",de:"Markt",ru:"Маркет",pl:"Rynek"},
-  bestInvestments:{en:"Best Investments",es:"Mejores Inversiones",fr:"Meilleurs Investissements",de:"Beste Investitionen",ru:"Лучшие Инвестиции",pl:"Najlepsze Inwestycje"},
-  giveaways:{en:"🎁 Giveaways",es:"🎁 Sorteos",fr:"🎁 Cadeaux",de:"🎁 Verlosungen",ru:"🎁 Розыгрыши",pl:"🎁 Rozdania"},
-  signUp:{en:"Sign Up",es:"Registrarse",fr:"S'inscrire",de:"Registrieren",ru:"Регистрация",pl:"Rejestracja"},
-  feedback:{en:"✎ FEEDBACK",es:"✎ COMENTARIOS",fr:"✎ AVIS",de:"✎ FEEDBACK",ru:"✎ ОТЗЫВ",pl:"✎ OPINIA"},
-  support:{en:"♥ SUPPORT",es:"♥ APOYO",fr:"♥ SOUTIEN",de:"♥ UNTERSTÜTZEN",ru:"♥ ПОДДЕРЖКА",pl:"♥ WSPARCIE"},
-  itemsTracked:{en:"ITEMS TRACKED",es:"ARTÍCULOS RASTREADOS",fr:"OBJETS SUIVIS",de:"VERFOLGTE GEGENSTÄNDE",ru:"ОТСЛЕЖИВАЕМЫЕ ПРЕДМЕТЫ",pl:"ŚLEDZONE PRZEDMIOTY"},
-  avg24h:{en:"AVG 24H CHANGE",es:"CAMBIO PROM. 24H",fr:"VARIATION MOY. 24H",de:"Ø 24H ÄNDERUNG",ru:"СРЕДН. ИЗМЕНЕНИЕ 24Ч",pl:"ŚR. ZMIANA 24H"},
-  topWeekly:{en:"TOP WEEKLY GAINER",es:"MAYOR GANADOR SEMANAL",fr:"MEILLEUR GAIN HEBDO",de:"TOP WOCHENGEWINNER",ru:"ЛИДЕР НЕДЕЛИ",pl:"TOP TYGODNIA"},
-  searchItems:{en:"Search items...",es:"Buscar artículos...",fr:"Rechercher...",de:"Suchen...",ru:"Поиск...",pl:"Szukaj..."},
-  sortPrice:{en:"Sort: Price",es:"Ordenar: Precio",fr:"Trier: Prix",de:"Sortieren: Preis",ru:"Сорт: Цена",pl:"Sortuj: Cena"},
-  sort24h:{en:"Sort: 24h",es:"Ordenar: 24h",fr:"Trier: 24h",de:"Sortieren: 24h",ru:"Сорт: 24ч",pl:"Sortuj: 24h"},
-  sort7d:{en:"Sort: 7d",es:"Ordenar: 7d",fr:"Trier: 7j",de:"Sortieren: 7T",ru:"Сорт: 7д",pl:"Sortuj: 7d"},
-  sort1y:{en:"Sort: 1y",es:"Ordenar: 1a",fr:"Trier: 1a",de:"Sortieren: 1J",ru:"Сорт: 1г",pl:"Sortuj: 1r"},
-  viewGraph:{en:"View Graph ↗",es:"Ver Gráfico ↗",fr:"Voir Graphique ↗",de:"Grafik Anzeigen ↗",ru:"График ↗",pl:"Wykres ↗"},
-  itemChat:{en:"💬 Item Chat",es:"💬 Chat del Artículo",fr:"💬 Chat Objet",de:"💬 Gegenstand-Chat",ru:"💬 Чат Предмета",pl:"💬 Czat Przedmiotu"},
-  upgradeChat:{en:"Upgrade to Basic or higher to access chat",es:"Mejora a Básico o superior para acceder al chat",fr:"Passez à Basique ou supérieur pour accéder au chat",de:"Upgrade auf Basis oder höher für Chat-Zugang",ru:"Перейдите на Базовый или выше для доступа к чату",pl:"Ulepsz do Basic lub wyżej aby uzyskać dostęp do czatu"},
-  noMessages:{en:"No messages yet — be the first!",es:"Aún no hay mensajes — ¡sé el primero!",fr:"Pas encore de messages — soyez le premier !",de:"Noch keine Nachrichten — sei der Erste!",ru:"Сообщений пока нет — будьте первым!",pl:"Brak wiadomości — bądź pierwszy!"},
-  typeMessage:{en:"Type a message...",es:"Escribe un mensaje...",fr:"Écrire un message...",de:"Nachricht eingeben...",ru:"Введите сообщение...",pl:"Napisz wiadomość..."},
-  send:{en:"Send",es:"Enviar",fr:"Envoyer",de:"Senden",ru:"Отправить",pl:"Wyślij"},
-  marketStats:{en:"Market Stats",es:"Estadísticas",fr:"Statistiques",de:"Marktstatistiken",ru:"Статистика",pl:"Statystyki"},
-  spread:{en:"Spread",es:"Spread",fr:"Spread",de:"Spread",ru:"Спред",pl:"Spread"},
-  volatility:{en:"Volatility",es:"Volatilidad",fr:"Volatilité",de:"Volatilität",ru:"Волатильность",pl:"Zmienność"},
-  change24h:{en:"24H CHANGE",es:"CAMBIO 24H",fr:"VARIATION 24H",de:"24H ÄNDERUNG",ru:"ИЗМЕНЕНИЕ 24Ч",pl:"ZMIANA 24H"},
-  change7d:{en:"7D CHANGE",es:"CAMBIO 7D",fr:"VARIATION 7J",de:"7T ÄNDERUNG",ru:"ИЗМЕНЕНИЕ 7Д",pl:"ZMIANA 7D"},
-  change30d:{en:"30D CHANGE",es:"CAMBIO 30D",fr:"VARIATION 30J",de:"30T ÄNDERUNG",ru:"ИЗМЕНЕНИЕ 30Д",pl:"ZMIANA 30D"},
-  change1y:{en:"1Y CHANGE",es:"CAMBIO 1A",fr:"VARIATION 1A",de:"1J ÄNDERUNG",ru:"ИЗМЕНЕНИЕ 1Г",pl:"ZMIANA 1R"},
-  selectItem:{en:"Select an item to view details",es:"Selecciona un artículo",fr:"Sélectionnez un objet",de:"Wähle einen Gegenstand",ru:"Выберите предмет",pl:"Wybierz przedmiot"},
-  banner:{en:"Reminder that prices are updated daily and might not be totally accurate",es:"Recordatorio: los precios se actualizan diariamente y pueden no ser totalmente exactos",fr:"Rappel : les prix sont mis à jour quotidiennement et peuvent ne pas être totalement exacts",de:"Hinweis: Preise werden täglich aktualisiert und sind möglicherweise nicht ganz genau",ru:"Напоминание: цены обновляются ежедневно и могут быть не совсем точными",pl:"Przypomnienie: ceny są aktualizowane codziennie i mogą nie być w pełni dokładne"},
-  weekly:{en:"Weekly Giveaway",es:"Sorteo Semanal",fr:"Cadeau Hebdomadaire",de:"Wöchentliche Verlosung",ru:"Еженедельный Розыгрыш",pl:"Tygodniowe Rozdanie"},
-  biweekly:{en:"Bi-Weekly Giveaway",es:"Sorteo Quincenal",fr:"Cadeau Bi-Hebdomadaire",de:"Zweiwöchentliche Verlosung",ru:"Двухнедельный Розыгрыш",pl:"Dwutygodniowe Rozdanie"},
-  monthly:{en:"Monthly Giveaway",es:"Sorteo Mensual",fr:"Cadeau Mensuel",de:"Monatliche Verlosung",ru:"Ежемесячный Розыгрыш",pl:"Miesięczne Rozdanie"},
-  signInToEnter:{en:"Sign in to enter",es:"Inicia sesión para participar",fr:"Connectez-vous pour participer",de:"Anmelden zum Teilnehmen",ru:"Войдите для участия",pl:"Zaloguj się aby wziąć udział"},
-  entered:{en:"Entered",es:"Participando",fr:"Inscrit",de:"Teilgenommen",ru:"Участвуете",pl:"Zgłoszono"},
-  enter:{en:"Enter",es:"Participar",fr:"Participer",de:"Teilnehmen",ru:"Участвовать",pl:"Weź udział"},
-  lastWinner:{en:"Last Winner",es:"Último Ganador",fr:"Dernier Gagnant",de:"Letzter Gewinner",ru:"Последний Победитель",pl:"Ostatni Zwycięzca"},
-  endsIn:{en:"Ends in",es:"Termina en",fr:"Fin dans",de:"Endet in",ru:"Заканчивается через",pl:"Kończy się za"},
-  topYearly:{en:"🏆 Top Yearly Returns",es:"🏆 Mejores Retornos Anuales",fr:"🏆 Meilleurs Rendements Annuels",de:"🏆 Top Jahresrenditen",ru:"🏆 Лучшая Годовая Доходность",pl:"🏆 Najlepsze Roczne Zwroty"},
-  hottestMonth:{en:"🔥 Hottest This Month",es:"🔥 Lo Más Caliente del Mes",fr:"🔥 Les Plus Chauds du Mois",de:"🔥 Heißeste des Monats",ru:"🔥 Лучшие за Месяц",pl:"🔥 Najgorętsze w Tym Miesiącu"},
-  disclaimer:{en:"This is not financial advice. Past performance does not guarantee future results.",es:"Esto no es asesoramiento financiero. El rendimiento pasado no garantiza resultados futuros.",fr:"Ceci n'est pas un conseil financier. Les performances passées ne garantissent pas les résultats futurs.",de:"Dies ist keine Finanzberatung. Vergangene Leistungen garantieren keine zukünftigen Ergebnisse.",ru:"Это не финансовая консультация. Прошлые результаты не гарантируют будущих.",pl:"To nie jest porada finansowa. Wyniki z przeszłości nie gwarantują przyszłych rezultatów."},
-  myInventory:{en:"My Inventory",es:"Mi Inventario",fr:"Mon Inventaire",de:"Mein Inventar",ru:"Мой Инвентарь",pl:"Mój Ekwipunek"},
-  addToInventory:{en:"+ Add to Inventory",es:"+ Añadir al Inventario",fr:"+ Ajouter à l'Inventaire",de:"+ Zum Inventar",ru:"+ Добавить",pl:"+ Dodaj"},
-  removeItem:{en:"Remove",es:"Eliminar",fr:"Retirer",de:"Entfernen",ru:"Удалить",pl:"Usuń"},
-  totalValue:{en:"Total Value",es:"Valor Total",fr:"Valeur Totale",de:"Gesamtwert",ru:"Общая Стоимость",pl:"Wartość Całkowita"},
-  emptyInventory:{en:"Your inventory is empty. Add items from the Market tab!",es:"Tu inventario está vacío. ¡Añade artículos desde la pestaña Mercado!",fr:"Votre inventaire est vide. Ajoutez des objets depuis l'onglet Marché !",de:"Dein Inventar ist leer. Füge Gegenstände vom Markt hinzu!",ru:"Ваш инвентарь пуст. Добавьте предметы с вкладки Маркет!",pl:"Twój ekwipunek jest pusty. Dodaj przedmioty z zakładki Rynek!"}
+  market:{en:"Market",es:"Mercado",fr:"MarchÃ©",de:"Markt",ru:"ÐÐ°ÑÐºÐµÑ",pl:"Rynek"},
+  bestInvestments:{en:"Best Investments",es:"Mejores Inversiones",fr:"Meilleurs Investissements",de:"Beste Investitionen",ru:"ÐÑÑÑÐ¸Ðµ ÐÐ½Ð²ÐµÑÑÐ¸ÑÐ¸Ð¸",pl:"Najlepsze Inwestycje"},
+  giveaways:{en:"ð Giveaways",es:"ð Sorteos",fr:"ð Cadeaux",de:"ð Verlosungen",ru:"ð Ð Ð¾Ð·ÑÐ³ÑÑÑÐ¸",pl:"ð Rozdania"},
+  signUp:{en:"Sign Up",es:"Registrarse",fr:"S'inscrire",de:"Registrieren",ru:"Ð ÐµÐ³Ð¸ÑÑÑÐ°ÑÐ¸Ñ",pl:"Rejestracja"},
+  feedback:{en:"â FEEDBACK",es:"â COMENTARIOS",fr:"â AVIS",de:"â FEEDBACK",ru:"â ÐÐ¢ÐÐ«Ð",pl:"â OPINIA"},
+  support:{en:"â¥ SUPPORT",es:"â¥ APOYO",fr:"â¥ SOUTIEN",de:"â¥ UNTERSTÃTZEN",ru:"â¥ ÐÐÐÐÐÐ ÐÐÐ",pl:"â¥ WSPARCIE"},
+  itemsTracked:{en:"ITEMS TRACKED",es:"ARTÃCULOS RASTREADOS",fr:"OBJETS SUIVIS",de:"VERFOLGTE GEGENSTÃNDE",ru:"ÐÐ¢Ð¡ÐÐÐÐÐÐÐÐÐ«Ð ÐÐ ÐÐÐÐÐ¢Ð«",pl:"ÅLEDZONE PRZEDMIOTY"},
+  avg24h:{en:"AVG 24H CHANGE",es:"CAMBIO PROM. 24H",fr:"VARIATION MOY. 24H",de:"Ã 24H ÃNDERUNG",ru:"Ð¡Ð ÐÐÐ. ÐÐÐÐÐÐÐÐÐ 24Ð§",pl:"ÅR. ZMIANA 24H"},
+  topWeekly:{en:"TOP WEEKLY GAINER",es:"MAYOR GANADOR SEMANAL",fr:"MEILLEUR GAIN HEBDO",de:"TOP WOCHENGEWINNER",ru:"ÐÐÐÐÐ  ÐÐÐÐÐÐ",pl:"TOP TYGODNIA"},
+  searchItems:{en:"Search items...",es:"Buscar artÃ­culos...",fr:"Rechercher...",de:"Suchen...",ru:"ÐÐ¾Ð¸ÑÐº...",pl:"Szukaj..."},
+  sortPrice:{en:"Sort: Price",es:"Ordenar: Precio",fr:"Trier: Prix",de:"Sortieren: Preis",ru:"Ð¡Ð¾ÑÑ: Ð¦ÐµÐ½Ð°",pl:"Sortuj: Cena"},
+  sort24h:{en:"Sort: 24h",es:"Ordenar: 24h",fr:"Trier: 24h",de:"Sortieren: 24h",ru:"Ð¡Ð¾ÑÑ: 24Ñ",pl:"Sortuj: 24h"},
+  sort7d:{en:"Sort: 7d",es:"Ordenar: 7d",fr:"Trier: 7j",de:"Sortieren: 7T",ru:"Ð¡Ð¾ÑÑ: 7Ð´",pl:"Sortuj: 7d"},
+  sort1y:{en:"Sort: 1y",es:"Ordenar: 1a",fr:"Trier: 1a",de:"Sortieren: 1J",ru:"Ð¡Ð¾ÑÑ: 1Ð³",pl:"Sortuj: 1r"},
+  viewGraph:{en:"View Graph â",es:"Ver GrÃ¡fico â",fr:"Voir Graphique â",de:"Grafik Anzeigen â",ru:"ÐÑÐ°ÑÐ¸Ðº â",pl:"Wykres â"},
+  itemChat:{en:"ð¬ Item Chat",es:"ð¬ Chat del ArtÃ­culo",fr:"ð¬ Chat Objet",de:"ð¬ Gegenstand-Chat",ru:"ð¬ Ð§Ð°Ñ ÐÑÐµÐ´Ð¼ÐµÑÐ°",pl:"ð¬ Czat Przedmiotu"},
+  upgradeChat:{en:"Upgrade to Basic or higher to access chat",es:"Mejora a BÃ¡sico o superior para acceder al chat",fr:"Passez Ã  Basique ou supÃ©rieur pour accÃ©der au chat",de:"Upgrade auf Basis oder hÃ¶her fÃ¼r Chat-Zugang",ru:"ÐÐµÑÐµÐ¹Ð´Ð¸ÑÐµ Ð½Ð° ÐÐ°Ð·Ð¾Ð²ÑÐ¹ Ð¸Ð»Ð¸ Ð²ÑÑÐµ Ð´Ð»Ñ Ð´Ð¾ÑÑÑÐ¿Ð° Ðº ÑÐ°ÑÑ",pl:"Ulepsz do Basic lub wyÅ¼ej aby uzyskaÄ dostÄp do czatu"},
+  noMessages:{en:"No messages yet â be the first!",es:"AÃºn no hay mensajes â Â¡sÃ© el primero!",fr:"Pas encore de messages â soyez le premier !",de:"Noch keine Nachrichten â sei der Erste!",ru:"Ð¡Ð¾Ð¾Ð±ÑÐµÐ½Ð¸Ð¹ Ð¿Ð¾ÐºÐ° Ð½ÐµÑ â Ð±ÑÐ´ÑÑÐµ Ð¿ÐµÑÐ²ÑÐ¼!",pl:"Brak wiadomoÅci â bÄdÅº pierwszy!"},
+  typeMessage:{en:"Type a message...",es:"Escribe un mensaje...",fr:"Ãcrire un message...",de:"Nachricht eingeben...",ru:"ÐÐ²ÐµÐ´Ð¸ÑÐµ ÑÐ¾Ð¾Ð±ÑÐµÐ½Ð¸Ðµ...",pl:"Napisz wiadomoÅÄ..."},
+  send:{en:"Send",es:"Enviar",fr:"Envoyer",de:"Senden",ru:"ÐÑÐ¿ÑÐ°Ð²Ð¸ÑÑ",pl:"WyÅlij"},
+  marketStats:{en:"Market Stats",es:"EstadÃ­sticas",fr:"Statistiques",de:"Marktstatistiken",ru:"Ð¡ÑÐ°ÑÐ¸ÑÑÐ¸ÐºÐ°",pl:"Statystyki"},
+  spread:{en:"Spread",es:"Spread",fr:"Spread",de:"Spread",ru:"Ð¡Ð¿ÑÐµÐ´",pl:"Spread"},
+  volatility:{en:"Volatility",es:"Volatilidad",fr:"VolatilitÃ©",de:"VolatilitÃ¤t",ru:"ÐÐ¾Ð»Ð°ÑÐ¸Ð»ÑÐ½Ð¾ÑÑÑ",pl:"ZmiennoÅÄ"},
+  change24h:{en:"24H CHANGE",es:"CAMBIO 24H",fr:"VARIATION 24H",de:"24H ÃNDERUNG",ru:"ÐÐÐÐÐÐÐÐÐ 24Ð§",pl:"ZMIANA 24H"},
+  change7d:{en:"7D CHANGE",es:"CAMBIO 7D",fr:"VARIATION 7J",de:"7T ÃNDERUNG",ru:"ÐÐÐÐÐÐÐÐÐ 7Ð",pl:"ZMIANA 7D"},
+  change30d:{en:"30D CHANGE",es:"CAMBIO 30D",fr:"VARIATION 30J",de:"30T ÃNDERUNG",ru:"ÐÐÐÐÐÐÐÐÐ 30Ð",pl:"ZMIANA 30D"},
+  change1y:{en:"1Y CHANGE",es:"CAMBIO 1A",fr:"VARIATION 1A",de:"1J ÃNDERUNG",ru:"ÐÐÐÐÐÐÐÐÐ 1Ð",pl:"ZMIANA 1R"},
+  selectItem:{en:"Select an item to view details",es:"Selecciona un artÃ­culo",fr:"SÃ©lectionnez un objet",de:"WÃ¤hle einen Gegenstand",ru:"ÐÑÐ±ÐµÑÐ¸ÑÐµ Ð¿ÑÐµÐ´Ð¼ÐµÑ",pl:"Wybierz przedmiot"},
+  banner:{en:"Reminder that prices are updated daily and might not be totally accurate",es:"Recordatorio: los precios se actualizan diariamente y pueden no ser totalmente exactos",fr:"Rappel : les prix sont mis Ã  jour quotidiennement et peuvent ne pas Ãªtre totalement exacts",de:"Hinweis: Preise werden tÃ¤glich aktualisiert und sind mÃ¶glicherweise nicht ganz genau",ru:"ÐÐ°Ð¿Ð¾Ð¼Ð¸Ð½Ð°Ð½Ð¸Ðµ: ÑÐµÐ½Ñ Ð¾Ð±Ð½Ð¾Ð²Ð»ÑÑÑÑÑ ÐµÐ¶ÐµÐ´Ð½ÐµÐ²Ð½Ð¾ Ð¸ Ð¼Ð¾Ð³ÑÑ Ð±ÑÑÑ Ð½Ðµ ÑÐ¾Ð²ÑÐµÐ¼ ÑÐ¾ÑÐ½ÑÐ¼Ð¸",pl:"Przypomnienie: ceny sÄ aktualizowane codziennie i mogÄ nie byÄ w peÅni dokÅadne"},
+  weekly:{en:"Weekly Giveaway",es:"Sorteo Semanal",fr:"Cadeau Hebdomadaire",de:"WÃ¶chentliche Verlosung",ru:"ÐÐ¶ÐµÐ½ÐµÐ´ÐµÐ»ÑÐ½ÑÐ¹ Ð Ð¾Ð·ÑÐ³ÑÑÑ",pl:"Tygodniowe Rozdanie"},
+  biweekly:{en:"Bi-Weekly Giveaway",es:"Sorteo Quincenal",fr:"Cadeau Bi-Hebdomadaire",de:"ZweiwÃ¶chentliche Verlosung",ru:"ÐÐ²ÑÑÐ½ÐµÐ´ÐµÐ»ÑÐ½ÑÐ¹ Ð Ð¾Ð·ÑÐ³ÑÑÑ",pl:"Dwutygodniowe Rozdanie"},
+  monthly:{en:"Monthly Giveaway",es:"Sorteo Mensual",fr:"Cadeau Mensuel",de:"Monatliche Verlosung",ru:"ÐÐ¶ÐµÐ¼ÐµÑÑÑÐ½ÑÐ¹ Ð Ð¾Ð·ÑÐ³ÑÑÑ",pl:"MiesiÄczne Rozdanie"},
+  signInToEnter:{en:"Sign in to enter",es:"Inicia sesiÃ³n para participar",fr:"Connectez-vous pour participer",de:"Anmelden zum Teilnehmen",ru:"ÐÐ¾Ð¹Ð´Ð¸ÑÐµ Ð´Ð»Ñ ÑÑÐ°ÑÑÐ¸Ñ",pl:"Zaloguj siÄ aby wziÄÄ udziaÅ"},
+  entered:{en:"Entered",es:"Participando",fr:"Inscrit",de:"Teilgenommen",ru:"Ð£ÑÐ°ÑÑÐ²ÑÐµÑÐµ",pl:"ZgÅoszono"},
+  enter:{en:"Enter",es:"Participar",fr:"Participer",de:"Teilnehmen",ru:"Ð£ÑÐ°ÑÑÐ²Ð¾Ð²Ð°ÑÑ",pl:"WeÅº udziaÅ"},
+  lastWinner:{en:"Last Winner",es:"Ãltimo Ganador",fr:"Dernier Gagnant",de:"Letzter Gewinner",ru:"ÐÐ¾ÑÐ»ÐµÐ´Ð½Ð¸Ð¹ ÐÐ¾Ð±ÐµÐ´Ð¸ÑÐµÐ»Ñ",pl:"Ostatni ZwyciÄzca"},
+  endsIn:{en:"Ends in",es:"Termina en",fr:"Fin dans",de:"Endet in",ru:"ÐÐ°ÐºÐ°Ð½ÑÐ¸Ð²Ð°ÐµÑÑÑ ÑÐµÑÐµÐ·",pl:"KoÅczy siÄ za"},
+  topYearly:{en:"ð Top Yearly Returns",es:"ð Mejores Retornos Anuales",fr:"ð Meilleurs Rendements Annuels",de:"ð Top Jahresrenditen",ru:"ð ÐÑÑÑÐ°Ñ ÐÐ¾Ð´Ð¾Ð²Ð°Ñ ÐÐ¾ÑÐ¾Ð´Ð½Ð¾ÑÑÑ",pl:"ð Najlepsze Roczne Zwroty"},
+  hottestMonth:{en:"ð¥ Hottest This Month",es:"ð¥ Lo MÃ¡s Caliente del Mes",fr:"ð¥ Les Plus Chauds du Mois",de:"ð¥ HeiÃeste des Monats",ru:"ð¥ ÐÑÑÑÐ¸Ðµ Ð·Ð° ÐÐµÑÑÑ",pl:"ð¥ NajgorÄtsze w Tym MiesiÄcu"},
+  disclaimer:{en:"This is not financial advice. Past performance does not guarantee future results.",es:"Esto no es asesoramiento financiero. El rendimiento pasado no garantiza resultados futuros.",fr:"Ceci n'est pas un conseil financier. Les performances passÃ©es ne garantissent pas les rÃ©sultats futurs.",de:"Dies ist keine Finanzberatung. Vergangene Leistungen garantieren keine zukÃ¼nftigen Ergebnisse.",ru:"Ð­ÑÐ¾ Ð½Ðµ ÑÐ¸Ð½Ð°Ð½ÑÐ¾Ð²Ð°Ñ ÐºÐ¾Ð½ÑÑÐ»ÑÑÐ°ÑÐ¸Ñ. ÐÑÐ¾ÑÐ»ÑÐµ ÑÐµÐ·ÑÐ»ÑÑÐ°ÑÑ Ð½Ðµ Ð³Ð°ÑÐ°Ð½ÑÐ¸ÑÑÑÑ Ð±ÑÐ´ÑÑÐ¸Ñ.",pl:"To nie jest porada finansowa. Wyniki z przeszÅoÅci nie gwarantujÄ przyszÅych rezultatÃ³w."},
+  myInventory:{en:"My Inventory",es:"Mi Inventario",fr:"Mon Inventaire",de:"Mein Inventar",ru:"ÐÐ¾Ð¹ ÐÐ½Ð²ÐµÐ½ÑÐ°ÑÑ",pl:"MÃ³j Ekwipunek"},
+  addToInventory:{en:"+ Add to Inventory",es:"+ AÃ±adir al Inventario",fr:"+ Ajouter Ã  l'Inventaire",de:"+ Zum Inventar",ru:"+ ÐÐ¾Ð±Ð°Ð²Ð¸ÑÑ",pl:"+ Dodaj"},
+  removeItem:{en:"Remove",es:"Eliminar",fr:"Retirer",de:"Entfernen",ru:"Ð£Ð´Ð°Ð»Ð¸ÑÑ",pl:"UsuÅ"},
+  totalValue:{en:"Total Value",es:"Valor Total",fr:"Valeur Totale",de:"Gesamtwert",ru:"ÐÐ±ÑÐ°Ñ Ð¡ÑÐ¾Ð¸Ð¼Ð¾ÑÑÑ",pl:"WartoÅÄ CaÅkowita"},
+  emptyInventory:{en:"Your inventory is empty. Add items from the Market tab!",es:"Tu inventario estÃ¡ vacÃ­o. Â¡AÃ±ade artÃ­culos desde la pestaÃ±a Mercado!",fr:"Votre inventaire est vide. Ajoutez des objets depuis l'onglet MarchÃ© !",de:"Dein Inventar ist leer. FÃ¼ge GegenstÃ¤nde vom Markt hinzu!",ru:"ÐÐ°Ñ Ð¸Ð½Ð²ÐµÐ½ÑÐ°ÑÑ Ð¿ÑÑÑ. ÐÐ¾Ð±Ð°Ð²ÑÑÐµ Ð¿ÑÐµÐ´Ð¼ÐµÑÑ Ñ Ð²ÐºÐ»Ð°Ð´ÐºÐ¸ ÐÐ°ÑÐºÐµÑ!",pl:"TwÃ³j ekwipunek jest pusty. Dodaj przedmioty z zakÅadki Rynek!"}
 };
 
 function useLang() {
@@ -198,7 +198,7 @@ const RB = { Common:"rgba(158,158,158,0.12)", Uncommon:"rgba(79,195,247,0.12)", 
 function PctBadge({ value }) {
   if (value === 0) return <span style={{ color: "#888", fontSize: 13 }}>0.00%</span>;
   const up = value > 0;
-  return <span style={{ color: up ? "#4caf50" : "#ef5350", fontSize: 13, fontWeight: 500 }}>{up ? "▲" : "▼"} {Math.abs(value).toFixed(2)}%</span>;
+  return <span style={{ color: up ? "#4caf50" : "#ef5350", fontSize: 13, fontWeight: 500 }}>{up ? "â²" : "â¼"} {Math.abs(value).toFixed(2)}%</span>;
 }
 
 function StatBar({ label, value, max, color }) {
@@ -233,7 +233,7 @@ function ItemCard({ item, onClick, selected, onGraph }) {
         <span style={{ fontSize: 18, fontWeight: 700, color: "#fff", fontFamily: "monospace" }}>{fmtPrice(item.price)} <span style={{ fontSize: 11, color: "#888", fontFamily: "sans-serif", fontWeight: 400 }}>G</span></span>
         <PctBadge value={item.day} />
       </div>
-      {selected && onGraph && <button className="s2-item-graph-btn" onClick={function(e){e.stopPropagation();onGraph(item)}} style={{ display:"none",alignItems:"center",justifyContent:"center",gap:4,marginTop:8,padding:"6px 12px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#aaa",fontSize:11,fontWeight:600,cursor:"pointer",width:"100%" }}>📊 View Graph</button>}
+      {selected && onGraph && <button className="s2-item-graph-btn" onClick={function(e){e.stopPropagation();onGraph(item)}} style={{ display:"none",alignItems:"center",justifyContent:"center",gap:4,marginTop:8,padding:"6px 12px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#aaa",fontSize:11,fontWeight:600,cursor:"pointer",width:"100%" }}>ð View Graph</button>}
     </div>
   );
 }
@@ -273,7 +273,7 @@ function loadRealHistory() {
 
 // Gaps between consecutive real data points are automatically interpolated (linearly)
 // and rendered as dashed lines so they are visually distinct from verified real data.
-// No separate estimated file needed — detection is fully dynamic.
+// No separate estimated file needed â detection is fully dynamic.
 function genHistoryFromReal(item, realPoints) {
   var dates = Object.keys(realPoints || {}).sort();
   if (dates.length === 0) return null;
@@ -369,7 +369,7 @@ function GraphModal({ item, onClose, tier }) {
     return (
       <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={onClose}>
         <div style={{ background: "#16161a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, padding: 40, color: "#666", fontSize: 13 }} onClick={function(e){e.stopPropagation()}}>
-          Loading price history…
+          Loading price historyâ¦
         </div>
       </div>
     );
@@ -421,14 +421,14 @@ function GraphModal({ item, onClose, tier }) {
       <div className="s2-graph-modal" style={{ background: "#16161a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 18, padding: 28, width: 620, maxWidth: "95vw" }} onClick={function(e){e.stopPropagation()}}>
         <div className="s2-graph-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
           <div>
-            <div style={{ fontSize: 11, color: rc, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>{item.rarity} · {item.type}{isRealData && <span style={{ marginLeft:8, color:"#4caf50", letterSpacing:"normal" }}>● Verified Market Data</span>}{hasEstimated && <span style={{ marginLeft:8, color:"#888", letterSpacing:"normal" }}>┄ Includes estimated days</span>}</div>
+            <div style={{ fontSize: 11, color: rc, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>{item.rarity} Â· {item.type}{isRealData && <span style={{ marginLeft:8, color:"#4caf50", letterSpacing:"normal" }}>â Verified Market Data</span>}{hasEstimated && <span style={{ marginLeft:8, color:"#888", letterSpacing:"normal" }}>â Includes estimated days</span>}</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{item.name}</div>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#666", fontSize: 20, cursor: "pointer" }}>✕</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#666", fontSize: 20, cursor: "pointer" }}>â</button>
         </div>
         <div className="s2-graph-price" style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 20 }}>
           <span style={{ fontSize: 28, fontWeight: 800, color: "#fff", fontFamily: "monospace" }}>{fmtPrice(hovered.price)} G</span>
-          <span style={{ fontSize: 14, color: parseFloat(pctChange) >= 0 ? "#4caf50" : "#ef5350", fontWeight: 600 }}>{parseFloat(pctChange)>=0?"▲":"▼"} {Math.abs(pctChange)}% ({range})</span>
+          <span style={{ fontSize: 14, color: parseFloat(pctChange) >= 0 ? "#4caf50" : "#ef5350", fontWeight: 600 }}>{parseFloat(pctChange)>=0?"â²":"â¼"} {Math.abs(pctChange)}% ({range})</span>
           <span style={{ fontSize: 12, color: "#555", marginLeft: "auto" }}>{hovered.date.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}{hovered.estimated && <span style={{ color:"#888" }}> (est.)</span>}</span>
         </div>
         <div className="s2-graph-ranges" style={{ display:"flex", gap:6, marginBottom:showCustom?8:16, flexWrap:"wrap" }}>
@@ -436,7 +436,7 @@ function GraphModal({ item, onClose, tier }) {
           {isVIP ? (
             <button onClick={function(){setShowCustom(!showCustom);setHoverIdx(null)}} style={{ padding:"4px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",background:showCustom?rc+"22":"transparent",border:"1px solid "+(showCustom?rc:"rgba(255,255,255,0.1)"),color:showCustom?rc:"#666"}}>Custom</button>
           ) : (
-            <span style={{ padding:"4px 12px",borderRadius:20,fontSize:11,color:"#444",border:"1px solid rgba(255,255,255,0.05)",cursor:"default" }} title="VIP+ feature">Custom 🔒</span>
+            <span style={{ padding:"4px 12px",borderRadius:20,fontSize:11,color:"#444",border:"1px solid rgba(255,255,255,0.05)",cursor:"default" }} title="VIP+ feature">Custom ð</span>
           )}
         </div>
         {showCustom && isVIP && (
@@ -467,7 +467,7 @@ function GraphModal({ item, onClose, tier }) {
   );
 }
 
-// ─── Item Comparison Tool ─────────────────────────────────────────────────────
+// âââ Item Comparison Tool âââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function ComparisonModal({ items, onClose }) {
   var [histData, setHistData] = React.useState(null);
   var [range, setRange] = React.useState("3M");
@@ -507,8 +507,8 @@ function ComparisonModal({ items, onClose }) {
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:300 }} onClick={onClose}>
       <div style={{ background:"#16161a", border:"1px solid rgba(255,255,255,0.1)", borderRadius:18, padding:28, width:660, maxWidth:"95vw" }} onClick={function(e){e.stopPropagation()}}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-          <h3 style={{ margin:0, fontSize:16, fontWeight:700, color:"#fff" }}>📊 Price Comparison</h3>
-          <button onClick={onClose} style={{ background:"none", border:"none", color:"#666", fontSize:20, cursor:"pointer" }}>✕</button>
+          <h3 style={{ margin:0, fontSize:16, fontWeight:700, color:"#fff" }}>ð Price Comparison</h3>
+          <button onClick={onClose} style={{ background:"none", border:"none", color:"#666", fontSize:20, cursor:"pointer" }}>â</button>
         </div>
 
         {/* Legend */}
@@ -531,7 +531,7 @@ function ComparisonModal({ items, onClose }) {
         </div>
 
         {/* Chart */}
-        {!histData && <div style={{ textAlign:"center", color:"#555", padding:"40px 0" }}>Loading price history…</div>}
+        {!histData && <div style={{ textAlign:"center", color:"#555", padding:"40px 0" }}>Loading price historyâ¦</div>}
         {histData && series.length < 2 && <div style={{ textAlign:"center", color:"#555", padding:"40px 0" }}>Not enough history to compare</div>}
         {histData && series.length >= 2 && (
           <svg viewBox={"0 0 " + W + " " + H} style={{ width:"100%", height:H, display:"block" }}>
@@ -630,7 +630,7 @@ function DetailPanel({ item, onGraph, user, tier, compareItems, setCompareItems,
   var canExport = tier === "VIP+" || tier === "VIP";
   if (!item) return (
     <div style={{ display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:12,color:"#555" }}>
-      <span style={{ fontSize: 40 }}>◈</span>
+      <span style={{ fontSize: 40 }}>â</span>
       <span style={{ fontSize: 14 }}>Select an item to view details</span>
     </div>
   );
@@ -641,7 +641,7 @@ function DetailPanel({ item, onGraph, user, tier, compareItems, setCompareItems,
       <div style={{ marginBottom: 20 }}>
         <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:6 }}>
           <div style={{ width:8,height:8,borderRadius:"50%",background:rc }} />
-          <span style={{ fontSize:11,color:rc,letterSpacing:"0.1em",textTransform:"uppercase" }}>{item.rarity} · {item.type}</span>
+          <span style={{ fontSize:11,color:rc,letterSpacing:"0.1em",textTransform:"uppercase" }}>{item.rarity} Â· {item.type}</span>
         </div>
         {img && <div style={{ textAlign:"center",marginBottom:12,background:"rgba(0,0,0,0.3)",borderRadius:10,padding:12 }}><img src={img} alt={item.name} style={{ maxWidth:"100%",height:80,objectFit:"contain" }} /></div>}
         <h2 style={{ fontSize:20,fontWeight:700,color:"#fff",margin:"0 0 4px",lineHeight:1.2 }}>{item.name}</h2>
@@ -660,14 +660,14 @@ function DetailPanel({ item, onGraph, user, tier, compareItems, setCompareItems,
         <StatBar label="Spread" value={item.spread} max={25} color="#64b5f6" />
         <StatBar label="Volatility" value={item.vol} max={25} color="#ffb74d" />
       </div>
-      <button onClick={function(){onGraph(item)}} style={{ width:"100%",padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#aaa",fontSize:13,fontWeight:600,cursor:"pointer" }}>View Graph ↗</button>
+      <button onClick={function(){onGraph(item)}} style={{ width:"100%",padding:"10px 14px",borderRadius:8,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#aaa",fontSize:13,fontWeight:600,cursor:"pointer" }}>View Graph â</button>
 
-      {/* Compare button — VIP */}
+      {/* Compare button â VIP */}
       {(tier === "VIP" || tier === "VIP+") && compareItems && (
         <div style={{ marginTop:8, display:"flex", gap:6 }}>
           {compareItems.find(function(c){ return c.name === item.name; }) ? (
             <button onClick={function(){ setCompareItems(compareItems.filter(function(c){ return c.name !== item.name; })); }} style={{ flex:1, padding:"8px 14px", borderRadius:8, background:"rgba(206,147,216,0.15)", border:"1px solid rgba(206,147,216,0.4)", color:"#ce93d8", fontSize:12, fontWeight:600, cursor:"pointer" }}>
-              ✓ Added to Compare
+              â Added to Compare
             </button>
           ) : (
             <button onClick={function(){
@@ -685,23 +685,23 @@ function DetailPanel({ item, onGraph, user, tier, compareItems, setCompareItems,
         </div>
       )}
 
-      {/* CSV Export — VIP+ */}
+      {/* CSV Export â VIP+ */}
       <div style={{ marginTop:10 }}>
         {canExport ? (
           <button onClick={exportCSV} style={{ width:"100%",padding:"9px 14px",borderRadius:8,background:"rgba(255,215,0,0.08)",border:"1px solid rgba(255,215,0,0.3)",color:"#ffd700",fontSize:12,fontWeight:600,cursor:"pointer" }}>
-            ⬇ Export Price History (.csv)
+            â¬ Export Price History (.csv)
           </button>
         ) : (
           <div style={{ padding:"9px 14px",borderRadius:8,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",textAlign:"center",fontSize:11,color:"#444" }}>
-            ⬇ Export CSV — <span style={{ color:"#ce93d8" }}>VIP+ feature</span>
+            â¬ Export CSV â <span style={{ color:"#ce93d8" }}>VIP+ feature</span>
           </div>
         )}
       </div>
 
-      {/* Price Alerts — Basic+ */}
+      {/* Price Alerts â Basic+ */}
       <div style={{ marginTop:14,padding:"14px",borderRadius:10,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)" }}>
         <div style={{ fontSize:12,fontWeight:700,color:"#aaa",marginBottom:10,display:"flex",alignItems:"center",gap:6 }}>
-          🔔 Price Alerts
+          ð Price Alerts
           {!canAlert && <span style={{ fontSize:10,color:"#4fc3f7",marginLeft:"auto" }}>Basic+ feature</span>}
         </div>
         {!canAlert ? (
@@ -717,9 +717,9 @@ function DetailPanel({ item, onGraph, user, tier, compareItems, setCompareItems,
                   return (
                     <div key={a.id} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:6,background:"rgba(255,255,255,0.03)",marginBottom:4 }}>
                       <span style={{ fontSize:11,color:"#aaa" }}>
-                        {a.direction === "above" ? "↑ Above" : "↓ Below"} {fmtPrice(a.targetPrice)} G
+                        {a.direction === "above" ? "â Above" : "â Below"} {fmtPrice(a.targetPrice)} G
                       </span>
-                      <button onClick={function(){deleteAlert(a.id)}} style={{ background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"0 4px" }}>✕</button>
+                      <button onClick={function(){deleteAlert(a.id)}} style={{ background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:13,padding:"0 4px" }}>â</button>
                     </div>
                   );
                 })}
@@ -728,8 +728,8 @@ function DetailPanel({ item, onGraph, user, tier, compareItems, setCompareItems,
             {/* New alert form */}
             <div style={{ display:"flex",gap:6 }}>
               <select value={alertDir} onChange={function(e){setAlertDir(e.target.value)}} style={{ padding:"6px 8px",borderRadius:6,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#ccc",fontSize:11,flex:"0 0 auto" }}>
-                <option value="above">↑ Above</option>
-                <option value="below">↓ Below</option>
+                <option value="above">â Above</option>
+                <option value="below">â Below</option>
               </select>
               <input
                 type="number"
@@ -740,10 +740,10 @@ function DetailPanel({ item, onGraph, user, tier, compareItems, setCompareItems,
                 style={{ flex:1,padding:"6px 10px",borderRadius:6,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"#fff",fontSize:11,minWidth:0 }}
               />
               <button onClick={saveAlert} style={{ padding:"6px 12px",borderRadius:6,background:"rgba(79,195,247,0.15)",border:"1px solid rgba(79,195,247,0.4)",color:"#4fc3f7",fontSize:11,fontWeight:600,cursor:"pointer" }}>
-                {alertSaved ? "✓" : "Set"}
+                {alertSaved ? "â" : "Set"}
               </button>
             </div>
-            <div style={{ fontSize:10,color:"#444",marginTop:6 }}>Alert stored — you'll see it here when triggered. Email alerts coming soon.</div>
+            <div style={{ fontSize:10,color:"#444",marginTop:6 }}>Alert stored â you'll see it here when triggered. Email alerts coming soon.</div>
           </div>
         )}
       </div>
@@ -780,7 +780,7 @@ function sendMessage(itemName, text, displayName, tier) {
 }
 
 var TIER_COLORS = { "Free": "#888", "Basic": "#4fc3f7", "VIP": "#ce93d8", "VIP+": "#ffd700" };
-var TIER_BADGES = { "Free": "", "Basic": "", "VIP": "⬡ ", "VIP+": "★ " };
+var TIER_BADGES = { "Free": "", "Basic": "", "VIP": "â¬¡ ", "VIP+": "â " };
 
 function ItemChat({ item, tier, user }) {
   const [msgs, setMsgs] = useState([]);
@@ -840,9 +840,9 @@ function ItemChat({ item, tier, user }) {
 
   return (
     <div style={{ marginTop:16 }}>
-      <div style={{ fontSize:12,color:"#666",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:8 }}>💬 Item Chat <span style={{ fontSize:10,color:"#4caf50",textTransform:"none" }}>● LIVE</span> <span style={{ fontSize:10,color:"#444",textTransform:"none" }}>(resets every 24h)</span></div>
+      <div style={{ fontSize:12,color:"#666",letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:8 }}>ð¬ Item Chat <span style={{ fontSize:10,color:"#4caf50",textTransform:"none" }}>â LIVE</span> <span style={{ fontSize:10,color:"#444",textTransform:"none" }}>(resets every 24h)</span></div>
       <div style={{ background:"rgba(0,0,0,0.3)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,padding:10,maxHeight:200,overflowY:"auto",marginBottom:8 }}>
-        {msgs.length === 0 && <div style={{ fontSize:11,color:"#444",textAlign:"center",padding:"12px 0" }}>No messages yet — be the first!</div>}
+        {msgs.length === 0 && <div style={{ fontSize:11,color:"#444",textAlign:"center",padding:"12px 0" }}>No messages yet â be the first!</div>}
         {msgs.map(function(m) {
           var nameColor = TIER_COLORS[m.tier] || "#888";
           var badge = TIER_BADGES[m.tier] || "";
@@ -861,9 +861,9 @@ function ItemChat({ item, tier, user }) {
         <button onClick={handleSend} disabled={!input.trim()||cooldown>0}
           style={{ padding:"8px 12px",borderRadius:6,background:!input.trim()||cooldown>0?"rgba(255,255,255,0.03)":"#ff6b35",border:"none",color:!input.trim()||cooldown>0?"#555":"#fff",fontSize:12,fontWeight:600,cursor:!input.trim()||cooldown>0?"not-allowed":"pointer" }}>Send</button>
       </div>
-      {tier==="Free" && <div style={{ fontSize:10,color:"#444",marginTop:4 }}>Free tier: 1 message per hour · {msgs.length} message{msgs.length!==1?"s":""}</div>}
-      {tier==="Basic" && <div style={{ fontSize:10,color:"#444",marginTop:4 }}>Basic tier: 5 min cooldown · {msgs.length} message{msgs.length!==1?"s":""}</div>}
-      {(tier==="VIP"||tier==="VIP+") && <div style={{ fontSize:10,color:"#444",marginTop:4 }}>{tier} tier: 30 sec cooldown · {msgs.length} message{msgs.length!==1?"s":""}</div>}
+      {tier==="Free" && <div style={{ fontSize:10,color:"#444",marginTop:4 }}>Free tier: 1 message per hour Â· {msgs.length} message{msgs.length!==1?"s":""}</div>}
+      {tier==="Basic" && <div style={{ fontSize:10,color:"#444",marginTop:4 }}>Basic tier: 5 min cooldown Â· {msgs.length} message{msgs.length!==1?"s":""}</div>}
+      {(tier==="VIP"||tier==="VIP+") && <div style={{ fontSize:10,color:"#444",marginTop:4 }}>{tier} tier: 30 sec cooldown Â· {msgs.length} message{msgs.length!==1?"s":""}</div>}
     </div>
   );
 }
@@ -910,7 +910,7 @@ function FeedbackModal({ onClose }) {
   if (submitted) return (
     <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300 }}>
       <div onClick={function(e){e.stopPropagation()}} style={{ background:"#16161a",border:"1px solid rgba(255,255,255,0.1)",borderRadius:16,padding:32,width:420,maxWidth:"95vw",textAlign:"center" }}>
-        <div style={{ fontSize:48,marginBottom:16 }}>✓</div>
+        <div style={{ fontSize:48,marginBottom:16 }}>â</div>
         <h3 style={{ margin:"0 0 8px",fontSize:18,fontWeight:700,color:"#fff" }}>Thanks for your feedback!</h3>
         <p style={{ margin:"0 0 20px",fontSize:13,color:"#888" }}>We'll review your {type === "bug" ? "bug report" : "feature request"} and get back to you.</p>
         <button onClick={onClose} style={{ padding:"10px 24px",borderRadius:8,background:"#ff6b35",border:"none",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer" }}>Close</button>
@@ -923,13 +923,13 @@ function FeedbackModal({ onClose }) {
       <div onClick={function(e){e.stopPropagation()}} className="s2-feedback-modal" style={{ background:"#16161a",border:"1px solid rgba(255,255,255,0.1)",borderRadius:16,padding:28,width:480,maxWidth:"95vw" }}>
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20 }}>
           <h3 style={{ margin:0,fontSize:18,fontWeight:700,color:"#fff" }}>Feedback</h3>
-          <button onClick={onClose} style={{ background:"none",border:"none",color:"#666",fontSize:20,cursor:"pointer" }}>✕</button>
+          <button onClick={onClose} style={{ background:"none",border:"none",color:"#666",fontSize:20,cursor:"pointer" }}>â</button>
         </div>
 
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:12,color:"#888",marginBottom:8,letterSpacing:"0.05em",textTransform:"uppercase" }}>Type</div>
           <div style={{ display:"flex",gap:8 }}>
-            {[{v:"bug",label:"🐛 Bug Report"},{v:"feature",label:"💡 Feature Request"}].map(function(t){return(
+            {[{v:"bug",label:"ð Bug Report"},{v:"feature",label:"ð¡ Feature Request"}].map(function(t){return(
               <button key={t.v} onClick={function(){setType(t.v)}} style={{ flex:1,padding:"10px 14px",borderRadius:8,background:type===t.v?"rgba(255,107,53,0.15)":"rgba(255,255,255,0.04)",border:"1px solid "+(type===t.v?"rgba(255,107,53,0.5)":"rgba(255,255,255,0.08)"),color:type===t.v?"#ff6b35":"#888",fontSize:13,fontWeight:600,cursor:"pointer" }}>{t.label}</button>
             )})}
           </div>
@@ -981,7 +981,7 @@ function CryptoWallets() {
             <div style={{ fontSize:12,fontWeight:600,color:"#eee" }}>{w.name} {w.note?"("+w.note+")":""}</div>
             <div style={{ fontSize:10,color:"#555",fontFamily:"monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{w.addr}</div>
           </div>
-          <div style={{ fontSize:11,color:copied===w.name?"#4caf50":w.color,fontWeight:600,flexShrink:0 }}>{copied===w.name?"✓ Copied":"Copy"}</div>
+          <div style={{ fontSize:11,color:copied===w.name?"#4caf50":w.color,fontWeight:600,flexShrink:0 }}>{copied===w.name?"â Copied":"Copy"}</div>
         </div>
       )})}
     </div>
@@ -1002,7 +1002,7 @@ function KofiUIDCopy({ uid }) {
         {uid}
       </div>
       <button onClick={copy} style={{ padding:"8px 14px", borderRadius:8, background:copied?"rgba(76,175,80,0.2)":"rgba(255,94,91,0.15)", border:"1px solid "+(copied?"rgba(76,175,80,0.5)":"rgba(255,94,91,0.4)"), color:copied?"#4caf50":"#ff5e5b", fontSize:12, fontWeight:700, cursor:"pointer", flexShrink:0 }}>
-        {copied ? "✓ Copied" : "Copy"}
+        {copied ? "â Copied" : "Copy"}
       </button>
     </div>
   );
@@ -1011,9 +1011,9 @@ function KofiUIDCopy({ uid }) {
 function SupportModal({ onClose, currentTier, setTier, user, onSignUp }) {
   const tiers = [
     { name: "Free", price: "$0", period: "forever", color: "#888", bg: "rgba(128,128,128,0.1)", border: "rgba(128,128,128,0.3)", features: ["Browse all 2,354+ items", "Search & filter by collection", "Price change tracking", "View price graphs", "Best Investments tab", "Item chat (1 per hour)", "1 giveaway ticket per entry"], link: null },
-    { name: "Basic", price: "$1", period: "/month", color: "#4fc3f7", bg: "rgba(79,195,247,0.1)", border: "rgba(79,195,247,0.4)", features: ["Everything in Free", "💰 10 G daily OR 300 G monthly allowance", "🔔 Price alerts (set target prices)", "Priority data updates", "Item chat (5 min cooldown)", "10 giveaway tickets per entry"], link: "kofi" },
-    { name: "VIP", price: "$10", period: "/month", color: "#ce93d8", bg: "rgba(206,147,216,0.1)", border: "rgba(206,147,216,0.4)", features: ["Everything in Basic", "💰 67 G daily OR 2,000 G monthly allowance", "⬇ Export price history (CSV)", "Real-time price tracking", "Advanced analytics", "Item chat (30 sec cooldown)", "25 giveaway tickets per entry"], popular: true, link: "kofi" },
-    { name: "VIP+", price: "$25", period: "/month", color: "#ffd700", bg: "rgba(255,215,0,0.1)", border: "rgba(255,215,0,0.4)", features: ["Everything in VIP", "💰 200 G daily OR 6,000 G monthly allowance", "API access", "Market trend predictions", "Item chat (30 sec cooldown)", "100 giveaway tickets per entry", "Early feature access"], link: "kofi" },
+    { name: "Basic", price: "$1", period: "/month", color: "#4fc3f7", bg: "rgba(79,195,247,0.1)", border: "rgba(79,195,247,0.4)", features: ["Everything in Free", "ð° 10 G daily OR 300 G monthly allowance", "ð Price alerts (set target prices)", "Priority data updates", "Item chat (5 min cooldown)", "10 giveaway tickets per entry"], link: "kofi" },
+    { name: "VIP", price: "$10", period: "/month", color: "#ce93d8", bg: "rgba(206,147,216,0.1)", border: "rgba(206,147,216,0.4)", features: ["Everything in Basic", "ð° 67 G daily OR 2,000 G monthly allowance", "â¬ Export price history (CSV)", "Real-time price tracking", "Advanced analytics", "Item chat (30 sec cooldown)", "25 giveaway tickets per entry"], popular: true, link: "kofi" },
+    { name: "VIP+", price: "$25", period: "/month", color: "#ffd700", bg: "rgba(255,215,0,0.1)", border: "rgba(255,215,0,0.4)", features: ["Everything in VIP", "ð° 200 G daily OR 6,000 G monthly allowance", "API access", "Market trend predictions", "Item chat (30 sec cooldown)", "100 giveaway tickets per entry", "Early feature access"], link: "kofi" },
   ];
   return (
     <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300 }}>
@@ -1037,9 +1037,9 @@ function SupportModal({ onClose, currentTier, setTier, user, onSignUp }) {
               <div style={{ flex:1,marginBottom:16 }}>
                 {t.features.map(function(f){return(
                   <div key={f} style={{ display:"flex",alignItems:"center",gap:8,marginBottom:8 }}>
-                    <span style={{ color:t.color,fontSize:12 }}>✓</span>
-                    {f.startsWith("💰") ? (
-                      <span style={{ fontSize:12,color:"#ffd700",fontWeight:700,borderBottom:"2px solid #ff4444",paddingBottom:"1px" }}>{f}</span>
+                    <span style={{ color:t.color,fontSize:12 }}>â</span>
+                    {f.startsWith("ð°") ? (
+                      <span style={{ fontSize:12,color:"#ffd700",fontWeight:700,display:"inline-flex",alignItems:"center",gap:5 }}><span style={{ width:7,height:7,background:"#ff2244",borderRadius:"50%",display:"inline-block",flexShrink:0,animation:"pulse-dot 1.8s ease-in-out infinite" }} />{f}</span>
                     ) : (
                       <span style={{ fontSize:12,color:"#aaa" }}>{f}</span>
                     )}
@@ -1050,88 +1050,88 @@ function SupportModal({ onClose, currentTier, setTier, user, onSignUp }) {
                 if (!user && t.link) { onSignUp(); return; }
                 if (t.link === "kofi") { window.open("https://ko-fi.com/standoff263277", "_blank"); }
               }} style={{ width:"100%",padding:"10px 14px",borderRadius:8,background:currentTier===t.name?"rgba(255,255,255,0.05)":t.link?t.color+"22":"rgba(255,255,255,0.03)",border:"1px solid "+(currentTier===t.name?"rgba(255,255,255,0.1)":t.link?t.color+"66":"rgba(255,255,255,0.08)"),color:currentTier===t.name?"#666":t.link?t.color:"#555",fontSize:13,fontWeight:600,cursor:currentTier===t.name||!t.link?"default":"pointer" }}>
-                {currentTier===t.name ? "Current Plan" : !user&&t.link ? "Sign in to Subscribe" : t.link ? "Subscribe on Ko-fi →" : "Current Plan"}
+                {currentTier===t.name ? "Current Plan" : !user&&t.link ? "Sign in to Subscribe" : t.link ? "Subscribe on Ko-fi â" : "Current Plan"}
               </button>
             </div>
           )})}
         </div>
         <div style={{ textAlign:"center", marginTop:24, marginBottom:16, padding:"20px", background:"rgba(255,94,91,0.06)", border:"1px solid rgba(255,94,91,0.2)", borderRadius:14 }}>
-          <div style={{ fontSize:22, marginBottom:8 }}>☕</div>
+          <div style={{ fontSize:22, marginBottom:8 }}>â</div>
           <div style={{ fontSize:15, fontWeight:700, color:"#fff", marginBottom:6 }}>Pay via Ko-fi</div>
           <p style={{ margin:"0 0 14px", fontSize:12, color:"#888", lineHeight:1.6 }}>
-            Your tier activates <strong style={{ color:"#4caf50" }}>automatically</strong> — just include your UID in the Ko-fi message when you pay.
+            Your tier activates <strong style={{ color:"#4caf50" }}>automatically</strong> â just include your UID in the Ko-fi message when you pay.
           </p>
 
           {/* UID copy box */}
           {user ? (
             <div style={{ marginBottom:16 }}>
-              <div style={{ fontSize:11, color:"#888", marginBottom:6 }}>📋 Copy your UID and paste it into the Ko-fi message</div>
+              <div style={{ fontSize:11, color:"#888", marginBottom:6 }}>ð Copy your UID and paste it into the Ko-fi message</div>
               <KofiUIDCopy uid={user.uid} />
             </div>
           ) : (
             <div style={{ marginBottom:16, padding:"10px", background:"rgba(79,195,247,0.08)", borderRadius:8, fontSize:12, color:"#4fc3f7" }}>
-              ⚠ Sign in first so we know which account to activate
+              â  Sign in first so we know which account to activate
             </div>
           )}
 
           <a href="https://ko-fi.com/standoff263277" target="_blank" rel="noopener noreferrer"
             style={{ display:"inline-block", padding:"10px 28px", borderRadius:24, background:"#ff5e5b", color:"#fff", fontWeight:700, fontSize:14, textDecoration:"none", letterSpacing:"0.02em" }}>
-            ☕ Subscribe on Ko-fi →
+            â Subscribe on Ko-fi â
           </a>
           <div style={{ fontSize:10, color:"#555", marginTop:10, lineHeight:1.6 }}>
-            Tier activates within seconds of payment · Renews monthly on Ko-fi
+            Tier activates within seconds of payment Â· Renews monthly on Ko-fi
           </div>
         </div>
 
         {/* CashApp payment option */}
         <div style={{ textAlign:"center", marginTop:16, marginBottom:16, padding:"20px", background:"rgba(0,209,114,0.06)", border:"1px solid rgba(0,209,114,0.2)", borderRadius:14 }}>
-          <div style={{ fontSize:22, marginBottom:8 }}>💸</div>
+          <div style={{ fontSize:22, marginBottom:8 }}>ð¸</div>
           <div style={{ fontSize:15, fontWeight:700, color:"#fff", marginBottom:6 }}>Pay via CashApp</div>
           <p style={{ margin:"0 0 14px", fontSize:12, color:"#888", lineHeight:1.6 }}>
-            Send payment to <strong style={{ color:"#00d172" }}>$jamesmoney192</strong> and include your UID in the note — your tier activates <strong style={{ color:"#4caf50" }}>manually</strong> within 24 hours.
+            Send payment to <strong style={{ color:"#00d172" }}>$jamesmoney192</strong> and include your UID in the note â your tier activates <strong style={{ color:"#4caf50" }}>manually</strong> within 24 hours.
           </p>
           {user ? (
             <div style={{ marginBottom:16 }}>
-              <div style={{ fontSize:11, color:"#888", marginBottom:6 }}>📋 Copy your UID and paste it into the CashApp note</div>
+              <div style={{ fontSize:11, color:"#888", marginBottom:6 }}>ð Copy your UID and paste it into the CashApp note</div>
               <KofiUIDCopy uid={user.uid} />
             </div>
           ) : (
             <div style={{ marginBottom:16, padding:"10px", background:"rgba(0,209,114,0.08)", borderRadius:8, fontSize:12, color:"#00d172" }}>
-              ⚠ Sign in first so we know which account to activate
+              â  Sign in first so we know which account to activate
             </div>
           )}
           <a href="https://cash.app/$jamesmoney192" target="_blank" rel="noopener noreferrer"
             style={{ display:"inline-block", padding:"10px 28px", borderRadius:24, background:"#00d172", color:"#fff", fontWeight:700, fontSize:14, textDecoration:"none", letterSpacing:"0.02em" }}>
-            💸 Pay on CashApp →
+            ð¸ Pay on CashApp â
           </a>
           <div style={{ fontSize:10, color:"#555", marginTop:10, lineHeight:1.6 }}>
-            Manual activation · Allow up to 24h · Basic $1 · VIP $10 · VIP+ $25
+            Manual activation Â· Allow up to 24h Â· Basic $1 Â· VIP $10 Â· VIP+ $25
           </div>
         </div>
 
         {/* Venmo payment option */}
         <div style={{ textAlign:"center", marginTop:16, marginBottom:16, padding:"20px", background:"rgba(0,130,255,0.06)", border:"1px solid rgba(0,130,255,0.2)", borderRadius:14 }}>
-          <div style={{ fontSize:22, marginBottom:8 }}>🔵</div>
+          <div style={{ fontSize:22, marginBottom:8 }}>ðµ</div>
           <div style={{ fontSize:15, fontWeight:700, color:"#fff", marginBottom:6 }}>Pay via Venmo</div>
           <p style={{ margin:"0 0 14px", fontSize:12, color:"#888", lineHeight:1.6 }}>
-            Send payment to <strong style={{ color:"#008dff" }}>@Standoff2Tracker</strong> and include your UID in the note — your tier activates <strong style={{ color:"#4caf50" }}>manually</strong> within 24 hours.
+            Send payment to <strong style={{ color:"#008dff" }}>@Standoff2Tracker</strong> and include your UID in the note â your tier activates <strong style={{ color:"#4caf50" }}>manually</strong> within 24 hours.
           </p>
           {user ? (
             <div style={{ marginBottom:16 }}>
-              <div style={{ fontSize:11, color:"#888", marginBottom:6 }}>📋 Copy your UID and paste it into the Venmo note</div>
+              <div style={{ fontSize:11, color:"#888", marginBottom:6 }}>ð Copy your UID and paste it into the Venmo note</div>
               <KofiUIDCopy uid={user.uid} />
             </div>
           ) : (
             <div style={{ marginBottom:16, padding:"10px", background:"rgba(0,130,255,0.08)", borderRadius:8, fontSize:12, color:"#008dff" }}>
-              ⚠ Sign in first so we know which account to activate
+              â  Sign in first so we know which account to activate
             </div>
           )}
           <a href="https://venmo.com/u/Standoff2Tracker" target="_blank" rel="noopener noreferrer"
             style={{ display:"inline-block", padding:"10px 28px", borderRadius:24, background:"#008dff", color:"#fff", fontWeight:700, fontSize:14, textDecoration:"none", letterSpacing:"0.02em" }}>
-            🔵 Pay on Venmo →
+            ðµ Pay on Venmo â
           </a>
           <div style={{ fontSize:10, color:"#555", marginTop:10, lineHeight:1.6 }}>
-            Manual activation · Allow up to 24h · Basic $1 · VIP $10 · VIP+ $25
+            Manual activation Â· Allow up to 24h Â· Basic $1 Â· VIP $10 Â· VIP+ $25
           </div>
         </div>
         <div style={{ textAlign:"center",marginTop:12 }}>
@@ -1179,7 +1179,7 @@ function AuthLoggedIn({ user, onLogout }) {
   function savePlayerProfile() {
     var trimmed = ptUsername.trim();
     if (!trimmed) { setPtErr("Username is required"); return; }
-    if (!/^[a-zA-Z0-9_\-\.]{3,24}$/.test(trimmed)) { setPtErr("3–24 chars, letters/numbers/underscores only"); return; }
+    if (!/^[a-zA-Z0-9_\-\.]{3,24}$/.test(trimmed)) { setPtErr("3â24 chars, letters/numbers/underscores only"); return; }
 
     var usernameActuallyChanging = trimmed.toLowerCase() !== currentUsername.toLowerCase();
     if (usernameActuallyChanging && !canChange) {
@@ -1205,13 +1205,13 @@ function AuthLoggedIn({ user, onLogout }) {
       });
     }
 
-    // Fast path: username not changing — skip the uniqueness read, write immediately
+    // Fast path: username not changing â skip the uniqueness read, write immediately
     if (!usernameActuallyChanging) {
       writeProfile({});
       return;
     }
 
-    // Username is changing — use a transaction on the new username slot to atomically
+    // Username is changing â use a transaction on the new username slot to atomically
     // claim it only if it's unclaimed (avoids a separate read round trip)
     db.ref("playerUsernames/" + trimmed.toLowerCase()).transaction(function(current) {
       // Abort if already owned by someone else
@@ -1220,7 +1220,7 @@ function AuthLoggedIn({ user, onLogout }) {
     }, function(err, committed, snap) {
       if (err) { setPtErr("Save failed: " + err.message); setPtSaving(false); return; }
       if (!committed) { setPtErr("That username is already taken by another player."); setPtSaving(false); return; }
-      // Transaction succeeded — now release the old username and write profile in one batch
+      // Transaction succeeded â now release the old username and write profile in one batch
       var batch = {};
       if (currentUsername) batch["playerUsernames/" + currentUsername.toLowerCase()] = null;
       writeProfile(batch);
@@ -1233,15 +1233,15 @@ function AuthLoggedIn({ user, onLogout }) {
 
         {/* Account info card */}
         <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:24, textAlign:"center" }}>
-          <div style={{ fontSize:40, marginBottom:12 }}>👤</div>
+          <div style={{ fontSize:40, marginBottom:12 }}>ð¤</div>
           <h3 style={{ margin:"0 0 4px", fontSize:18, fontWeight:700, color:"#fff" }}>{user.displayName || "User"}</h3>
           <div style={{ fontSize:13, color:"#888", marginBottom:8 }}>{user.email}</div>
           <div onClick={function(){navigator.clipboard.writeText(user.uid)}} style={{ fontSize:11, color:"#555", marginBottom:12, cursor:"pointer", padding:"6px 10px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:6, fontFamily:"monospace", wordBreak:"break-all" }} title="Click to copy">UID: {user.uid}</div>
           {user.emailVerified ? (
-            <div style={{ fontSize:12, color:"#4caf50", marginBottom:16, padding:"6px 10px", background:"rgba(76,175,80,0.1)", borderRadius:6 }}>✓ Email verified</div>
+            <div style={{ fontSize:12, color:"#4caf50", marginBottom:16, padding:"6px 10px", background:"rgba(76,175,80,0.1)", borderRadius:6 }}>â Email verified</div>
           ) : (
             <div style={{ marginBottom:16 }}>
-              <div style={{ fontSize:12, color:"#ef5350", marginBottom:8, padding:"6px 10px", background:"rgba(239,83,80,0.1)", borderRadius:6 }}>✗ Email not verified</div>
+              <div style={{ fontSize:12, color:"#ef5350", marginBottom:8, padding:"6px 10px", background:"rgba(239,83,80,0.1)", borderRadius:6 }}>â Email not verified</div>
               <button onClick={function(){user.sendEmailVerification().then(function(){alert("Verification email sent!")})}} style={{ padding:"6px 14px", borderRadius:6, background:"rgba(255,107,53,0.15)", border:"1px solid rgba(255,107,53,0.3)", color:"#ff6b35", fontSize:11, fontWeight:600, cursor:"pointer" }}>Resend Verification Email</button>
             </div>
           )}
@@ -1252,7 +1252,7 @@ function AuthLoggedIn({ user, onLogout }) {
         <ProfilePicSection user={user} />
 
         <div style={{ background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:24 }}>
-          <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:4 }}>🎮 Player Tracker Profile</div>
+          <div style={{ fontSize:14, fontWeight:700, color:"#fff", marginBottom:4 }}>ð® Player Tracker Profile</div>
           <div style={{ fontSize:12, color:"#555", marginBottom:16 }}>Set a username so other players can search for and view your inventory in the Player Tracker tab.</div>
 
           <div style={{ marginBottom:14 }}>
@@ -1260,13 +1260,13 @@ function AuthLoggedIn({ user, onLogout }) {
             <input value={ptUsername} onChange={function(e){setPtUsername(e.target.value)}} placeholder="e.g. ProPlayer123"
               disabled={!canChange && !isUsernameUnchanged}
               style={{ width:"100%", padding:"10px 12px", background: (!canChange && !isUsernameUnchanged) ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, color: (!canChange && !isUsernameUnchanged) ? "#555" : "#eee", fontSize:13, outline:"none", boxSizing:"border-box" }} />
-            <div style={{ fontSize:10, color:"#444", marginTop:4 }}>3–24 chars · letters, numbers, underscores only · unique to you</div>
+            <div style={{ fontSize:10, color:"#444", marginTop:4 }}>3â24 chars Â· letters, numbers, underscores only Â· unique to you</div>
           </div>
 
           {/* Cooldown notice */}
           {!isFirstSet && !canChange && (
             <div style={{ marginBottom:14, padding:"8px 12px", borderRadius:8, background:"rgba(255,183,77,0.1)", border:"1px solid rgba(255,183,77,0.25)", color:"#ffb74d", fontSize:12 }}>
-              ⏳ You can change your username again in {formatCooldown(cooldownRemaining)}. You can still toggle public/private.
+              â³ You can change your username again in {formatCooldown(cooldownRemaining)}. You can still toggle public/private.
             </div>
           )}
 
@@ -1283,7 +1283,7 @@ function AuthLoggedIn({ user, onLogout }) {
           </div>
 
           {ptErr && <div style={{ marginBottom:10, padding:"8px 12px", borderRadius:8, background:"rgba(239,83,80,0.15)", color:"#ef5350", fontSize:12 }}>{ptErr}</div>}
-          {ptSaved && <div style={{ marginBottom:10, padding:"8px 12px", borderRadius:8, background:"rgba(76,175,80,0.15)", color:"#4caf50", fontSize:12 }}>✓ Saved! Others can find you as "{currentUsername}".</div>}
+          {ptSaved && <div style={{ marginBottom:10, padding:"8px 12px", borderRadius:8, background:"rgba(76,175,80,0.15)", color:"#4caf50", fontSize:12 }}>â Saved! Others can find you as "{currentUsername}".</div>}
 
           <button onClick={savePlayerProfile} disabled={ptSaving}
             style={{ padding:"10px 20px", borderRadius:8, background:ptSaving?"rgba(255,255,255,0.05)":"#ff6b35", border:"none", color:ptSaving?"#555":"#fff", fontSize:13, fontWeight:700, cursor:ptSaving?"not-allowed":"pointer" }}>
@@ -1296,17 +1296,17 @@ function AuthLoggedIn({ user, onLogout }) {
   );
 }
 
-// ─── Profile Picture System ────────────────────────────────────────────────────
-var AVATAR_PRESETS=["⚔️","🎯","🔫","💀","🛡️","🏆","💣","🎮","🐺","🦊","🐯","🦅","🐲","🦁","🐻","🦝","🌊","🔥","⚡","🌙"];
+// âââ Profile Picture System ââââââââââââââââââââââââââââââââââââââââââââââââââââ
+var AVATAR_PRESETS=["âï¸","ð¯","ð«","ð","ð¡ï¸","ð","ð£","ð®","ðº","ð¦","ð¯","ð¦","ð²","ð¦","ð»","ð¦","ð","ð¥","â¡","ð"];
 
 function ProfilePicSection({user}){
-  var [selectedAvatar,setSelectedAvatar]=React.useState("😎");
+  var [selectedAvatar,setSelectedAvatar]=React.useState("ð");
   var [saved,setSaved]=React.useState(false);
   React.useEffect(function(){if(!user)return;db.ref("users/"+user.uid+"/avatar").once("value",function(snap){if(snap.val())setSelectedAvatar(snap.val());});},[user&&user.uid]);
   function saveAvatar(){db.ref("users/"+user.uid+"/avatar").set(selectedAvatar).then(function(){setSaved(true);setTimeout(function(){setSaved(false);},2000);});}
   return(
     <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:24,marginBottom:16}}>
-      <div style={{fontSize:14,fontWeight:700,color:"#fff",marginBottom:4}}>🖼 Profile Picture</div>
+      <div style={{fontSize:14,fontWeight:700,color:"#fff",marginBottom:4}}>ð¼ Profile Picture</div>
       <div style={{fontSize:12,color:"#666",marginBottom:18}}>Pick an avatar.</div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:20}}>
         <div style={{width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36}}>{selectedAvatar}</div>
@@ -1315,7 +1315,7 @@ function ProfilePicSection({user}){
       <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8,marginBottom:16}}>
         {AVATAR_PRESETS.map(function(emoji){var sel=emoji===selectedAvatar;return(<div key={emoji} onClick={function(){setSelectedAvatar(emoji);}} style={{aspectRatio:"1",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,border:"2px solid "+(sel?"#4caf50":"rgba(255,255,255,0.08)"),background:sel?"rgba(76,175,80,0.12)":"rgba(255,255,255,0.04)",cursor:"pointer"}}>{emoji}</div>);})}
       </div>
-      <button onClick={saveAvatar} style={{width:"100%",padding:12,borderRadius:10,background:saved?"rgba(76,175,80,0.25)":"rgba(76,175,80,0.15)",border:"1px solid rgba(76,175,80,0.4)",color:saved?"#81c784":"#4caf50",fontSize:13,fontWeight:700,cursor:"pointer"}}>{saved?"✓ Saved!":"Save Profile Picture"}</button>
+      <button onClick={saveAvatar} style={{width:"100%",padding:12,borderRadius:10,background:saved?"rgba(76,175,80,0.25)":"rgba(76,175,80,0.15)",border:"1px solid rgba(76,175,80,0.4)",color:saved?"#81c784":"#4caf50",fontSize:13,fontWeight:700,cursor:"pointer"}}>{saved?"â Saved!":"Save Profile Picture"}</button>
     </div>
   );
 }
@@ -1360,7 +1360,7 @@ function AuthPanel({ user, onClose }) {
         if (!cred.user.emailVerified) {
           cred.user.sendEmailVerification();
           firebase.auth().signOut();
-          setError("Email not verified yet. We sent a new verification link â check your inbox and spam folder.");
+          setError("Email not verified yet. We sent a new verification link Ã¢ÂÂ check your inbox and spam folder.");
           return;
         }
         setSuccess("Signed in!");
@@ -1406,7 +1406,7 @@ function AuthPanel({ user, onClose }) {
 
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:11,color:"#888",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em" }}>Password</div>
-          <input type="password" value={password} onChange={function(e){setPassword(e.target.value)}} placeholder="â¢â¢â¢â¢â¢â¢â¢â¢"
+          <input type="password" value={password} onChange={function(e){setPassword(e.target.value)}} placeholder="Ã¢ÂÂ¢Ã¢ÂÂ¢Ã¢ÂÂ¢Ã¢ÂÂ¢Ã¢ÂÂ¢Ã¢ÂÂ¢Ã¢ÂÂ¢Ã¢ÂÂ¢"
             style={{ width:"100%",padding:"10px 12px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#eee",fontSize:13,outline:"none" }} />
         </div>
 
@@ -1429,7 +1429,7 @@ var GIVEAWAY_ITEMS = [
 ];
 
 // Giveaway items are pinned by name so price updates never change what's being given away.
-// To change a giveaway item, update the name here â it no longer depends on live prices.
+// To change a giveaway item, update the name here Ã¢ÂÂ it no longer depends on live prices.
 var GIVEAWAY_PINNED = {
   weekly: "Sticker \"Province\"",
   biweekly: "AKR \"Scylla\" StatTrack",
@@ -1560,10 +1560,10 @@ function GiveawaysTab({ user, tier }) {
     <div style={{ padding:"28px" }}>
       <h2 style={{ margin:"0 0 6px",fontSize:22,fontWeight:800,color:"#fff" }}>Giveaways</h2>
       <p style={{ margin:"0 0 8px",fontSize:13,color:"#666" }}>Enter for a chance to win in-game items. Higher tiers get more tickets!</p>
-      <p style={{ margin:"0 0 14px",fontSize:11,color:"#ff6b35",background:"rgba(255,107,53,0.08)",padding:"8px 12px",borderRadius:8,border:"1px solid rgba(255,107,53,0.15)" }}>ð If you win you will receive an email with details on how to receive your prize in game</p>
+      <p style={{ margin:"0 0 14px",fontSize:11,color:"#ff6b35",background:"rgba(255,107,53,0.08)",padding:"8px 12px",borderRadius:8,border:"1px solid rgba(255,107,53,0.15)" }}>Ã°ÂÂÂ If you win you will receive an email with details on how to receive your prize in game</p>
       <div style={{ marginBottom:24,display:"flex",gap:12,flexWrap:"wrap" }}>
         {[{t:"Free",v:1,c:"#888"},{t:"Basic",v:10,c:"#ef5350"},{t:"VIP",v:25,c:"#6690ff"},{t:"VIP+",v:100,c:"#ffd700"}].map(function(x){return(
-          <span key={x.t} style={{ fontSize:11,padding:"4px 10px",borderRadius:20,background:tier===x.t?x.c+"33":x.c+"11",border:"1px solid "+(tier===x.t?x.c:x.c+"44"),color:x.c,fontWeight:tier===x.t?700:400 }}>{x.t}: {x.v} ticket{x.v!==1?"s":""}{tier===x.t?" â":""}</span>
+          <span key={x.t} style={{ fontSize:11,padding:"4px 10px",borderRadius:20,background:tier===x.t?x.c+"33":x.c+"11",border:"1px solid "+(tier===x.t?x.c:x.c+"44"),color:x.c,fontWeight:tier===x.t?700:400 }}>{x.t}: {x.v} ticket{x.v!==1?"s":""}{tier===x.t?" Ã¢ÂÂ":""}</span>
         )})}
       </div>
 
@@ -1601,7 +1601,7 @@ function GiveawaysTab({ user, tier }) {
               {!user ? (
                 <div style={{ textAlign:"center",fontSize:12,color:"#666",padding:"8px",background:"rgba(255,255,255,0.02)",borderRadius:8,border:"1px solid rgba(255,255,255,0.06)" }}>Sign in to enter</div>
               ) : hasEntered ? (
-                <div style={{ textAlign:"center",fontSize:12,color:"#4caf50",padding:"10px",background:"rgba(76,175,80,0.1)",borderRadius:8,border:"1px solid rgba(76,175,80,0.2)",fontWeight:600 }}>â Entered ({tickets} ticket{tickets!==1?"s":""})</div>
+                <div style={{ textAlign:"center",fontSize:12,color:"#4caf50",padding:"10px",background:"rgba(76,175,80,0.1)",borderRadius:8,border:"1px solid rgba(76,175,80,0.2)",fontWeight:600 }}>Ã¢ÂÂ Entered ({tickets} ticket{tickets!==1?"s":""})</div>
               ) : (
                 <button onClick={function(){handleEnter(g.type)}} style={{ width:"100%",padding:"10px",borderRadius:8,background:g.color+"22",border:"1px solid "+g.color+"66",color:g.color,fontSize:13,fontWeight:700,cursor:"pointer" }}>Enter ({tickets} ticket{tickets!==1?"s":""})</button>
               )}
@@ -1656,16 +1656,16 @@ function PriceHistoryAdmin() {
 
   return (
     <div>
-      <h3 style={{ margin:"0 0 12px",fontSize:16,fontWeight:700,color:"#fff" }}>ð Price History</h3>
+      <h3 style={{ margin:"0 0 12px",fontSize:16,fontWeight:700,color:"#fff" }}>Ã°ÂÂÂ Price History</h3>
       <p style={{ margin:"0 0 16px",fontSize:12,color:"#666" }}>Save a daily price snapshot to Firebase. The graph will use real data for saved dates.</p>
       <button onClick={handleSave} disabled={saving} style={{ padding:"10px 20px",borderRadius:8,background:saving?"rgba(255,255,255,0.05)":"linear-gradient(135deg,#ff6b35,#f7931e)",border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:saving?"wait":"pointer",marginBottom:16 }}>
-        {saving ? "Saving..." : "ð¾ Save Today's Prices"}
+        {saving ? "Saving..." : "Ã°ÂÂÂ¾ Save Today's Prices"}
       </button>
       {saved && <div style={{ padding:10,background:"rgba(76,175,80,0.1)",border:"1px solid rgba(76,175,80,0.3)",borderRadius:8,color:"#4caf50",fontSize:12,marginBottom:16 }}>{saved}</div>}
       <div style={{ fontSize:13,fontWeight:600,color:"#aaa",marginBottom:8 }}>Saved Snapshots ({snapshots.length})</div>
       {snapshots.length === 0 && <div style={{ color:"#555",fontSize:12 }}>No snapshots yet. Save your first one!</div>}
       {snapshots.map(function(date) {
-        return <div key={date} style={{ padding:"6px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:6,marginBottom:4,fontSize:12,color:"#888" }}>ð {date}</div>;
+        return <div key={date} style={{ padding:"6px 12px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:6,marginBottom:4,fontSize:12,color:"#888" }}>Ã°ÂÂÂ {date}</div>;
       })}
     </div>
   );
@@ -1685,7 +1685,7 @@ function GiveawayWinnersAdmin() {
   return (
     <div>
       <div style={{ fontSize:12,color:"#555",marginBottom:16 }}>{history.length} winner{history.length!==1?"s":""} recorded</div>
-      {history.length===0 && <div style={{ color:"#555",fontSize:13,textAlign:"center",padding:20 }}>No winners yet â they will appear here automatically</div>}
+      {history.length===0 && <div style={{ color:"#555",fontSize:13,textAlign:"center",padding:20 }}>No winners yet Ã¢ÂÂ they will appear here automatically</div>}
       {history.map(function(w) {
         var c = typeColors[w.type] || "#888";
         return (
@@ -1693,7 +1693,7 @@ function GiveawayWinnersAdmin() {
             <div style={{ display:"flex",alignItems:"center",gap:12 }}>
               <span style={{ fontSize:11,padding:"3px 8px",borderRadius:20,background:c+"22",color:c,fontWeight:700,textTransform:"capitalize",border:"1px solid "+c+"44" }}>{w.type}</span>
               <div>
-                <div style={{ fontSize:13,fontWeight:700,color:"#fff" }}>ð {w.winner}</div>
+                <div style={{ fontSize:13,fontWeight:700,color:"#fff" }}>Ã°ÂÂÂ {w.winner}</div>
                 <div style={{ fontSize:11,color:"#555",marginTop:2 }}>Prize: {w.item}</div>
               </div>
             </div>
@@ -1757,14 +1757,14 @@ function AdminPanel({ user }) {
 
   if (!user) return (
     <div style={{ padding:28,textAlign:"center" }}>
-      <div style={{ fontSize:40,marginBottom:12 }}>🔒</div>
+      <div style={{ fontSize:40,marginBottom:12 }}>ð</div>
       <div style={{ fontSize:14,color:"#888" }}>Sign in to access admin panel</div>
     </div>
   );
 
   if (!authed) return (
     <div style={{ padding:28,textAlign:"center" }}>
-      <div style={{ fontSize:40,marginBottom:12 }}>⛔</div>
+      <div style={{ fontSize:40,marginBottom:12 }}>â</div>
       <div style={{ fontSize:14,color:"#ef5350" }}>Access denied</div>
       <div style={{ fontSize:12,color:"#555",marginTop:8 }}>Your account is not an admin</div>
     </div>
@@ -1869,10 +1869,10 @@ function ClaimsAdminTab() {
               <div key={f.id} style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"14px 16px",marginBottom:10 }}>
                 <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
                   <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                    <span style={{ fontSize:11,padding:"3px 8px",borderRadius:20,background:isB?"rgba(239,83,80,0.15)":"rgba(100,181,246,0.15)",color:isB?"#ef5350":"#64b5f6",fontWeight:600 }}>{isB?"🐛 Bug":"💡 Feature"}</span>
+                    <span style={{ fontSize:11,padding:"3px 8px",borderRadius:20,background:isB?"rgba(239,83,80,0.15)":"rgba(100,181,246,0.15)",color:isB?"#ef5350":"#64b5f6",fontWeight:600 }}>{isB?"ð Bug":"ð¡ Feature"}</span>
                     <span style={{ fontSize:11,color:"#555" }}>{fmtDate(f.ts)}</span>
                   </div>
-                  <button onClick={function(){deleteFb(f.id)}} style={{ background:"none",border:"none",color:"#555",fontSize:14,cursor:"pointer" }} title="Delete">✕</button>
+                  <button onClick={function(){deleteFb(f.id)}} style={{ background:"none",border:"none",color:"#555",fontSize:14,cursor:"pointer" }} title="Delete">â</button>
                 </div>
                 {f.email && f.email!=="Not provided" && <div style={{ fontSize:11,color:"#888",marginBottom:6 }}>From: {f.email}</div>}
                 <div style={{ fontSize:13,color:"#ccc",lineHeight:1.6,whiteSpace:"pre-wrap" }}>{f.message}</div>
@@ -1886,7 +1886,7 @@ function ClaimsAdminTab() {
     return (
       <div>
         <div style={{ display:"flex",gap:8,marginBottom:20 }}>
-          {[{id:"users",label:"👥 Users"},{id:"claims",label:"💰 Claims"},{id:"winners",label:"🏆 Winners"},{id:"feedback",label:"📩 Feedback"},{id:"settings",label:"⚙ Site Settings"},{id:"announce",label:"📢 Announcements"},{id:"prices",label:"📊 Prices"},{id:"danger",label:"🔴 Danger Zone"}].map(function(t){return(
+          {[{id:"users",label:"ð¥ Users"},{id:"claims",label:"ð° Claims"},{id:"winners",label:"ð Winners"},{id:"feedback",label:"ð© Feedback"},{id:"settings",label:"â Site Settings"},{id:"announce",label:"ð¢ Announcements"},{id:"prices",label:"ð Prices"},{id:"danger",label:"ð´ Danger Zone"}].map(function(t){return(
             <button key={t.id} onClick={function(){setAdminTab(t.id)}} style={{ padding:"8px 14px",borderRadius:8,background:adminTab===t.id?"rgba(255,107,53,0.15)":"rgba(255,255,255,0.04)",border:"1px solid "+(adminTab===t.id?"rgba(255,107,53,0.5)":"rgba(255,255,255,0.08)"),color:adminTab===t.id?"#ff6b35":"#888",fontSize:12,fontWeight:600,cursor:"pointer" }}>{t.label}</button>
           )})}
         </div>
@@ -1953,7 +1953,7 @@ function ClaimsAdminTab() {
               </div>
             </div>
             <button onClick={saveConfig} style={{ padding:"10px 24px",borderRadius:8,background:"#ff6b35",border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>
-              {saved ? "✓ Saved!" : "Save Settings"}
+              {saved ? "â Saved!" : "Save Settings"}
             </button>
           </div>
         )}
@@ -1963,7 +1963,7 @@ function ClaimsAdminTab() {
             <div style={{ marginBottom:20 }}>
               <div style={{ fontSize:12,color:"#888",marginBottom:6,textTransform:"uppercase",letterSpacing:"0.05em" }}>Announcement</div>
               <p style={{ margin:"0 0 8px",fontSize:11,color:"#555" }}>Shows as a banner at the top of the site for all users. Leave empty to hide.</p>
-              <textarea value={config.announcement} onChange={function(e){updateConfig("announcement",e.target.value)}} placeholder="e.g. 🎉 New items added! Check the market for the latest drops."
+              <textarea value={config.announcement} onChange={function(e){updateConfig("announcement",e.target.value)}} placeholder="e.g. ð New items added! Check the market for the latest drops."
                 style={{ width:"100%",height:80,padding:"10px 12px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#eee",fontSize:13,outline:"none",resize:"vertical",fontFamily:"inherit" }} />
             </div>
             <div style={{ marginBottom:20 }}>
@@ -1975,7 +1975,7 @@ function ClaimsAdminTab() {
               </div>
             </div>
             <button onClick={saveConfig} style={{ padding:"10px 24px",borderRadius:8,background:"#ff6b35",border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer" }}>
-              {saved ? "✓ Saved!" : "Publish Announcement"}
+              {saved ? "â Saved!" : "Publish Announcement"}
             </button>
             {config.announcement && (
               <div style={{ marginTop:16,padding:"10px 16px",background:(config.announcementColor||"#ffb74d")+"11",border:"1px solid "+(config.announcementColor||"#ffb74d")+"33",borderRadius:8 }}>
@@ -1998,17 +1998,17 @@ function ClaimsAdminTab() {
         {adminTab === "danger" && (
           <div style={{ maxWidth:500 }}>
             <div style={{ padding:16,background:"rgba(239,83,80,0.08)",border:"1px solid rgba(239,83,80,0.2)",borderRadius:12,marginBottom:16 }}>
-              <div style={{ fontSize:14,fontWeight:700,color:"#ef5350",marginBottom:8 }}>⚠ These actions cannot be undone</div>
+              <div style={{ fontSize:14,fontWeight:700,color:"#ef5350",marginBottom:8 }}>â  These actions cannot be undone</div>
             </div>
             <div style={{ display:"flex",flexDirection:"column",gap:12 }}>
               <button onClick={function(){if(window.confirm("Clear ALL chat messages from every item?")){db.ref("chats").remove();setMsg({type:"ok",text:"All chats cleared"})}}} style={{ padding:"10px 14px",borderRadius:8,background:"rgba(239,83,80,0.1)",border:"1px solid rgba(239,83,80,0.3)",color:"#ef5350",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left" }}>
-                🗑 Clear All Chats — Remove every message from all item chats
+                ð Clear All Chats â Remove every message from all item chats
               </button>
               <button onClick={function(){if(window.confirm("Reset ALL giveaway entries? Winners will be cleared too.")){db.ref("giveaways").remove();setMsg({type:"ok",text:"All giveaways reset"})}}} style={{ padding:"10px 14px",borderRadius:8,background:"rgba(239,83,80,0.1)",border:"1px solid rgba(239,83,80,0.3)",color:"#ef5350",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left" }}>
-                🎁 Reset All Giveaways — Clear all entries and winners
+                ð Reset All Giveaways â Clear all entries and winners
               </button>
               <button onClick={function(){if(window.confirm("Reset ALL users to Free tier? This cannot be undone.")){users.forEach(function(u){db.ref("users/"+u.uid+"/tier").set("Free")});setMsg({type:"ok",text:"All users reset to Free"});loadUsers()}}} style={{ padding:"10px 14px",borderRadius:8,background:"rgba(239,83,80,0.1)",border:"1px solid rgba(239,83,80,0.3)",color:"#ef5350",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left" }}>
-                👥 Reset All Tiers — Downgrade every user to Free
+                ð¥ Reset All Tiers â Downgrade every user to Free
               </button>
             </div>
           </div>
@@ -2113,7 +2113,7 @@ function InventoryPanel({ lang, setTab, setSelected, setGraphItem, user }) {
   function importConfirmedItems() {
     confirmItems.forEach(function(ci){ if(ci.name&&ci.qty>0) inv.addItem(ci.name, ci.qty); });
     setShowConfirm(false); setScanResults(null); setImgFile(null); setImgPreview(null); setScanErr("");
-    alert("✓ " + confirmItems.length + " item(s) imported!");
+    alert("â " + confirmItems.length + " item(s) imported!");
   }
 
   // Mirror inventory to Firebase so Player Tracker search can read it
@@ -2159,11 +2159,11 @@ function InventoryPanel({ lang, setTab, setSelected, setGraphItem, user }) {
     <div style={{ padding:28 }}>
       <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20 }}>
         <div>
-          <h2 style={{ margin:"0 0 4px",fontSize:22,fontWeight:800,color:"#fff" }}>📦 {t("myInventory",lang)}</h2>
+          <h2 style={{ margin:"0 0 4px",fontSize:22,fontWeight:800,color:"#fff" }}>ð¦ {t("myInventory",lang)}</h2>
           <p style={{ margin:0,fontSize:12,color:"#555" }}>{items.length} item{items.length!==1?"s":""}</p>
         </div>
         <div style={{ display:"flex", gap:8 }}>
-          <button onClick={function(){if(fileInputRef.current)fileInputRef.current.click()}} style={{ padding:"8px 14px",borderRadius:8,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.15)",color:"#ccc",fontSize:12,fontWeight:600,cursor:"pointer" }}>📷 Import Screenshot</button>
+          <button onClick={function(){if(fileInputRef.current)fileInputRef.current.click()}} style={{ padding:"8px 14px",borderRadius:8,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.15)",color:"#ccc",fontSize:12,fontWeight:600,cursor:"pointer" }}>ð· Import Screenshot</button>
           <button onClick={function(){setShowAdd(!showAdd)}} style={{ padding:"8px 16px",borderRadius:8,background:"#ff6b35",border:"none",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>{t("addToInventory",lang)}</button>
         </div>
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} style={{ display:"none" }} />
@@ -2172,13 +2172,13 @@ function InventoryPanel({ lang, setTab, setSelected, setGraphItem, user }) {
       {/* AI Screenshot scan flow */}
       {imgPreview && (
         <div style={{ marginBottom:20,padding:16,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12 }}>
-          <div style={{ fontSize:12,color:"#888",marginBottom:10,letterSpacing:"0.05em",textTransform:"uppercase" }}>📷 Screenshot Preview</div>
+          <div style={{ fontSize:12,color:"#888",marginBottom:10,letterSpacing:"0.05em",textTransform:"uppercase" }}>ð· Screenshot Preview</div>
           <img src={imgPreview} alt="inventory screenshot" style={{ maxWidth:"100%",maxHeight:260,objectFit:"contain",borderRadius:8,marginBottom:12,display:"block" }} />
           <div style={{ fontSize:11,color:"#555",marginBottom:10 }}>AI will scan for Standoff 2 item names. Make sure item names are clearly visible in the screenshot.</div>
           {scanErr && <div style={{ marginBottom:10,padding:"8px 12px",borderRadius:8,background:"rgba(239,83,80,0.1)",color:"#ef5350",fontSize:12 }}>{scanErr}</div>}
           <div style={{ display:"flex",gap:8 }}>
             <button onClick={handleScan} disabled={scanning} style={{ padding:"9px 18px",borderRadius:8,background:scanning?"rgba(255,255,255,0.05)":"#ff6b35",border:"none",color:scanning?"#555":"#fff",fontSize:12,fontWeight:700,cursor:scanning?"not-allowed":"pointer" }}>
-              {scanning ? "⏳ Scanning..." : "🤖 Scan with AI"}
+              {scanning ? "â³ Scanning..." : "ð¤ Scan with AI"}
             </button>
             <button onClick={function(){setImgFile(null);setImgPreview(null);setScanResults(null);setShowConfirm(false);setScanErr("");}} style={{ padding:"9px 14px",borderRadius:8,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",color:"#888",fontSize:12,cursor:"pointer" }}>Cancel</button>
           </div>
@@ -2188,7 +2188,7 @@ function InventoryPanel({ lang, setTab, setSelected, setGraphItem, user }) {
       {/* Scan confirm table */}
       {showConfirm && scanResults && (
         <div style={{ marginBottom:20,padding:16,background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12 }}>
-          <div style={{ fontSize:13,fontWeight:700,color:"#fff",marginBottom:4 }}>🤖 AI Scan Results</div>
+          <div style={{ fontSize:13,fontWeight:700,color:"#fff",marginBottom:4 }}>ð¤ AI Scan Results</div>
           <div style={{ fontSize:11,color:"#555",marginBottom:14 }}>Review and edit before importing. Uncheck items to exclude.</div>
           <div style={{ display:"flex",flexDirection:"column",gap:6,marginBottom:14 }}>
             {scanResults.map(function(r,idx) {
@@ -2202,7 +2202,7 @@ function InventoryPanel({ lang, setTab, setSelected, setGraphItem, user }) {
                   }} style={{ flexShrink:0 }} />}
                   <div style={{ flex:1,minWidth:0 }}>
                     <div style={{ fontSize:12,color:r.item?"#eee":"#ef5350",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{r.item?r.matched:r.raw+" (not found)"}</div>
-                    {r.item && <div style={{ fontSize:10,color:"#555" }}>{r.item.rarity} · {fmtPrice(r.item.price)} G each</div>}
+                    {r.item && <div style={{ fontSize:10,color:"#555" }}>{r.item.rarity} Â· {fmtPrice(r.item.price)} G each</div>}
                   </div>
                   {r.item && checked && (
                     <input type="number" min="1" value={ci?ci.qty:r.qty} onChange={function(e){
@@ -2272,7 +2272,7 @@ function InventoryPanel({ lang, setTab, setSelected, setGraphItem, user }) {
 
       {enriched.length === 0 && (
         <div style={{ textAlign:"center",padding:"40px 20px",color:"#555" }}>
-          <div style={{ fontSize:40,marginBottom:12 }}>📦</div>
+          <div style={{ fontSize:40,marginBottom:12 }}>ð¦</div>
           <div style={{ fontSize:14 }}>{t("emptyInventory",lang)}</div>
         </div>
       )}
@@ -2295,7 +2295,7 @@ function InventoryPanel({ lang, setTab, setSelected, setGraphItem, user }) {
                 {img && <img src={img} alt="" style={{ width:40,height:28,objectFit:"contain",borderRadius:4 }} />}
                 <div>
                   <div style={{ fontSize:13,fontWeight:600,color:"#eee" }}>{item.name}</div>
-                  <div style={{ fontSize:11,color:"#888" }}>x{item.qty} · {item.market.type}</div>
+                  <div style={{ fontSize:11,color:"#888" }}>x{item.qty} Â· {item.market.type}</div>
                 </div>
               </div>
               <span style={{ fontSize:10,padding:"2px 6px",borderRadius:20,background:rb,color:rc,border:"1px solid "+rc+"33" }}>{item.market.rarity}</span>
@@ -2309,7 +2309,7 @@ function InventoryPanel({ lang, setTab, setSelected, setGraphItem, user }) {
               </div>
               <div style={{ display:"flex",alignItems:"center",gap:6 }}>
                 <input type="number" value={item.qty} onChange={function(e){inv.updateQty(item.name,parseInt(e.target.value)||0)}} min="0" style={{ width:45,padding:"4px 6px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:4,color:"#fff",fontSize:11,textAlign:"center" }} />
-                <button onClick={function(){inv.removeItem(item.name)}} style={{ padding:"4px 8px",borderRadius:6,background:"rgba(239,83,80,0.15)",border:"1px solid rgba(239,83,80,0.3)",color:"#ef5350",fontSize:10,cursor:"pointer" }}>✕</button>
+                <button onClick={function(){inv.removeItem(item.name)}} style={{ padding:"4px 8px",borderRadius:6,background:"rgba(239,83,80,0.15)",border:"1px solid rgba(239,83,80,0.3)",color:"#ef5350",fontSize:10,cursor:"pointer" }}>â</button>
               </div>
             </div>
           </div>
@@ -2345,11 +2345,11 @@ function scoreItem(item) {
 }
 
 function getSignal(score) {
-  if (score >= 80) return { label: "Strong Buy", color: "#00e676", icon: "🟢" };
-  if (score >= 55) return { label: "Buy", color: "#4caf50", icon: "🟢" };
-  if (score >= 35) return { label: "Hold", color: "#ffb74d", icon: "🟡" };
-  if (score >= 15) return { label: "Watch", color: "#ff9800", icon: "🟠" };
-  return { label: "Avoid", color: "#ef5350", icon: "🔴" };
+  if (score >= 80) return { label: "Strong Buy", color: "#00e676", icon: "ð¢" };
+  if (score >= 55) return { label: "Buy", color: "#4caf50", icon: "ð¢" };
+  if (score >= 35) return { label: "Hold", color: "#ffb74d", icon: "ð¡" };
+  if (score >= 15) return { label: "Watch", color: "#ff9800", icon: "ð " };
+  return { label: "Avoid", color: "#ef5350", icon: "ð´" };
 }
 
 // Analyse real price history to compute smarter signals not available from the DataTables feed
@@ -2376,12 +2376,12 @@ function analyseHistory(hist) {
   return { hitLow:hitLow, recovered:recovered, isBelowAvg:isBelowAvg, last3above:last3above, rangePct:rangePct, min30:min30, avg30:avg30, dataPoints:dates.length };
 }
 
-// ─── Weekly Market Report ─────────────────────────────────────────────────────
+// âââ Weekly Market Report âââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function WeeklyMarketReport({ tier }) {
   var isVIP = tier === "VIP+" || tier === "VIP";
   var today = new Date();
   var weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay());
-  var weekLabel = weekStart.toLocaleDateString("en-US", { month:"short", day:"numeric" }) + " – " + today.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+  var weekLabel = weekStart.toLocaleDateString("en-US", { month:"short", day:"numeric" }) + " â " + today.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
 
   // Top weekly gainers and losers (min price 5G, valid week% data)
   var withWeek = ITEMS.filter(function(i){ return i.price >= 5 && i.week !== 0; });
@@ -2407,7 +2407,7 @@ function WeeklyMarketReport({ tier }) {
   var gainers = ITEMS.filter(function(i){ return i.week > 0; }).length;
   var losers  = ITEMS.filter(function(i){ return i.week < 0; }).length;
   var moodPct = Math.round(gainers / (gainers + losers) * 100);
-  var mood    = moodPct >= 60 ? { label:"Bullish 🐂", color:"#4caf50" } : moodPct >= 40 ? { label:"Neutral ⚖", color:"#ffb74d" } : { label:"Bearish 🐻", color:"#ef5350" };
+  var mood    = moodPct >= 60 ? { label:"Bullish ð", color:"#4caf50" } : moodPct >= 40 ? { label:"Neutral â", color:"#ffb74d" } : { label:"Bearish ð»", color:"#ef5350" };
 
   return (
     <div style={{ marginBottom:36, background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, overflow:"hidden" }}>
@@ -2415,7 +2415,7 @@ function WeeklyMarketReport({ tier }) {
       <div style={{ padding:"18px 20px 14px", borderBottom:"1px solid rgba(255,255,255,0.06)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div>
           <h3 style={{ margin:0, fontSize:15, fontWeight:700, color:"#fff" }}>
-            📋 Weekly Market Report
+            ð Weekly Market Report
             {!isVIP && <span style={{ marginLeft:8, fontSize:10, padding:"2px 8px", borderRadius:20, background:"rgba(206,147,216,0.15)", color:"#ce93d8", border:"1px solid rgba(206,147,216,0.3)" }}>VIP</span>}
           </h3>
           <div style={{ fontSize:11, color:"#555", marginTop:2 }}>{weekLabel}</div>
@@ -2431,7 +2431,7 @@ function WeeklyMarketReport({ tier }) {
         <div style={{ padding:"16px 20px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, filter: isVIP ? "none" : "blur(6px)", pointerEvents: isVIP ? "auto" : "none" }}>
           {/* Top Gainers */}
           <div>
-            <div style={{ fontSize:11, fontWeight:700, color:"#4caf50", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>📈 Top Gainers</div>
+            <div style={{ fontSize:11, fontWeight:700, color:"#4caf50", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>ð Top Gainers</div>
             {topGainers.map(function(item, i) {
               return (
                 <div key={item.name} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
@@ -2445,7 +2445,7 @@ function WeeklyMarketReport({ tier }) {
           </div>
           {/* Top Losers */}
           <div>
-            <div style={{ fontSize:11, fontWeight:700, color:"#ef5350", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>📉 Top Losers</div>
+            <div style={{ fontSize:11, fontWeight:700, color:"#ef5350", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>ð Top Losers</div>
             {topLosers.map(function(item, i) {
               return (
                 <div key={item.name} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
@@ -2459,7 +2459,7 @@ function WeeklyMarketReport({ tier }) {
           </div>
           {/* Hot Collections */}
           <div>
-            <div style={{ fontSize:11, fontWeight:700, color:"#ffb74d", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>🔥 Hot Collections</div>
+            <div style={{ fontSize:11, fontWeight:700, color:"#ffb74d", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>ð¥ Hot Collections</div>
             {hotCollections.map(function(c) {
               return (
                 <div key={c.name} style={{ display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
@@ -2471,7 +2471,7 @@ function WeeklyMarketReport({ tier }) {
           </div>
           {/* Cold Collections */}
           <div>
-            <div style={{ fontSize:11, fontWeight:700, color:"#64b5f6", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>❄ Cooling Collections</div>
+            <div style={{ fontSize:11, fontWeight:700, color:"#64b5f6", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>â Cooling Collections</div>
             {coldCollections.map(function(c) {
               return (
                 <div key={c.name} style={{ display:"flex", justifyContent:"space-between", padding:"6px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
@@ -2484,7 +2484,7 @@ function WeeklyMarketReport({ tier }) {
         </div>
         {!isVIP && (
           <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:8 }}>
-            <div style={{ fontSize:14, fontWeight:700, color:"#fff" }}>🔒 VIP Feature</div>
+            <div style={{ fontSize:14, fontWeight:700, color:"#fff" }}>ð VIP Feature</div>
             <div style={{ fontSize:12, color:"#888" }}>Upgrade to VIP to see the full weekly report</div>
           </div>
         )}
@@ -2539,11 +2539,11 @@ function CollectionHeatMap({ setTab, tier }) {
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
         <div>
           <h3 style={{ margin:0, fontSize:15, fontWeight:700, color:"#fff" }}>
-            🗺 Collection Heat Map
-            {!isVIP && <span style={{ marginLeft:8, fontSize:10, padding:"2px 8px", borderRadius:20, background:"rgba(206,147,216,0.15)", color:"#ce93d8", border:"1px solid rgba(206,147,216,0.3)" }}>Full analysis — VIP</span>}
+            ðº Collection Heat Map
+            {!isVIP && <span style={{ marginLeft:8, fontSize:10, padding:"2px 8px", borderRadius:20, background:"rgba(206,147,216,0.15)", color:"#ce93d8", border:"1px solid rgba(206,147,216,0.3)" }}>Full analysis â VIP</span>}
           </h3>
           <p style={{ margin:"4px 0 0", fontSize:11, color:"#555" }}>
-            Average price trend per collection · click any tile to filter the market
+            Average price trend per collection Â· click any tile to filter the market
           </p>
         </div>
         <div style={{ display:"flex", gap:6 }}>
@@ -2564,7 +2564,7 @@ function CollectionHeatMap({ setTab, tier }) {
           return (
             <div key={"locked-"+rank} style={{ padding:"12px 10px", borderRadius:10, cursor:"default", background:"rgba(206,147,216,0.05)", border:"1px solid rgba(206,147,216,0.2)", userSelect:"none", position:"relative", minHeight:72 }}>
               <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", gap:4 }}>
-                <div style={{ fontSize:16 }}>🔒</div>
+                <div style={{ fontSize:16 }}>ð</div>
                 <div style={{ fontSize:10, fontWeight:700, color:"#ce93d8" }}>#{rank} Hidden</div>
                 <div style={{ fontSize:9, color:"#555" }}>VIP only</div>
               </div>
@@ -2587,7 +2587,7 @@ function CollectionHeatMap({ setTab, tier }) {
               }}>
               <div style={{ fontSize:11, fontWeight:700, color:"#ddd", marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{coll.name}</div>
               <div style={{ fontSize:18, fontWeight:800, color:col.text }}>{val >= 0 ? "+" : ""}{val.toFixed(1)}%</div>
-              <div style={{ fontSize:9, color:"#555", marginTop:2 }}>{coll.items} items · avg {fmtPrice(coll.avgPrice)}G</div>
+              <div style={{ fontSize:9, color:"#555", marginTop:2 }}>{coll.items} items Â· avg {fmtPrice(coll.avgPrice)}G</div>
             </div>
           );
         })}
@@ -2595,14 +2595,14 @@ function CollectionHeatMap({ setTab, tier }) {
 
       {!isVIP && (
         <div style={{ marginTop:10, textAlign:"center", fontSize:11, color:"#555" }}>
-          Top 3 best-performing collections hidden ·{" "}
-          <span style={{ color:"#ce93d8", cursor:"pointer" }}>Upgrade to VIP to unlock all →</span>
+          Top 3 best-performing collections hidden Â·{" "}
+          <span style={{ color:"#ce93d8", cursor:"pointer" }}>Upgrade to VIP to unlock all â</span>
         </div>
       )}
 
       {/* Legend */}
       <div style={{ display:"flex", gap:12, marginTop:10, justifyContent:"flex-end", flexWrap:"wrap" }}>
-        {[{label:"Strong ↑ >5%",c:"#4caf50"},{label:"Mild ↑",c:"#81c784"},{label:"Flat",c:"#555"},{label:"Mild ↓",c:"#e57373"},{label:"Strong ↓ <-5%",c:"#ef5350"}].map(function(l){
+        {[{label:"Strong â >5%",c:"#4caf50"},{label:"Mild â",c:"#81c784"},{label:"Flat",c:"#555"},{label:"Mild â",c:"#e57373"},{label:"Strong â <-5%",c:"#ef5350"}].map(function(l){
           return <div key={l.label} style={{ display:"flex", alignItems:"center", gap:4, fontSize:10, color:l.c }}><div style={{ width:10, height:10, borderRadius:2, background:l.c, opacity:0.7 }} />{l.label}</div>;
         })}
       </div>
@@ -2625,7 +2625,7 @@ function InvestmentPanel({ setTab, setSelected, setGraphItem, lang, tier }) {
   var momentum = ITEMS.filter(function(i){return i.price>=1 && i.day>0 && i.week>0 && i.month>0}).sort(function(a,b){return (b.day+b.week+b.month)-(a.day+a.week+a.month)}).slice(0,10);
   var undervalued = ITEMS.filter(function(i){return i.price>=5 && i.price<=5000 && i.spread<25 && i.vol<30 && i.month>5 && i.year>0}).sort(function(a,b){return b.month-a.month}).slice(0,10);
 
-  // History-based signals — only available once histData loads
+  // History-based signals â only available once histData loads
   var recoveries = [], dips = [], breakouts = [];
   if (histData) {
     ITEMS.forEach(function(item) {
@@ -2722,7 +2722,7 @@ function InvestmentPanel({ setTab, setSelected, setGraphItem, lang, tier }) {
       <CollectionHeatMap setTab={setTab} tier={tier} />
       <WeeklyMarketReport tier={tier} />
       <div style={{ marginBottom:32 }}>
-        <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#4caf50",letterSpacing:"0.03em" }}>📈 Predicted Gainers</h3>
+        <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#4caf50",letterSpacing:"0.03em" }}>ð Predicted Gainers</h3>
         <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>Scored by momentum, acceleration, volatility, spread, and trend consistency</p>
         <div className="s2-investments" style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12 }}>
           {predicted.map(function(s,i){return renderCard(s.item,i,"#4caf50",true,s.score)})}
@@ -2730,16 +2730,16 @@ function InvestmentPanel({ setTab, setSelected, setGraphItem, lang, tier }) {
       </div>
 
       <div style={{ marginBottom:32 }}>
-        <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#ce93d8",letterSpacing:"0.03em" }}>🔥 Momentum Picks</h3>
-        <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>Positive across ALL timeframes — daily, weekly, and monthly growth</p>
+        <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#ce93d8",letterSpacing:"0.03em" }}>ð¥ Momentum Picks</h3>
+        <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>Positive across ALL timeframes â daily, weekly, and monthly growth</p>
         <div className="s2-investments" style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12 }}>
           {momentum.map(function(item,i){return renderCard(item,i,"#ce93d8",false,0)})}
         </div>
       </div>
 
       <div style={{ marginBottom:32 }}>
-        <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#64b5f6",letterSpacing:"0.03em" }}>💎 Undervalued Gems</h3>
-        <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>Low spread, low volatility, positive trends — potential breakout items</p>
+        <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#64b5f6",letterSpacing:"0.03em" }}>ð Undervalued Gems</h3>
+        <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>Low spread, low volatility, positive trends â potential breakout items</p>
         <div className="s2-investments" style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12 }}>
           {undervalued.map(function(item,i){return renderCard(item,i,"#64b5f6",false,0)})}
         </div>
@@ -2747,38 +2747,38 @@ function InvestmentPanel({ setTab, setSelected, setGraphItem, lang, tier }) {
 
       {/* --- History-powered signals --- */}
       {!histData && (
-        <div style={{ textAlign:"center",color:"#555",fontSize:12,padding:"32px 0" }}>Loading historical analysis…</div>
+        <div style={{ textAlign:"center",color:"#555",fontSize:12,padding:"32px 0" }}>Loading historical analysisâ¦</div>
       )}
       {histData && recoveries.length > 0 && (
         <div style={{ marginBottom:32 }}>
-          <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#ff7043",letterSpacing:"0.03em" }}>🔄 30-Day Low Recoveries</h3>
-          <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>Hit a 30-day price low recently but bounced back — potential buy-the-dip opportunity</p>
+          <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#ff7043",letterSpacing:"0.03em" }}>ð 30-Day Low Recoveries</h3>
+          <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>Hit a 30-day price low recently but bounced back â potential buy-the-dip opportunity</p>
           <div className="s2-investments" style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12 }}>
             {recoveries.slice(0,10).map(function(r,i){
-              return renderCardWithBadge(r.item,i,"#ff7043","↩ Recovered from " + r.item.price.toLocaleString() + "G low");
+              return renderCardWithBadge(r.item,i,"#ff7043","â© Recovered from " + r.item.price.toLocaleString() + "G low");
             })}
           </div>
         </div>
       )}
       {histData && dips.length > 0 && (
         <div style={{ marginBottom:32 }}>
-          <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#26c6da",letterSpacing:"0.03em" }}>📉 Below 30-Day Average</h3>
-          <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>Price currently 10%+ below its 30-day average with positive monthly trend — historically tends to mean-revert</p>
+          <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#26c6da",letterSpacing:"0.03em" }}>ð Below 30-Day Average</h3>
+          <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>Price currently 10%+ below its 30-day average with positive monthly trend â historically tends to mean-revert</p>
           <div className="s2-investments" style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12 }}>
             {dips.slice(0,10).map(function(r,i){
               var pct = Math.round((1 - r.item.price / r.analysis.avg30) * 100);
-              return renderCardWithBadge(r.item,i,"#26c6da","↓ " + pct + "% below 30d avg (" + Math.round(r.analysis.avg30).toLocaleString() + "G)");
+              return renderCardWithBadge(r.item,i,"#26c6da","â " + pct + "% below 30d avg (" + Math.round(r.analysis.avg30).toLocaleString() + "G)");
             })}
           </div>
         </div>
       )}
       {histData && breakouts.length > 0 && (
         <div style={{ marginBottom:32 }}>
-          <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#ffd54f",letterSpacing:"0.03em" }}>🚀 3-Day Breakouts</h3>
-          <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>3 consecutive days above the 14-day average — early momentum signal</p>
+          <h3 style={{ margin:"0 0 4px",fontSize:15,fontWeight:700,color:"#ffd54f",letterSpacing:"0.03em" }}>ð 3-Day Breakouts</h3>
+          <p style={{ margin:"0 0 14px",fontSize:11,color:"#555" }}>3 consecutive days above the 14-day average â early momentum signal</p>
           <div className="s2-investments" style={{ display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12 }}>
             {breakouts.slice(0,10).map(function(r,i){
-              return renderCardWithBadge(r.item,i,"#ffd54f","↑ 3d above 14d avg");
+              return renderCardWithBadge(r.item,i,"#ffd54f","â 3d above 14d avg");
             })}
           </div>
         </div>
@@ -2841,7 +2841,7 @@ function InvSortedList({ inventory }) {
               </div>
               <div style={{ textAlign:"right", flexShrink:0 }}>
                 <div style={{ fontSize:12, color:"#fff", fontFamily:"monospace" }}>{fmtPrice(market.price*invItem.qty)} G</div>
-                <div style={{ fontSize:10, color:"#555" }}>×{invItem.qty} @ {fmtPrice(market.price)}</div>
+                <div style={{ fontSize:10, color:"#555" }}>Ã{invItem.qty} @ {fmtPrice(market.price)}</div>
               </div>
             </div>
           );
@@ -2922,7 +2922,7 @@ function ProfileInventoryView({ inventory, vhist }) {
                   <div style={{ width:pct+"%", height:"100%", background:rc, borderRadius:3 }} />
                 </div>
                 <span style={{ fontSize:11, color:"#666", width:70, textAlign:"right", flexShrink:0 }}>{fmtPrice(byRarity[r].value)} G</span>
-                <span style={{ fontSize:10, color:"#444", width:24, flexShrink:0 }}>×{byRarity[r].count}</span>
+                <span style={{ fontSize:10, color:"#444", width:24, flexShrink:0 }}>Ã{byRarity[r].count}</span>
               </div>
             );
           })}
@@ -2934,7 +2934,7 @@ function ProfileInventoryView({ inventory, vhist }) {
   );
 }
 
-// ─── Portfolio Tracker ────────────────────────────────────────────────────────
+// âââ Portfolio Tracker ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function PortfolioPanel({ user, setTab }) {
   var inv = useInventory();
   var items = inv.items;
@@ -2996,7 +2996,7 @@ function PortfolioPanel({ user, setTab }) {
 
   if (!user) return (
     <div style={{ maxWidth:800, margin:"0 auto", padding:"60px 24px", textAlign:"center" }}>
-      <div style={{ fontSize:40, marginBottom:16 }}>📊</div>
+      <div style={{ fontSize:40, marginBottom:16 }}>ð</div>
       <h2 style={{ color:"#fff", marginBottom:8 }}>Portfolio Tracker</h2>
       <p style={{ color:"#555", marginBottom:24 }}>Sign in to track your holdings and see your real-time portfolio value.</p>
       <button onClick={function(){ setTab("account"); }} style={{ padding:"10px 28px", borderRadius:8, background:"rgba(79,195,247,0.15)", border:"1px solid rgba(79,195,247,0.4)", color:"#4fc3f7", fontWeight:700, cursor:"pointer" }}>Sign In</button>
@@ -3005,16 +3005,16 @@ function PortfolioPanel({ user, setTab }) {
 
   if (items.length === 0) return (
     <div style={{ maxWidth:800, margin:"0 auto", padding:"60px 24px", textAlign:"center" }}>
-      <div style={{ fontSize:40, marginBottom:16 }}>📦</div>
+      <div style={{ fontSize:40, marginBottom:16 }}>ð¦</div>
       <h2 style={{ color:"#fff", marginBottom:8 }}>Portfolio Tracker</h2>
       <p style={{ color:"#555", marginBottom:24 }}>Add items to your inventory first, then your portfolio value will appear here automatically.</p>
-      <button onClick={function(){ setTab("inventory"); }} style={{ padding:"10px 28px", borderRadius:8, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", color:"#aaa", fontWeight:700, cursor:"pointer" }}>Go to Inventory →</button>
+      <button onClick={function(){ setTab("inventory"); }} style={{ padding:"10px 28px", borderRadius:8, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", color:"#aaa", fontWeight:700, cursor:"pointer" }}>Go to Inventory â</button>
     </div>
   );
 
   return (
     <div style={{ maxWidth:860, margin:"0 auto", padding:"28px 20px" }}>
-      <h2 style={{ margin:"0 0 24px", fontSize:22, fontWeight:800, color:"#fff" }}>📊 Portfolio Tracker</h2>
+      <h2 style={{ margin:"0 0 24px", fontSize:22, fontWeight:800, color:"#fff" }}>ð Portfolio Tracker</h2>
 
       {/* Summary cards */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:12, marginBottom:24 }}>
@@ -3105,7 +3105,7 @@ function PortfolioPanel({ user, setTab }) {
 }
 
 
-// ─── Gold Allowance Panel ──────────────────────────────────────────────────────
+// âââ Gold Allowance Panel ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function CollectionPanel({ user, lang, setTab, setSelected, setGraphItem }) {
   var [subTab, setSubTab] = React.useState("portfolio");
@@ -3136,14 +3136,14 @@ function AllowancePanel({ user, tier }) {
 
   if (!user) return (
     <div style={{ padding:40, textAlign:"center" }}>
-      <div style={{ fontSize:36, marginBottom:16 }}>🔒</div>
+      <div style={{ fontSize:36, marginBottom:16 }}>ð</div>
       <div style={{ color:"#aaa", fontSize:15, marginBottom:16 }}>Sign in to access your daily gold allowance.</div>
     </div>
   );
 
   if (!allowance) return (
     <div style={{ padding:40, textAlign:"center" }}>
-      <div style={{ fontSize:36, marginBottom:16 }}>🔒</div>
+      <div style={{ fontSize:36, marginBottom:16 }}>ð</div>
       <div style={{ color:"#aaa", fontSize:15, marginBottom:8 }}>No active subscription.</div>
       <div style={{ color:"#555", fontSize:13 }}>Upgrade to Basic, VIP, or VIP+ to claim daily gold.</div>
     </div>
@@ -3162,13 +3162,13 @@ function AllowancePanel({ user, tier }) {
   return (
     <div style={{ maxWidth:580, margin:"0 auto", padding:"32px 24px" }}>
       <div style={{ marginBottom:28 }}>
-        <h2 style={{ margin:"0 0 6px", fontSize:22, fontWeight:800, color:"#fff" }}>💰 Daily Gold Allowance</h2>
+        <h2 style={{ margin:"0 0 6px", fontSize:22, fontWeight:800, color:"#fff" }}>ð° Daily Gold Allowance</h2>
         <p style={{ margin:0, fontSize:13, color:"#666" }}>Claim your daily gold by listing a cheap skin on the marketplace. Resets at 00:00 UTC.</p>
       <div style={{ background:"rgba(88,101,242,0.1)", border:"1px solid rgba(88,101,242,0.3)", borderRadius:10, padding:"14px 18px", marginBottom:24, display:"flex", alignItems:"center", gap:14 }}>
-        <div style={{ fontSize:22, flexShrink:0 }}>💬</div>
+        <div style={{ fontSize:22, flexShrink:0 }}>ð¬</div>
         <div>
           <div style={{ fontWeight:700, fontSize:13, color:"#e0e8f0", marginBottom:3 }}>Need help with your claim?</div>
-          <div style={{ fontSize:12, color:"#8090a0", lineHeight:1.5 }}>Contact us on Discord: <strong style={{ color:"#7289da" }}>camel5961</strong> — we will get your gold sorted ASAP.</div>
+          <div style={{ fontSize:12, color:"#8090a0", lineHeight:1.5 }}>Contact us on Discord: <strong style={{ color:"#7289da" }}>camel5961</strong> â we will get your gold sorted ASAP.</div>
         </div>
       </div>
       </div>
@@ -3179,29 +3179,29 @@ function AllowancePanel({ user, tier }) {
 
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
           <div style={{ color:"#555", fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase" }}>Daily Allowance</div>
-          {alreadyClaimed && <div style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#666" }}>✓ CLAIMED TODAY</div>}
-          {isPending && <div style={{ background:"rgba(255,215,0,0.1)", border:"1px solid rgba(255,215,0,0.3)", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#ffd700" }}>⏳ PROCESSING</div>}
+          {alreadyClaimed && <div style={{ background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#666" }}>â CLAIMED TODAY</div>}
+          {isPending && <div style={{ background:"rgba(255,215,0,0.1)", border:"1px solid rgba(255,215,0,0.3)", borderRadius:6, padding:"4px 10px", fontSize:11, color:"#ffd700" }}>â³ PROCESSING</div>}
         </div>
 
         <div style={{ color:color, fontSize:42, fontWeight:800, fontFamily:"monospace", letterSpacing:"-0.02em", marginBottom:4 }}>
           {allowance.toLocaleString()}<span style={{ fontSize:18, color:"#ffd166", fontFamily:"sans-serif", marginLeft:8 }}>G</span>
         </div>
-        <div style={{ color:"#555", fontSize:13, marginBottom:24 }}>{tier} tier · resets tomorrow at 00:00 UTC</div>
+        <div style={{ color:"#555", fontSize:13, marginBottom:24 }}>{tier} tier Â· resets tomorrow at 00:00 UTC</div>
 
         {alreadyClaimed && <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:10, padding:14, color:"#444", fontSize:13, textAlign:"center" }}>You've claimed today's allowance. Come back tomorrow!</div>}
 
         {isPending && claimData && (
           <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid " + color + "33", borderRadius:10, padding:18 }}>
-            <div style={{ color:"#555", fontSize:11, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:12 }}>{status==="processing"?"Bot is buying your item…":"Waiting for bot"}</div>
+            <div style={{ color:"#555", fontSize:11, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:12 }}>{status==="processing"?"Bot is buying your itemâ¦":"Waiting for bot"}</div>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}><span style={{ color:"#666", fontSize:13 }}>Item</span><span style={{ color:"#eee", fontWeight:600 }}>{claimData.itemName}</span></div>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}><span style={{ color:"#666", fontSize:13 }}>List price</span><span style={{ color:"#ffd166", fontWeight:700 }}>{claimData.listPrice} G</span></div>
-            <div style={{ display:"flex", justifyContent:"space-between" }}><span style={{ color:"#666", fontSize:13 }}>Status</span><span style={{ color:status==="processing"?"#ffd700":"#666", fontWeight:600 }}>{status==="processing"?"Bot buying now…":"Pending"}</span></div>
+            <div style={{ display:"flex", justifyContent:"space-between" }}><span style={{ color:"#666", fontSize:13 }}>Status</span><span style={{ color:status==="processing"?"#ffd700":"#666", fontWeight:600 }}>{status==="processing"?"Bot buying nowâ¦":"Pending"}</span></div>
           </div>
         )}
 
         {!alreadyClaimed && !isPending && (
           <button onClick={function(){setModal(true)}} style={{ width:"100%", padding:"14px 0", background:"linear-gradient(135deg," + color + "28," + color + "10)", border:"1px solid " + color + "77", borderRadius:10, color:color, fontWeight:700, fontSize:15, cursor:"pointer", letterSpacing:"0.04em" }}>
-            Claim {allowance.toLocaleString()} G →
+            Claim {allowance.toLocaleString()} G â
           </button>
         )}
       </div>
@@ -3266,7 +3266,7 @@ function AllowanceModal({ user, tier, allowance, color, onClose }) {
     <div onClick={function(e){if(e.target===e.currentTarget)onClose()}} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:20 }}>
       <div style={{ background:"#12151c", border:"1px solid " + color + "44", borderRadius:16, padding:"32px 28px", width:"100%", maxWidth:440, position:"relative" }}>
         <div style={{ position:"absolute", top:0, left:0, right:0, height:2, borderRadius:"16px 16px 0 0", background:"linear-gradient(90deg,transparent," + color + ",transparent)" }} />
-        <button onClick={onClose} style={{ position:"absolute", top:14, right:16, background:"none", border:"none", color:"#555", fontSize:20, cursor:"pointer" }}>✕</button>
+        <button onClick={onClose} style={{ position:"absolute", top:14, right:16, background:"none", border:"none", color:"#555", fontSize:20, cursor:"pointer" }}>â</button>
         <div style={{ color:"#555", fontSize:11, textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4 }}>Daily Gold Claim</div>
         <div style={{ color:color, fontSize:26, fontWeight:800, marginBottom:22 }}>{allowance.toLocaleString()} G</div>
 
@@ -3289,7 +3289,7 @@ function AllowanceModal({ user, tier, allowance, color, onClose }) {
               <input value={username} onChange={function(e){setUsername(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")handleSubmit()}} placeholder="e.g. CamelS2" style={{ width:"100%", background:"rgba(0,0,0,0.3)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"11px 14px", color:"#eee", fontSize:14, outline:"none", fontFamily:"inherit" }} />
             </div>
             <button onClick={handleSubmit} disabled={!username.trim()} style={{ width:"100%", padding:"13px 0", background: username.trim()?"linear-gradient(135deg,"+color+"33,"+color+"18)":"rgba(255,255,255,0.03)", border:"1px solid "+(username.trim()?color+"88":"rgba(255,255,255,0.08)"), borderRadius:8, color:username.trim()?color:"#444", fontWeight:700, fontSize:14, cursor:username.trim()?"pointer":"not-allowed", letterSpacing:"0.05em" }}>
-              Submit Claim →
+              Submit Claim â
             </button>
           </div>
         )}
@@ -3297,20 +3297,20 @@ function AllowanceModal({ user, tier, allowance, color, onClose }) {
         {step === "submitting" && (
           <div style={{ textAlign:"center", padding:"24px 0" }}>
             <style>{"@keyframes s2spin{to{transform:rotate(360deg)}}"}</style>
-            <div style={{ fontSize:32, marginBottom:12, display:"inline-block", animation:"s2spin 1s linear infinite" }}>⟳</div>
-            <div style={{ color:"#666", fontSize:14 }}>Submitting your claim…</div>
+            <div style={{ fontSize:32, marginBottom:12, display:"inline-block", animation:"s2spin 1s linear infinite" }}>â³</div>
+            <div style={{ color:"#666", fontSize:14 }}>Submitting your claimâ¦</div>
           </div>
         )}
 
         {step === "submitted" && (
           <div style={{ textAlign:"center", padding:"24px 0" }}>
-            <div style={{ fontSize:48, marginBottom:12 }}>📋</div>
+            <div style={{ fontSize:48, marginBottom:12 }}>ð</div>
             <div style={{ color:"#4ade80", fontSize:17, fontWeight:700, marginBottom:8 }}>Claim submitted!</div>
             <div style={{ color:"#666", fontSize:13, lineHeight:1.6, marginBottom:14 }}>
               Now list <strong style={{ color:"#ddd" }}>{item}</strong> at <strong style={{ color:"#ffd166" }}>{listPrice.toFixed(2)} G</strong> on the marketplace. The bot will process it shortly.
             </div>
             <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:10, padding:14, fontSize:12, color:"#555" }}>
-              You can close this window — your claim is saved and will process automatically.
+              You can close this window â your claim is saved and will process automatically.
             </div>
           </div>
         )}
@@ -3359,7 +3359,7 @@ function PlayerTrackerPanel({ user, tier, setTab }) {
   return (
     <div style={{ padding:28 }}>
       <div style={{ marginBottom:24 }}>
-        <h2 style={{ margin:"0 0 4px", fontSize:22, fontWeight:800, color:"#fff" }}>🎮 Player Tracker</h2>
+        <h2 style={{ margin:"0 0 4px", fontSize:22, fontWeight:800, color:"#fff" }}>ð® Player Tracker</h2>
         <p style={{ margin:0, fontSize:13, color:"#555" }}>Search any player by their username to view their public inventory and portfolio value.</p>
       </div>
 
@@ -3385,7 +3385,7 @@ function PlayerTrackerPanel({ user, tier, setTab }) {
             </div>
             <div>
               <div style={{ fontSize:18, fontWeight:800, color:"#fff" }}>{foundProfile.profile.username}</div>
-              <div style={{ fontSize:11, color:"#555" }}>Self-reported inventory · {foundProfile.inventory.length} item types</div>
+              <div style={{ fontSize:11, color:"#555" }}>Self-reported inventory Â· {foundProfile.inventory.length} item types</div>
             </div>
             <div style={{ marginLeft:"auto", fontSize:10, padding:"3px 8px", borderRadius:20, background:"rgba(76,175,80,0.15)", color:"#4caf50", border:"1px solid rgba(76,175,80,0.3)" }}>PUBLIC</div>
           </div>
@@ -3395,17 +3395,17 @@ function PlayerTrackerPanel({ user, tier, setTab }) {
 
       {!foundProfile && !searchErr && (
         <div style={{ textAlign:"center", padding:"40px 20px", color:"#444" }}>
-          <div style={{ fontSize:40, marginBottom:12 }}>🔍</div>
+          <div style={{ fontSize:40, marginBottom:12 }}>ð</div>
           <div style={{ fontSize:14, marginBottom:8 }}>Search for a player by their username</div>
-          <div style={{ fontSize:11, color:"#333", marginBottom:20 }}>Players set their username in the Account tab · their inventory comes from the 📦 Inventory tab</div>
+          <div style={{ fontSize:11, color:"#333", marginBottom:20 }}>Players set their username in the Account tab Â· their inventory comes from the ð¦ Inventory tab</div>
           {!user && (
             <button onClick={function(){setTab("account")}} style={{ padding:"9px 20px", borderRadius:8, background:"rgba(255,107,53,0.15)", border:"1px solid rgba(255,107,53,0.3)", color:"#ff6b35", fontSize:12, fontWeight:600, cursor:"pointer" }}>
-              Sign in to set up your profile →
+              Sign in to set up your profile â
             </button>
           )}
           {user && (
             <button onClick={function(){setTab("account")}} style={{ padding:"9px 20px", borderRadius:8, background:"rgba(255,107,53,0.15)", border:"1px solid rgba(255,107,53,0.3)", color:"#ff6b35", fontSize:12, fontWeight:600, cursor:"pointer" }}>
-              Set your username in Account →
+              Set your username in Account â
             </button>
           )}
         </div>
@@ -3432,7 +3432,7 @@ function App() {
   const [lang, setLang] = useState(function(){ return localStorage.getItem('s2_lang') || 'en'; });
 
   function changeLang(l) { setLang(l); localStorage.setItem('s2_lang', l); }
-  const [siteConfig, setSiteConfig] = useState({banner:"⚠ Reminder that prices are updated daily and might not be totally accurate",siteTitle:"STANDOFF 2",chatEnabled:true,giveawaysEnabled:true,announcement:"",announcementColor:"#ffb74d"});
+  const [siteConfig, setSiteConfig] = useState({banner:"â  Reminder that prices are updated daily and might not be totally accurate",siteTitle:"STANDOFF 2",chatEnabled:true,giveawaysEnabled:true,announcement:"",announcementColor:"#ffb74d"});
   const [lastUpdatedDate, setLastUpdatedDate] = useState(null);
   const [compareItems, setCompareItems] = useState([]);
   const [showCompare, setShowCompare] = useState(false);
@@ -3505,7 +3505,7 @@ function App() {
     <div style={{ minHeight:"100vh",background:"#0f0f12",fontFamily:"'Segoe UI',system-ui,sans-serif",color:"#e0e0e0",padding:"0 0 40px" }}>
       {siteConfig.banner && (
       <div style={{ padding:"8px 28px",background:"rgba(255,183,77,0.08)",borderBottom:"1px solid rgba(255,183,77,0.15)" }}>
-        <div style={{ fontSize:12,color:"#ffb74d",textAlign:"center" }}>⚠ {siteConfig.banner || t("banner",lang)}</div>
+        <div style={{ fontSize:12,color:"#ffb74d",textAlign:"center" }}>â  {siteConfig.banner || t("banner",lang)}</div>
       </div>
       )}
 
@@ -3528,7 +3528,7 @@ function App() {
           </div>
         </div>
         <div className="s2-header-right" style={{ display:"flex",alignItems:"center",gap:12 }}>
-          <div style={{ fontSize:10,color:"#444" }}>Updated: {siteConfig.lastUpdated || lastUpdatedDate || "Loading…"}</div>
+          <div style={{ fontSize:10,color:"#444" }}>Updated: {siteConfig.lastUpdated || lastUpdatedDate || "Loadingâ¦"}</div>
           <select value={lang} onChange={function(e){changeLang(e.target.value)}} style={{ padding:"5px 8px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,color:"#ccc",fontSize:11,cursor:"pointer" }}>
             {Object.keys(LANGS).map(function(l){return <option key={l} value={l}>{LANGS[l].flag} {LANGS[l].name}</option>})}
           </select>
@@ -3538,7 +3538,7 @@ function App() {
       </div>
 
       <div className="s2-tabs" style={{ display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"collection",label:"📊 Collection"},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"allowance",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
+        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"collection",label:"ð Collection"},{id:"players",label:"ð® Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"allowance",label:"ð° Gold"},{id:"account",label:user?"ð¤ "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"â Admin"}]:[]).map(function(t){return(
           <button key={t.id} onClick={function(){setTab(t.id)}} style={{ padding:"12px 24px",background:tab===t.id?"rgba(255,255,255,0.05)":"transparent",border:"none",borderBottom:tab===t.id?"2px solid #ff6b35":"2px solid transparent",color:tab===t.id?"#fff":"#666",fontSize:13,fontWeight:600,cursor:"pointer",letterSpacing:"0.03em" }}>{t.label}</button>
         )})}
       </div>
@@ -3574,7 +3574,7 @@ function App() {
         {[
           {label:t("itemsTracked",lang),value:totalItems.toLocaleString(),sub:""},
           {label:t("avg24h",lang),value:(parseFloat(avgDay)>=0?"+":"")+avgDay+"%",sub:"",color:parseFloat(avgDay)>=0?"#4caf50":"#ef5350"},
-          {label:t("topWeekly",lang),value:topGainer.name.replace(/"/g,""),sub:"▲ "+topGainer.week.toFixed(2)+"%",color:"#ffd700"}
+          {label:t("topWeekly",lang),value:topGainer.name.replace(/"/g,""),sub:"â² "+topGainer.week.toFixed(2)+"%",color:"#ffd700"}
         ].map(function(s){return(
           <div key={s.label} style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,padding:"14px 16px" }}>
             <div style={{ fontSize:11,color:"#555",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:6 }}>{s.label}</div>
