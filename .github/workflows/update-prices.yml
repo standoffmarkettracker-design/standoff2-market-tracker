@@ -44,3 +44,7 @@ jobs:
           git diff --cached --quiet && echo "No changes" && exit 0
           git commit -m "chore: price update $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push --force-with-lease
+
+      - name: Alert Discord on price doubles
+        run: python scripts/check_doubles.py
+        continue-on-error: true
