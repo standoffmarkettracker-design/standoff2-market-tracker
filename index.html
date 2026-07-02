@@ -3151,11 +3151,36 @@ var CASE_TYPE_ALLOWED_ITEMTYPES = {
   "Gift Case": ["Weapon Skin","Knife"],
 };
 
+var UNRELIABLE_RARITY_TYPES = {"Graffiti Pack":1,"Sticker Pack":1,"Major 2024 Sticker Pack":1,"Charm Pack":1,"Charms":1};
+
 function computeCaseStats(kase) {
   var ev = 0, profitProb = 0;
   var flatPulls = [];
   var tierKeys = Object.keys(kase.tiers || {});
   var allowedTypes = CASE_TYPE_ALLOWED_ITEMTYPES[kase.type] || ["Weapon Skin","Knife"];
+
+  if (UNRELIABLE_RARITY_TYPES[kase.type]) {
+    var flatPool = ITEMS.filter(function(i) {
+      return ITEM_COLLECTIONS[i.name] === kase.collection && i.price > 0 && allowedTypes.indexOf(i.type) !== -1;
+    });
+    if (flatPool.length > 0) {
+      var evenChance = 100 / flatPool.length;
+      for (var f = 0; f < flatPool.length; f++) {
+        var fi = flatPool[f];
+        ev += fi.price * (evenChance/100);
+        if (fi.price > kase.price) profitProb += evenChance;
+        flatPulls.push({ name: fi.name, price: fi.price, rarity: fi.rarity, chance: evenChance });
+      }
+    }
+    flatPulls.sort(function(a,b){ return b.price - a.price; });
+    var roi0 = kase.price > 0 ? ((ev - kase.price) / kase.price) * 100 : 0;
+    return {
+      ev: ev, roi: roi0, profitProb: profitProb, flatPulls: flatPulls,
+      best: flatPulls[0], worst: flatPulls[flatPulls.length - 1],
+      hasData: flatPulls.length > 0,
+    };
+  }
+
   for (var t = 0; t < tierKeys.length; t++) {
     var tier = tierKeys[t];
     var tierPct = (kase.tiers[tier].total || 0) / 100;
