@@ -196,6 +196,18 @@ def apply_updates(shop_catalog, market_discovered, today):
     coll_map = load_json(ROOT / "collections.json")
     # Sanitize: remove corrupted entries (newlines in name or impossible prices)
     items = [i for i in items if "\n" not in i["name"] and 0 < i.get("price", 0) <= 10_000_000]
+    # Safety net: dedupe by exact name (keep first occurrence) in case
+    # duplicate entries ever slip into items.json from any source.
+    seen_names, deduped, dupes_removed = set(), [], 0
+    for i in items:
+        if i["name"] in seen_names:
+            dupes_removed += 1
+            continue
+        seen_names.add(i["name"])
+        deduped.append(i)
+    if dupes_removed:
+        print(f"  [dedupe] Removed {dupes_removed} duplicate item(s) from items.json")
+    items = deduped
     purge_zero_dates(hist1, hist2)
     pinned_names   = set(GIVEAWAY_PINNED.values())
     existing_names = {item["name"] for item in items}
