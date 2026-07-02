@@ -3123,6 +3123,321 @@ var ALLOWANCE_ITEMS = [
 var ALLOWANCE_DAILY = { "Basic": 10, "VIP": 67, "VIP+": 200 };
 var ALLOWANCE_COLORS = { "Basic": "#4fc3f7", "VIP": "#ce93d8", "VIP+": "#ffd700" };
 
+// ============================================================
+// Cases & Crates: ROI/EV explorer + free simulator using real
+// in-game odds. Case contents are derived live from ITEMS +
+// ITEM_COLLECTIONS (matched by collection + rarity tier), so
+// prices always reflect the current market automatically.
+// ============================================================
+var CASE_TIER_ORDER = ["Common","Uncommon","Rare","Epic","Legendary","Arcane","Nameless"];
+
+function computeCaseStats(kase) {
+  var ev = 0, profitProb = 0;
+  var flatPulls = [];
+  var tierKeys = Object.keys(kase.tiers || {});
+  for (var t = 0; t < tierKeys.length; t++) {
+    var tier = tierKeys[t];
+    var tierPct = (kase.tiers[tier].total || 0) / 100;
+    var pool = ITEMS.filter(function(i) {
+      return ITEM_COLLECTIONS[i.name] === kase.collection && i.rarity === tier && i.price > 0;
+    });
+    if (pool.length === 0) continue;
+    var perItemChance = tierPct / pool.length;
+    for (var p = 0; p < pool.length; p++) {
+      var item = pool[p];
+      ev += item.price * perItemChance;
+      if (item.price > kase.price) profitProb += perItemChance;
+      flatPulls.push({ name: item.name, price: item.price, rarity: tier, chance: perItemChance });
+    }
+  }
+  flatPulls.sort(function(a,b){ return b.price - a.price; });
+  var roi = kase.price > 0 ? ((ev - kase.price) / kase.price) * 100 : 0;
+  return {
+    ev: ev, roi: roi, profitProb: profitProb * 100, flatPulls: flatPulls,
+    best: flatPulls[0], worst: flatPulls[flatPulls.length - 1],
+    hasData: flatPulls.length > 0,
+  };
+}
+
+function weightedCasePick(stats) {
+  var r = Math.random() * 100;
+  var cumulative = 0;
+  var sorted = stats.flatPulls.slice().sort(function(a,b){ return a.chance - b.chance; });
+  for (var i = 0; i < sorted.length; i++) {
+    cumulative += sorted[i].chance;
+    if (r <= cumulative) return sorted[i];
+  }
+  return sorted[sorted.length - 1];
+}
+
+function CaseOddsTable({ kase }) {
+  var tiers = CASE_TIER_ORDER.filter(function(t){ return kase.tiers[t]; });
+  return (
+    <div style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,overflow:"hidden",marginBottom:20 }}>
+      <div style={{ display:"grid",gridTemplateColumns:kase.hasStatTrack?"1fr 90px 90px":"1fr 90px",padding:"10px 16px",borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+        <div style={{ fontSize:11,color:"#888",textTransform:"uppercase",letterSpacing:"0.05em" }}>Chances</div>
+        <div style={{ fontSize:11,color:"#888",textAlign:"right" }}>Total</div>
+        {kase.hasStatTrack && <div style={{ fontSize:11,color:"#ffb74d",textAlign:"right" }}>StatTrack</div>}
+      </div>
+      {tiers.map(function(t){return(
+        <div key={t} style={{ display:"grid",gridTemplateColumns:kase.hasStatTrack?"1fr 90px 90px":"1fr 90px",padding:"10px 16px",borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+          <div style={{ fontSize:13,fontWeight:700,color:RC[t]||"#888" }}>{t}</div>
+          <div style={{ fontSize:13,textAlign:"right",color:"#eee",fontFamily:"monospace" }}>{kase.tiers[t].total.toFixed(2)}%</div>
+          {kase.hasStatTrack && <div style={{ fontSize:13,textAlign:"right",color:"#ffb74d",fontFamily:"monospace" }}>{kase.tiers[t].statTrack ? kase.tiers[t].statTrack.toFixed(2)+"%" : "—"}</div>}
+        </div>
+      )})}
+    </div>
+  );
+}
+
+function CaseStatCard({ label, value, color }) {
+  return (
+    <div style={{ background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px 16px" }}>
+      <div style={{ fontSize:10,color:"#888",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6 }}>{label}</div>
+      <div style={{ fontSize:18,fontWeight:800,color:color,fontFamily:"monospace" }}>{value}</div>
+    </div>
+  );
+}
+
+function CaseSimulator({ kase, stats, onClose }) {
+  var [spinning, setSpinning] = React.useState(false);
+  var [result, setResult] = React.useState(null);
+  var [reelItems, setReelItems] = React.useState([]);
+  var [offset, setOffset] = React.useState(0);
+  var [history, setHistory] = React.useState([]);
+
+  var netProfit = history.reduce(function(s,h){ return s + h.profit; }, 0);
+
+  function open() {
+    if (spinning || !stats.hasData) return;
+    setResult(null); setSpinning(true);
+    var finalPull = weightedCasePick(stats);
+    var reel = [];
+    for (var i = 0; i < 36; i++) reel.push(stats.flatPulls[Math.floor(Math.random()*stats.flatPulls.length)]);
+    reel.push(finalPull);
+    setReelItems(reel); setOffset(0);
+    requestAnimationFrame(function(){ setOffset(-(reel.length-1)*140 + 210); });
+    setTimeout(function(){
+      setSpinning(false); setResult(finalPull);
+      setHistory(function(h){ return [{ name:finalPull.name, price:finalPull.price, rarity:finalPull.rarity, profit:finalPull.price - kase.price }].concat(h).slice(0,8); });
+    }, 3200);
+  }
+
+  return (
+    <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:20 }} onClick={onClose}>
+      <div style={{ background:"#15151b",border:"1px solid rgba(255,255,255,0.1)",borderRadius:16,width:"100%",maxWidth:720,padding:24,maxHeight:"90vh",overflowY:"auto" }} onClick={function(e){e.stopPropagation()}}>
+        <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16 }}>
+          <div>
+            <div style={{ fontSize:16,fontWeight:800,color:"#fff" }}>{kase.name}</div>
+            <div style={{ fontSize:11,color:"#666" }}>Free simulator — no real gold spent</div>
+          </div>
+          <button onClick={onClose} style={{ background:"rgba(255,255,255,0.06)",border:"none",borderRadius:8,width:32,height:32,color:"#aaa",cursor:"pointer",fontSize:16 }}>✕</button>
+        </div>
+
+        {!stats.hasData && (
+          <div style={{ padding:14,borderRadius:10,background:"rgba(239,83,80,0.08)",border:"1px solid rgba(239,83,80,0.25)",color:"#ef5350",fontSize:12,marginBottom:16 }}>
+            No market items found for this case's collection yet — simulator unavailable until price data covers it.
+          </div>
+        )}
+
+        <div style={{ position:"relative",height:104,background:"rgba(0,0,0,0.4)",borderRadius:12,overflow:"hidden",marginBottom:20,border:"1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ position:"absolute",left:"50%",top:0,bottom:0,width:3,background:"#ff6b35",zIndex:5,transform:"translateX(-50%)",boxShadow:"0 0 10px #ff6b35" }} />
+          <div style={{ display:"flex",gap:10,padding:"10px 0 10px 210px",transform:"translateX("+offset+"px)",transition: spinning ? "transform 3.1s cubic-bezier(0.12,0.85,0.15,1)" : "none" }}>
+            {(reelItems.length ? reelItems : stats.flatPulls.slice(0,10)).map(function(it,i){return(
+              <div key={i} style={{ minWidth:130,width:130,height:82,background:"rgba(255,255,255,0.04)",border:"1px solid "+(RC[it.rarity]||"#888")+"55",borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:8,flexShrink:0 }}>
+                <div style={{ fontSize:9,fontWeight:700,color:RC[it.rarity]||"#888",marginBottom:6,textTransform:"uppercase" }}>{it.rarity}</div>
+                <div style={{ fontSize:11,color:"#eee",textAlign:"center",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical" }}>{it.name}</div>
+                <div style={{ fontSize:10,color:"#888",fontFamily:"monospace",marginTop:4 }}>{fmtPrice(it.price)} G</div>
+              </div>
+            )})}
+          </div>
+        </div>
+
+        <button onClick={open} disabled={spinning || !stats.hasData} style={{ width:"100%",padding:"12px 20px",borderRadius:10,background:(spinning||!stats.hasData)?"rgba(255,255,255,0.05)":"linear-gradient(135deg,#ff6b35,#f7931e)",border:"none",color:(spinning||!stats.hasData)?"#666":"#fff",fontSize:14,fontWeight:800,cursor:(spinning||!stats.hasData)?"not-allowed":"pointer",marginBottom:20 }}>
+          {spinning ? "Opening…" : "Open (" + fmtPrice(kase.price) + " G, simulated)"}
+        </button>
+
+        {result && !spinning && (
+          <div style={{ padding:14,borderRadius:10,background:(RC[result.rarity]||"#888")+"15",border:"1px solid "+(RC[result.rarity]||"#888")+"44",marginBottom:20,textAlign:"center" }}>
+            <div style={{ fontSize:11,color:RC[result.rarity]||"#888",fontWeight:700,textTransform:"uppercase",marginBottom:4 }}>{result.rarity} Drop!</div>
+            <div style={{ fontSize:15,fontWeight:800,color:"#fff",marginBottom:4 }}>{result.name}</div>
+            <div style={{ fontSize:13,fontFamily:"monospace",color: result.price >= kase.price ? "#4caf50" : "#ef5350" }}>
+              {fmtPrice(result.price)} G {result.price >= kase.price ? "▲ profit" : "▼ loss"} vs {fmtPrice(kase.price)} G case price
+            </div>
+          </div>
+        )}
+
+        {history.length > 0 && (
+          <div>
+            <div style={{ display:"flex",justifyContent:"space-between",marginBottom:10 }}>
+              <div style={{ fontSize:12,fontWeight:700,color:"#fff" }}>Session ({history.length} opened)</div>
+              <div style={{ fontSize:12,fontFamily:"monospace",color:netProfit>=0?"#4caf50":"#ef5350",fontWeight:700 }}>Net: {netProfit>=0?"+":""}{fmtPrice(netProfit)} G</div>
+            </div>
+            <div style={{ display:"flex",flexDirection:"column",gap:5,maxHeight:180,overflowY:"auto" }}>
+              {history.map(function(h,i){return(
+                <div key={i} style={{ display:"flex",justifyContent:"space-between",fontSize:11,padding:"6px 10px",background:"rgba(255,255,255,0.02)",borderRadius:6 }}>
+                  <span style={{ color:"#aaa" }}>{h.name}</span>
+                  <span style={{ fontFamily:"monospace",color:h.profit>=0?"#4caf50":"#ef5350" }}>{h.profit>=0?"+":""}{fmtPrice(h.profit)} G</span>
+                </div>
+              )})}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CaseDetailView({ kase, onBack }) {
+  var stats = React.useMemo(function(){ return computeCaseStats(kase); }, [kase]);
+  var [showSim, setShowSim] = React.useState(false);
+  var positive = stats.roi >= 0;
+  return (
+    <div style={{ padding:24 }}>
+      <button onClick={onBack} style={{ display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"8px 14px",color:"#ccc",fontSize:12,cursor:"pointer",marginBottom:20 }}>← Back to Cases</button>
+
+      <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20,flexWrap:"wrap",gap:16 }}>
+        <div>
+          <h2 style={{ margin:"0 0 4px",fontSize:22,fontWeight:800,color:"#fff" }}>{kase.name}</h2>
+          <div style={{ fontSize:12,color:"#666" }}>{kase.type} · {kase.collection}</div>
+        </div>
+        <button onClick={function(){setShowSim(true)}} disabled={!stats.hasData} style={{ padding:"10px 20px",borderRadius:8,background:stats.hasData?"linear-gradient(135deg,#ff6b35,#f7931e)":"rgba(255,255,255,0.05)",border:"none",color:stats.hasData?"#fff":"#666",fontSize:13,fontWeight:700,cursor:stats.hasData?"pointer":"not-allowed" }}>🎰 Open in Simulator (Free)</button>
+      </div>
+
+      {!stats.hasData && (
+        <div style={{ padding:14,borderRadius:10,background:"rgba(239,83,80,0.08)",border:"1px solid rgba(239,83,80,0.25)",color:"#ef5350",fontSize:12,marginBottom:20 }}>
+          No market items found under the "{kase.collection}" collection matching these tiers yet — EV/ROI unavailable for this case until price data covers it.
+        </div>
+      )}
+
+      <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20 }}>
+        <CaseStatCard label="Case Price" value={fmtPrice(kase.price)+" G"} color="#ccc" />
+        <CaseStatCard label="Expected Value" value={stats.hasData ? fmtPrice(stats.ev)+" G" : "—"} color="#ccc" />
+        <CaseStatCard label="ROI" value={stats.hasData ? (positive?"+":"")+stats.roi.toFixed(1)+"%" : "—"} color={positive?"#4caf50":"#ef5350"} />
+        <CaseStatCard label="Profit Chance" value={stats.hasData ? stats.profitProb.toFixed(2)+"%" : "—"} color="#ffb74d" />
+      </div>
+
+      <CaseOddsTable kase={kase} />
+
+      {stats.hasData && (
+        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20 }}>
+          <div style={{ background:"rgba(76,175,80,0.08)",border:"1px solid rgba(76,175,80,0.25)",borderRadius:12,padding:14 }}>
+            <div style={{ fontSize:11,color:"#4caf50",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6 }}>🏆 Best Possible Pull</div>
+            <div style={{ fontSize:13,fontWeight:700,color:"#fff" }}>{stats.best.name}</div>
+            <div style={{ fontSize:12,color:"#888",fontFamily:"monospace" }}>{fmtPrice(stats.best.price)} G · {stats.best.chance.toFixed(4)}% chance</div>
+          </div>
+          <div style={{ background:"rgba(239,83,80,0.06)",border:"1px solid rgba(239,83,80,0.2)",borderRadius:12,padding:14 }}>
+            <div style={{ fontSize:11,color:"#ef5350",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6 }}>Floor Pull</div>
+            <div style={{ fontSize:13,fontWeight:700,color:"#fff" }}>{stats.worst.name}</div>
+            <div style={{ fontSize:12,color:"#888",fontFamily:"monospace" }}>{fmtPrice(stats.worst.price)} G · {stats.worst.chance.toFixed(2)}% chance</div>
+          </div>
+        </div>
+      )}
+
+      {stats.hasData && (
+        <React.Fragment>
+          <div style={{ fontSize:13,fontWeight:700,color:"#fff",marginBottom:10 }}>Possible Items ({stats.flatPulls.length})</div>
+          <div style={{ display:"flex",flexDirection:"column",gap:6,maxHeight:420,overflowY:"auto" }}>
+            {stats.flatPulls.map(function(it,i){return(
+              <div key={i} style={{ display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:8 }}>
+                <span style={{ fontSize:10,fontWeight:700,color:RC[it.rarity]||"#888",minWidth:70 }}>{it.rarity}</span>
+                <span style={{ fontSize:12,color:"#eee",flex:1 }}>{it.name}</span>
+                <span style={{ fontSize:11,color:"#888",fontFamily:"monospace" }}>{it.chance.toFixed(4)}%</span>
+                <span style={{ fontSize:12,color:"#ccc",fontFamily:"monospace",minWidth:70,textAlign:"right" }}>{fmtPrice(it.price)} G</span>
+              </div>
+            )})}
+          </div>
+        </React.Fragment>
+      )}
+
+      {showSim && <CaseSimulator kase={kase} stats={stats} onClose={function(){setShowSim(false)}} />}
+    </div>
+  );
+}
+
+function CaseRow({ kase, onOpen }) {
+  var stats = React.useMemo(function(){ return computeCaseStats(kase); }, [kase]);
+  var positive = stats.roi >= 0;
+  return (
+    <div onClick={function(){onOpen(kase)}} style={{ display:"flex",alignItems:"center",gap:16,padding:"14px 16px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,cursor:"pointer",marginBottom:8 }}>
+      <div style={{ flex:1,minWidth:0 }}>
+        <div style={{ fontSize:14,fontWeight:700,color:"#fff",marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{kase.name}</div>
+        <div style={{ fontSize:11,color:"#666" }}>{kase.type} · {kase.collection}</div>
+      </div>
+      <div style={{ textAlign:"right",minWidth:80 }}>
+        <div style={{ fontSize:11,color:"#555",textTransform:"uppercase",letterSpacing:"0.05em" }}>Price</div>
+        <div style={{ fontSize:13,fontWeight:700,color:"#ccc",fontFamily:"monospace" }}>{fmtPrice(kase.price)} G</div>
+      </div>
+      <div style={{ textAlign:"right",minWidth:80 }}>
+        <div style={{ fontSize:11,color:"#555",textTransform:"uppercase",letterSpacing:"0.05em" }}>EV</div>
+        <div style={{ fontSize:13,fontWeight:700,color:"#ccc",fontFamily:"monospace" }}>{stats.hasData ? fmtPrice(stats.ev)+" G" : "—"}</div>
+      </div>
+      <div style={{ textAlign:"right",minWidth:90 }}>
+        <div style={{ fontSize:11,color:"#555",textTransform:"uppercase",letterSpacing:"0.05em" }}>ROI</div>
+        <div style={{ fontSize:14,fontWeight:800,color:stats.hasData?(positive?"#4caf50":"#ef5350"):"#555",fontFamily:"monospace" }}>{stats.hasData ? (positive?"+":"")+stats.roi.toFixed(1)+"%" : "—"}</div>
+      </div>
+      <div style={{ textAlign:"right",minWidth:90 }}>
+        <div style={{ fontSize:11,color:"#555",textTransform:"uppercase",letterSpacing:"0.05em" }}>Profit Chance</div>
+        <div style={{ fontSize:13,fontWeight:700,color:"#ffb74d",fontFamily:"monospace" }}>{stats.hasData ? stats.profitProb.toFixed(2)+"%" : "—"}</div>
+      </div>
+    </div>
+  );
+}
+
+function CasesPanel({ lang }) {
+  var [view, setView] = React.useState("list");
+  var [selected, setSelected] = React.useState(null);
+  var [sortBy, setSortBy] = React.useState("roi");
+  var [search, setSearch] = React.useState("");
+  var [typeFilter, setTypeFilter] = React.useState("All");
+
+  var cases = window.CASES || [];
+  var dynamicTypes = ["All"].concat(Array.from(new Set(cases.map(function(c){return c.type}))).sort());
+
+  var sorted = React.useMemo(function() {
+    var filtered = cases.filter(function(k){
+      if (search && k.name.toLowerCase().indexOf(search.toLowerCase())===-1) return false;
+      if (typeFilter !== "All" && k.type !== typeFilter) return false;
+      return true;
+    });
+    var withStats = filtered.map(function(k){ return { k:k, s:computeCaseStats(k) }; });
+    withStats.sort(function(a,b){
+      if (sortBy==="roi") return (b.s.hasData?b.s.roi:-999) - (a.s.hasData?a.s.roi:-999);
+      if (sortBy==="roi-asc") return (a.s.hasData?a.s.roi:999) - (b.s.hasData?b.s.roi:999);
+      if (sortBy==="price") return b.k.price - a.k.price;
+      if (sortBy==="profit") return (b.s.hasData?b.s.profitProb:-1) - (a.s.hasData?a.s.profitProb:-1);
+      return 0;
+    });
+    return withStats.map(function(x){return x.k});
+  }, [cases, sortBy, search, typeFilter]);
+
+  if (view === "detail" && selected) {
+    return <CaseDetailView kase={selected} onBack={function(){setView("list")}} />;
+  }
+
+  return (
+    <div style={{ padding:28 }}>
+      <h2 style={{ margin:"0 0 6px",fontSize:22,fontWeight:800,color:"#fff" }}>📦 Cases &amp; Crates</h2>
+      <p style={{ margin:"0 0 20px",fontSize:13,color:"#666" }}>ROI, expected value, and a free simulator using real in-game odds. Item pools and prices are pulled live from current market data.</p>
+
+      <div style={{ display:"flex",gap:8,marginBottom:16,flexWrap:"wrap",alignItems:"center" }}>
+        <input type="text" placeholder="Search cases..." value={search} onChange={function(e){setSearch(e.target.value)}} style={{ flex:1,minWidth:160,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"9px 14px",color:"#eee",fontSize:13,outline:"none" }} />
+        <select value={typeFilter} onChange={function(e){setTypeFilter(e.target.value)}} style={{ background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"9px 10px",color:"#ccc",fontSize:13,cursor:"pointer" }}>
+          {dynamicTypes.map(function(t){return <option key={t} value={t}>{t}</option>})}
+        </select>
+        {[["roi","Best ROI"],["roi-asc","Worst ROI"],["profit","Profit Chance"],["price","Price"]].map(function(opt){return(
+          <button key={opt[0]} onClick={function(){setSortBy(opt[0])}} style={{ padding:"8px 12px",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",border:sortBy===opt[0]?"1px solid #ff6b35":"1px solid rgba(255,255,255,0.1)",background:sortBy===opt[0]?"rgba(255,107,53,0.15)":"rgba(255,255,255,0.03)",color:sortBy===opt[0]?"#ff6b35":"#aaa" }}>{opt[1]}</button>
+        )})}
+      </div>
+
+      <div style={{ fontSize:11,color:"#444",marginBottom:10 }}>{sorted.length.toLocaleString()} case{sorted.length!==1?"s":""}</div>
+
+      {sorted.map(function(k){return <CaseRow key={k.name} kase={k} onOpen={function(kase){setSelected(kase); setView("detail")}} />})}
+      {sorted.length===0 && <div style={{ color:"#555",fontSize:14,textAlign:"center",padding:"40px 0" }}>No cases found</div>}
+    </div>
+  );
+}
+
 function AllowancePanel({ user, tier }) {
   var allowance = ALLOWANCE_DAILY[tier];
   var color     = ALLOWANCE_COLORS[tier] || "#888";
@@ -3541,7 +3856,7 @@ function App() {
       </div>
 
       <div className="s2-tabs" style={{ display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"collection",label:"📊 Collection"},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"allowance",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
+        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"cases",label:"📦 Cases"},{id:"collection",label:"📊 Collection"},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"allowance",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
           <button key={t.id} onClick={function(){setTab(t.id)}} style={{ padding:"12px 24px",background:tab===t.id?"rgba(255,255,255,0.05)":"transparent",border:"none",borderBottom:tab===t.id?"2px solid #ff6b35":"2px solid transparent",color:tab===t.id?"#fff":"#666",fontSize:13,fontWeight:600,cursor:"pointer",letterSpacing:"0.03em" }}>{t.label}</button>
         )})}
       </div>
@@ -3561,6 +3876,8 @@ function App() {
       )}
 
       
+
+      {tab === "cases" && <CasesPanel lang={lang} />}
 
       {tab === "players" && <PlayerTrackerPanel user={user} tier={tier} setTab={setTab} />}
 
@@ -3632,10 +3949,12 @@ root.render(<App />);
   (function() {
     Promise.all([
       fetch('/items.json').then(function(r){ return r.json(); }),
-      fetch('/collections.json').then(function(r){ return r.json(); })
+      fetch('/collections.json').then(function(r){ return r.json(); }),
+      fetch('/cases.json').then(function(r){ return r.json(); }).catch(function(){ return {cases:[]}; })
     ]).then(function(data) {
       window.ITEMS = data[0];
       window.ITEM_COLLECTIONS = data[1];
+      window.CASES = (data[2] && data[2].cases) || [];
       var src = document.getElementById('app-source').textContent;
       var result = Babel.transform(src, { plugins: [['transform-react-jsx', { runtime: 'classic' }]] });
       var script = document.createElement('script');
