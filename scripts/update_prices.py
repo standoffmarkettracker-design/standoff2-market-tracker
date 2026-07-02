@@ -52,6 +52,12 @@ def is_valid_name(name: str) -> bool:
         return False
     if name.count("  ") > 2:
         return False
+    # Reject names with an odd number of double-quote characters -- this is
+    # the signature of a mangled apostrophe (e.g. Horseman's -> Horseman"s)
+    # picked up by DOM/text scraping, which otherwise creates a corrupted
+    # near-duplicate of an existing item.
+    if name.count('"') % 2 != 0:
+        return False
     return True
 
 def load_json(path):
