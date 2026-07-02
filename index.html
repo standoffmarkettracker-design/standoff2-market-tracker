@@ -3131,15 +3131,36 @@ var ALLOWANCE_COLORS = { "Basic": "#4fc3f7", "VIP": "#ce93d8", "VIP+": "#ffd700"
 // ============================================================
 var CASE_TIER_ORDER = ["Common","Uncommon","Rare","Epic","Legendary","Arcane","Nameless"];
 
+var CASE_TYPE_ALLOWED_ITEMTYPES = {
+  "Graffiti Pack": ["Graffiti"],
+  "Sticker Pack": ["Sticker"],
+  "Major 2024 Sticker Pack": ["Sticker"],
+  "Charm Pack": ["Charm"],
+  "Charms": ["Charm"],
+  "Gloves Case": ["Gloves"],
+  "Knife Case": ["Knife"],
+  "Weapon Case": ["Weapon Skin","Knife"],
+  "Weapon Crate": ["Weapon Skin","Knife"],
+  "Weapon Box": ["Weapon Skin","Knife"],
+  "Case": ["Weapon Skin","Knife"],
+  "Event Case": ["Weapon Skin","Knife"],
+  "Event Crate": ["Weapon Skin","Knife"],
+  "Tactical Box": ["Weapon Skin","Knife"],
+  "Box": ["Weapon Skin","Knife"],
+  "Gift Box": ["Weapon Skin","Knife"],
+  "Gift Case": ["Weapon Skin","Knife"],
+};
+
 function computeCaseStats(kase) {
   var ev = 0, profitProb = 0;
   var flatPulls = [];
   var tierKeys = Object.keys(kase.tiers || {});
+  var allowedTypes = CASE_TYPE_ALLOWED_ITEMTYPES[kase.type] || ["Weapon Skin","Knife"];
   for (var t = 0; t < tierKeys.length; t++) {
     var tier = tierKeys[t];
     var tierPct = (kase.tiers[tier].total || 0) / 100;
     var pool = ITEMS.filter(function(i) {
-      return ITEM_COLLECTIONS[i.name] === kase.collection && i.rarity === tier && i.price > 0;
+      return ITEM_COLLECTIONS[i.name] === kase.collection && i.rarity === tier && i.price > 0 && allowedTypes.indexOf(i.type) !== -1;
     });
     if (pool.length === 0) continue;
     var perItemChance = tierPct / pool.length;
