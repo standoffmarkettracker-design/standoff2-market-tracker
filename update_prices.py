@@ -122,6 +122,20 @@ def fetch_catalog(session, nonce):
 def apply_updates(catalog, today):
     """Update items.json and price history files."""
     items = json.loads((ROOT / "items.json").read_text())
+
+    # Safety: dedupe by name in case items.json ever contains repeated entries
+    seen_names = set()
+    deduped_items = []
+    dupes_found = 0
+    for it in items:
+        if it["name"] in seen_names:
+            dupes_found += 1
+            continue
+        seen_names.add(it["name"])
+        deduped_items.append(it)
+    if dupes_found:
+        print(f"  WARNING: removed {dupes_found} duplicate item(s) from items.json")
+    items = deduped_items
     hist1 = json.loads((ROOT / "price_history_real_1.json").read_text())
     hist2 = json.loads((ROOT / "price_history_real_2.json").read_text())
 
