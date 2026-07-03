@@ -3124,76 +3124,37 @@ var ALLOWANCE_DAILY = { "Basic": 10, "VIP": 67, "VIP+": 200 };
 var ALLOWANCE_COLORS = { "Basic": "#4fc3f7", "VIP": "#ce93d8", "VIP+": "#ffd700" };
 
 // ============================================================
-// Cases & Crates: ROI/EV explorer + free simulator using real
-// in-game odds. Case contents are derived live from ITEMS +
-// ITEM_COLLECTIONS (matched by collection + rarity tier), so
-// prices always reflect the current market automatically.
+// Cases & Crates: ROI/EV explorer + free simulator.
+// Each case's items are embedded directly in cases.json, per
+// tier, reconciled from real in-game data against live prices —
+// NOT derived from collection+rarity (that approach was tried
+// and produced inaccurate pools; this reads exact curated lists).
+// Prices refresh live via casePriceLookup() against ITEMS.
 // ============================================================
 var CASE_TIER_ORDER = ["Common","Uncommon","Rare","Epic","Legendary","Arcane","Nameless"];
 
-var CASE_TYPE_ALLOWED_ITEMTYPES = {
-  "Graffiti Pack": ["Graffiti Pack","Graffiti"],
-  "Sticker Pack": ["Sticker"],
-  "Major 2024 Sticker Pack": ["Sticker"],
-  "Charm Pack": ["Charm"],
-  "Charms": ["Charm"],
-  "Gloves Case": ["Gloves"],
-  "Knife Case": ["Knife"],
-  "Weapon Case": ["Weapon Skin","Knife"],
-  "Weapon Crate": ["Weapon Skin","Knife"],
-  "Weapon Box": ["Weapon Skin","Knife"],
-  "Case": ["Weapon Skin","Knife"],
-  "Event Case": ["Weapon Skin","Knife"],
-  "Event Crate": ["Weapon Skin","Knife"],
-  "Tactical Box": ["Weapon Skin","Knife"],
-  "Box": ["Weapon Skin","Knife"],
-  "Gift Box": ["Weapon Skin","Knife"],
-  "Gift Case": ["Weapon Skin","Knife"],
-};
-
-var UNRELIABLE_RARITY_TYPES = {"Graffiti Pack":1,"Sticker Pack":1,"Major 2024 Sticker Pack":1,"Charm Pack":1,"Charms":1,"Gloves Case":1,"Knife Case":1};
+function casePriceLookup(name) {
+  var hit = ITEMS.find(function(i){ return i.name === name; });
+  return hit ? hit.price : null;
+}
 
 function computeCaseStats(kase) {
   var ev = 0, profitProb = 0;
   var flatPulls = [];
   var tierKeys = Object.keys(kase.tiers || {});
-  var allowedTypes = CASE_TYPE_ALLOWED_ITEMTYPES[kase.type] || ["Weapon Skin","Knife"];
-
-  if (UNRELIABLE_RARITY_TYPES[kase.type]) {
-    var flatPool = ITEMS.filter(function(i) {
-      return ITEM_COLLECTIONS[i.name] === kase.collection && i.price > 0 && allowedTypes.indexOf(i.type) !== -1;
-    });
-    if (flatPool.length > 0) {
-      var evenChance = 100 / flatPool.length;
-      for (var f = 0; f < flatPool.length; f++) {
-        var fi = flatPool[f];
-        ev += fi.price * (evenChance/100);
-        if (fi.price > kase.price) profitProb += evenChance;
-        flatPulls.push({ name: fi.name, price: fi.price, rarity: fi.rarity, chance: evenChance });
-      }
-    }
-    flatPulls.sort(function(a,b){ return b.price - a.price; });
-    var roi0 = kase.price > 0 ? ((ev - kase.price) / kase.price) * 100 : 0;
-    return {
-      ev: ev, roi: roi0, profitProb: profitProb, flatPulls: flatPulls,
-      best: flatPulls[0], worst: flatPulls[flatPulls.length - 1],
-      hasData: flatPulls.length > 0,
-    };
-  }
-
   for (var t = 0; t < tierKeys.length; t++) {
     var tier = tierKeys[t];
     var tierPct = (kase.tiers[tier].total || 0) / 100;
-    var pool = ITEMS.filter(function(i) {
-      return ITEM_COLLECTIONS[i.name] === kase.collection && i.rarity === tier && i.price > 0 && allowedTypes.indexOf(i.type) !== -1;
-    });
+    var pool = (kase.items && kase.items[tier]) || [];
     if (pool.length === 0) continue;
     var perItemChance = tierPct / pool.length;
     for (var p = 0; p < pool.length; p++) {
       var item = pool[p];
-      ev += item.price * perItemChance;
-      if (item.price > kase.price) profitProb += perItemChance;
-      flatPulls.push({ name: item.name, price: item.price, rarity: tier, chance: perItemChance });
+      var livePrice = casePriceLookup(item.name);
+      var price = (livePrice !== null && livePrice !== undefined) ? livePrice : item.price;
+      ev += price * perItemChance;
+      if (price > kase.price) profitProb += perItemChance;
+      flatPulls.push({ name: item.name, price: price, rarity: tier, chance: perItemChance });
     }
   }
   flatPulls.sort(function(a,b){ return b.price - a.price; });
@@ -3280,12 +3241,6 @@ function CaseSimulator({ kase, stats, onClose }) {
           <button onClick={onClose} style={{ background:"rgba(255,255,255,0.06)",border:"none",borderRadius:8,width:32,height:32,color:"#aaa",cursor:"pointer",fontSize:16 }}>✕</button>
         </div>
 
-        {!stats.hasData && (
-          <div style={{ padding:14,borderRadius:10,background:"rgba(239,83,80,0.08)",border:"1px solid rgba(239,83,80,0.25)",color:"#ef5350",fontSize:12,marginBottom:16 }}>
-            No market items found for this case's collection yet — simulator unavailable until price data covers it.
-          </div>
-        )}
-
         <div style={{ position:"relative",height:104,background:"rgba(0,0,0,0.4)",borderRadius:12,overflow:"hidden",marginBottom:20,border:"1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ position:"absolute",left:"50%",top:0,bottom:0,width:3,background:"#ff6b35",zIndex:5,transform:"translateX(-50%)",boxShadow:"0 0 10px #ff6b35" }} />
           <div style={{ display:"flex",gap:10,padding:"10px 0 10px 210px",transform:"translateX("+offset+"px)",transition: spinning ? "transform 3.1s cubic-bezier(0.12,0.85,0.15,1)" : "none" }}>
@@ -3349,12 +3304,6 @@ function CaseDetailView({ kase, onBack }) {
         </div>
         <button onClick={function(){setShowSim(true)}} disabled={!stats.hasData} style={{ padding:"10px 20px",borderRadius:8,background:stats.hasData?"linear-gradient(135deg,#ff6b35,#f7931e)":"rgba(255,255,255,0.05)",border:"none",color:stats.hasData?"#fff":"#666",fontSize:13,fontWeight:700,cursor:stats.hasData?"pointer":"not-allowed" }}>🎰 Open in Simulator (Free)</button>
       </div>
-
-      {!stats.hasData && (
-        <div style={{ padding:14,borderRadius:10,background:"rgba(239,83,80,0.08)",border:"1px solid rgba(239,83,80,0.25)",color:"#ef5350",fontSize:12,marginBottom:20 }}>
-          No market items found under the "{kase.collection}" collection matching these tiers yet — EV/ROI unavailable for this case until price data covers it.
-        </div>
-      )}
 
       <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20 }}>
         <CaseStatCard label="Case Price" value={fmtPrice(kase.price)+" G"} color="#ccc" />
@@ -3464,7 +3413,7 @@ function CasesPanel({ lang }) {
   return (
     <div style={{ padding:28 }}>
       <h2 style={{ margin:"0 0 6px",fontSize:22,fontWeight:800,color:"#fff" }}>📦 Cases &amp; Crates</h2>
-      <p style={{ margin:"0 0 20px",fontSize:13,color:"#666" }}>ROI, expected value, and a free simulator using real in-game odds. Item pools and prices are pulled live from current market data.</p>
+      <p style={{ margin:"0 0 20px",fontSize:13,color:"#666" }}>ROI, expected value, and a free simulator using real in-game item lists. Prices refresh live from current market data.</p>
 
       <div style={{ display:"flex",gap:8,marginBottom:16,flexWrap:"wrap",alignItems:"center" }}>
         <input type="text" placeholder="Search cases..." value={search} onChange={function(e){setSearch(e.target.value)}} style={{ flex:1,minWidth:160,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"9px 14px",color:"#eee",fontSize:13,outline:"none" }} />
