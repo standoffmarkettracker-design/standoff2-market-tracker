@@ -3649,23 +3649,35 @@ function PlayerTrackerPanel({ user, tier, setTab }) {
   function handleSearch() {
     if (!searchQ.trim()) return;
     setSearching(true); setSearchErr(""); setFoundProfile(null);
-    db.ref("playerUsernames/" + searchQ.trim().toLowerCase()).once("value", function(snap) {
+    var searchTimedOut = false;
+    var timeoutId = setTimeout(function(){ searchTimedOut = true; setSearchErr("Search timed out. Please try again."); setSearching(false); }, 10000);
+    db.ref("playerUsernames/" + searchQ.trim().toLowerCase()).once("value").then(function(snap) {
+      if (searchTimedOut) return;
       var uid = snap.val();
-      if (!uid) { setSearchErr("Player not found. They may not have set up a Player Tracker profile yet."); setSearching(false); return; }
-      db.ref("playerProfiles/" + uid).once("value", function(psnap) {
+      if (!uid) { clearTimeout(timeoutId); setSearchErr("Player not found. They may not have set up a Player Tracker profile yet."); setSearching(false); return; }
+      // Fetch profile, inventory, and value history in parallel instead of chained sequentially — cuts latency roughly 3x.
+      return Promise.all([
+        db.ref("playerProfiles/" + uid).once("value"),
+        db.ref("playerInventories/" + uid).once("value"),
+        db.ref("playerValueHistory/" + uid).orderByKey().limitToLast(30).once("value")
+      ]).then(function(results) {
+        if (searchTimedOut) return;
+        clearTimeout(timeoutId);
+        var psnap = results[0], isnap = results[1], vsnap = results[2];
         var profile = psnap.val();
         if (!profile || profile.public === false) { setSearchErr("This profile is set to private."); setSearching(false); return; }
-        db.ref("playerInventories/" + uid).once("value", function(isnap) {
-          var invData = isnap.val() || {};
-          var inv = Object.keys(invData).map(function(k) { return invData[k]; });
-          db.ref("playerValueHistory/" + uid).orderByKey().limitToLast(30).once("value", function(vsnap) {
-            var vdata = vsnap.val() || {};
-            var vpts = Object.keys(vdata).sort().map(function(d) { return { date: d, total: vdata[d] }; });
-            setFoundProfile({ profile: profile, inventory: inv, valueHistory: vpts });
-            setSearching(false);
-          });
-        });
+        var invData = isnap.val() || {};
+        var inv = Object.keys(invData).map(function(k) { return invData[k]; });
+        var vdata = vsnap.val() || {};
+        var vpts = Object.keys(vdata).sort().map(function(d) { return { date: d, total: vdata[d] }; });
+        setFoundProfile({ profile: profile, inventory: inv, valueHistory: vpts });
+        setSearching(false);
       });
+    }).catch(function(err) {
+      if (searchTimedOut) return;
+      clearTimeout(timeoutId);
+      setSearchErr("Something went wrong loading this profile. Please try again.");
+      setSearching(false);
     });
   }
 
