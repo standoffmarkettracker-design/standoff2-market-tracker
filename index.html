@@ -3654,7 +3654,7 @@ function PlayerTrackerPanel({ user, tier, setTab }) {
     db.ref("playerUsernames/" + searchQ.trim().toLowerCase()).once("value").then(function(snap) {
       if (searchTimedOut) return;
       var uid = snap.val();
-      if (!uid) { clearTimeout(timeoutId); setSearchErr("Player not found. They may not have set up a Player Tracker profile yet."); setSearching(false); return; }
+      if (!uid || typeof uid !== "string") { clearTimeout(timeoutId); setSearchErr("Player not found. They may not have set up a Player Tracker profile yet."); setSearching(false); return; }
       // Fetch profile, inventory, and value history in parallel instead of chained sequentially — cuts latency roughly 3x.
       return Promise.all([
         db.ref("playerProfiles/" + uid).once("value"),
@@ -3863,7 +3863,7 @@ function App() {
       </div>
 
       <div className="s2-tabs" style={{ display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"cases",label:"📦 Cases"},{id:"collection",label:"📊 Collection"},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"allowance",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
+        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"collection",label:"📊 Collection"},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"allowance",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
           <button key={t.id} onClick={function(){setTab(t.id)}} style={{ padding:"12px 24px",background:tab===t.id?"rgba(255,255,255,0.05)":"transparent",border:"none",borderBottom:tab===t.id?"2px solid #ff6b35":"2px solid transparent",color:tab===t.id?"#fff":"#666",fontSize:13,fontWeight:600,cursor:"pointer",letterSpacing:"0.03em" }}>{t.label}</button>
         )})}
       </div>
@@ -3883,8 +3883,6 @@ function App() {
       )}
 
       
-
-      {tab === "cases" && <CasesPanel lang={lang} />}
 
       {tab === "players" && <PlayerTrackerPanel user={user} tier={tier} setTab={setTab} />}
 
