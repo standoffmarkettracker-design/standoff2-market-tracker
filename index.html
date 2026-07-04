@@ -18,12 +18,18 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Standoff 2 Market Tracker">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://standoff2markettracker.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Standoff 2 Market Tracker - Real-time skin prices and investment tools">
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Standoff 2 Market Tracker — Live Skin Prices & Investment Tools">
 <meta name="twitter:description" content="Track 2,354+ Standoff 2 item prices in real-time. Price history, best investments, collection trends and portfolio tracking.">
 <meta name="twitter:site" content="@standoff2market">
+<meta name="twitter:image" content="https://standoff2markettracker.com/og-image.png">
+<meta name="twitter:image:alt" content="Standoff 2 Market Tracker - Live skin prices &amp; investment tools">
 
 <!-- JSON-LD Structured Data -->
 <script type="application/ld+json">
@@ -53,7 +59,7 @@
 </script>
 
 <meta name="google-site-verification" content="3p7EEBnVYfGOeNCD6eOAOtxv5QUNujVRQJUFMDU-P3Y" />
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 74'%3E%3Cdefs%3E%3ClinearGradient id='sg' x1='0' y1='0' x2='0.3' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ff8a47'/%3E%3Cstop offset='100%25' stop-color='%23e85d15'/%3E%3C/linearGradient%3E%3ClinearGradient id='ig' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%231a1a20'/%3E%3Cstop offset='100%25' stop-color='%2312121a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M32 2 L58 10 L60 30 Q60 60 32 72 Q4 60 4 30 L6 10 Z' fill='url(%23sg)'/%3E%3Cpath d='M32 7 L54 14 L56 30 Q56 56 32 67 Q8 56 8 30 L10 14 Z' fill='url(%23ig)'/%3E%3Ctext x='32' y='42' font-family='Arial' font-weight='900' font-size='22' fill='white' text-anchor='middle' dominant-baseline='central'%3ES2%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 74'%3E%3Cdefs%3E%3ClinearGradient id='og' x1='0' y1='0' x2='0.4' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ff9d5c'/%3E%3Cstop offset='60%25' stop-color='%23ff6b35'/%3E%3Cstop offset='100%25' stop-color='%23c94a10'/%3E%3C/linearGradient%3E%3ClinearGradient id='ig' x1='0' y1='0' x2='0.2' y2='1'%3E%3Cstop offset='0%25' stop-color='%23211810'/%3E%3Cstop offset='100%25' stop-color='%230f0a06'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M32 2 L58 10 L60 30 Q60 62 32 73 Q4 62 4 30 L6 10 Z' fill='url(%23og)'/%3E%3Cpath d='M32 7 L54 14 L56 30 Q56 58 32 68 Q8 58 8 30 L10 14 Z' fill='url(%23ig)'/%3E%3Crect x='15' y='14' width='34' height='3' rx='1.5' fill='%23ff6b35' opacity='0.9'/%3E%3Ctext x='32' y='43' font-family='Arial Black%2CArial' font-weight='900' font-size='24' fill='%23ff6b35' text-anchor='middle' dominant-baseline='central' opacity='0.3'%3ES2%3C/text%3E%3Ctext x='32' y='43' font-family='Arial Black%2CArial' font-weight='900' font-size='24' fill='white' text-anchor='middle' dominant-baseline='central'%3ES2%3C/text%3E%3C/svg%3E">
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -3522,7 +3528,7 @@ function AllowancePanel({ user, tier }) {
       {/* How it works */}
       <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, padding:20 }}>
         <div style={{ color:"#555", fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:16 }}>How it works</div>
-        {[["Click Claim","We assign you a cheap skin and a unique listing price."],["List the skin","List it on the Standoff 2 marketplace at the exact price shown."],["Submit","Enter your in-game username and submit your claim."],["Gold arrives","Our bot finds your listing, buys it, and sends your full allowance instantly."]].map(function(step,i) {
+        {[["Click Claim","We assign you a cheap skin and a unique listing price."],["List the skin","List it on the Standoff 2 marketplace at the exact price shown."],["Submit","Enter your username, attach a screenshot of your market listing, then submit."],["Gold arrives","Our bot finds your listing, buys it, and sends your full allowance instantly."]].map(function(step,i) {
           return (
             <div key={i} style={{ display:"flex", gap:12, marginBottom: i<3?14:0, alignItems:"flex-start" }}>
               <div style={{ width:20, height:20, borderRadius:5, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", justifyContent:"center", color:"#555", fontSize:11, fontWeight:700, flexShrink:0, marginTop:2 }}>{i+1}</div>
@@ -3538,14 +3544,26 @@ function AllowancePanel({ user, tier }) {
 }
 
 function AllowanceModal({ user, tier, allowance, color, onClose }) {
-  var [step,      setStep]      = React.useState("instructions");
-  var [username,  setUsername]  = React.useState("");
-  var [errMsg,    setErrMsg]    = React.useState("");
+  var [step,        setStep]        = React.useState("instructions");
+  var [username,    setUsername]    = React.useState("");
+  var [errMsg,      setErrMsg]      = React.useState("");
+  var [screenshot,  setScreenshot]  = React.useState(null);
+  var [screenshotPreview, setScreenshotPreview] = React.useState(null);
+  var fileInputRef = React.useRef(null);
   var item      = React.useRef(ALLOWANCE_ITEMS[Math.floor(Math.random()*ALLOWANCE_ITEMS.length)]).current;
   var listPrice = React.useRef(parseFloat((allowance + 0.12 + Math.random()*0.75).toFixed(2))).current;
 
+  function handleFileChange(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    setScreenshot(file);
+    var reader = new FileReader();
+    reader.onload = function(ev) { setScreenshotPreview(ev.target.result); };
+    reader.readAsDataURL(file);
+  }
+
   function handleSubmit() {
-    if (!username.trim()) return;
+    if (!username.trim() || !screenshot) return;
     setStep("submitting");
     db.ref("allowanceClaims/" + user.uid).set({
       uid: user.uid, displayName: user.displayName||"", email: user.email||"",
@@ -3553,22 +3571,27 @@ function AllowanceModal({ user, tier, allowance, color, onClose }) {
       itemName: item, listPrice: listPrice, status: "pending",
       createdAt: new Date().toISOString(), claimDate: new Date().toISOString().slice(0,10),
     }).then(function() {
-      fetch("https://discord.com/api/webhooks/1521212880614330488/whaIWiT5y7FbVYQ93k0TwHtbPljg5CxdG8vwr8J9s6vbWTturZluUyKhHTNKcL0Ytzj5", {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({embeds:[{
-          title:"New Gold Claim",
-          color:0xFFD700,
-          fields:[
-            {name:"Seller",value:username.trim(),inline:true},
-            {name:"Tier",value:tier,inline:true},
-            {name:"Gold",value:allowance+" G",inline:true},
-            {name:"Item",value:item,inline:false},
-            {name:"List Price",value:listPrice.toFixed(2)+" G",inline:true},
-          ],
-          description:"Open BlueStacks and buy this listing, then mark complete.",
-          timestamp:new Date().toISOString()
-        }]})
-      }).catch(function(){});
+      var payload = {embeds:[{
+        title:"New Gold Claim",
+        color:0xFFD700,
+        fields:[
+          {name:"Seller",value:username.trim(),inline:true},
+          {name:"Tier",value:tier,inline:true},
+          {name:"Gold",value:allowance+" G",inline:true},
+          {name:"Item",value:item,inline:false},
+          {name:"List Price",value:listPrice.toFixed(2)+" G",inline:true},
+        ],
+        description:"Screenshot attached below. Verify listing then mark complete in admin.",
+        timestamp:new Date().toISOString()
+      }]};
+      var ext = (screenshot.name.match(/\.[a-zA-Z0-9]+$/) || [".png"])[0];
+      var fd = new FormData();
+      fd.append("payload_json", JSON.stringify(payload));
+      fd.append("files[0]", screenshot, "market-screenshot" + ext);
+      return fetch("https://discord.com/api/webhooks/1521212880614330488/whaIWiT5y7FbVYQ93k0TwHtbPljg5CxdG8vwr8J9s6vbWTturZluUyKhHTNKcL0Ytzj5", {
+        method:"POST", body: fd
+      });
+    }).then(function() {
       setStep("submitted");
     }).catch(function(e) {
       setErrMsg(e.message); setStep("error");
@@ -3599,9 +3622,20 @@ function AllowanceModal({ user, tier, allowance, color, onClose }) {
             </div>
             <div style={{ marginBottom:14 }}>
               <div style={{ color:"#555", fontSize:11, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Your in-game username</div>
-              <input value={username} onChange={function(e){setUsername(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")handleSubmit()}} placeholder="e.g. CamelS2" style={{ width:"100%", background:"rgba(0,0,0,0.3)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"11px 14px", color:"#eee", fontSize:14, outline:"none", fontFamily:"inherit" }} />
+              <input value={username} onChange={function(e){setUsername(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter"&&screenshot)handleSubmit()}} placeholder="e.g. CamelS2" style={{ width:"100%", background:"rgba(0,0,0,0.3)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"11px 14px", color:"#eee", fontSize:14, outline:"none", fontFamily:"inherit" }} />
             </div>
-            <button onClick={handleSubmit} disabled={!username.trim()} style={{ width:"100%", padding:"13px 0", background: username.trim()?"linear-gradient(135deg,"+color+"33,"+color+"18)":"rgba(255,255,255,0.03)", border:"1px solid "+(username.trim()?color+"88":"rgba(255,255,255,0.08)"), borderRadius:8, color:username.trim()?color:"#444", fontWeight:700, fontSize:14, cursor:username.trim()?"pointer":"not-allowed", letterSpacing:"0.05em" }}>
+            <div style={{ marginBottom:18 }}>
+              <div style={{ color:"#555", fontSize:11, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:8 }}>Market listing screenshot <span style={{ color:"#ff6b35", fontWeight:700 }}>*</span></div>
+              <div onClick={function(){ fileInputRef.current && fileInputRef.current.click(); }} style={{ border:"1px dashed "+(screenshot ? color+"99" : "rgba(255,255,255,0.12)"), borderRadius:8, padding:screenshotPreview ? "8px" : "22px 14px", textAlign:"center", cursor:"pointer", background:"rgba(0,0,0,0.2)" }}>
+                {screenshotPreview
+                  ? <img src={screenshotPreview} alt="screenshot preview" style={{ maxWidth:"100%", maxHeight:130, objectFit:"contain", borderRadius:6, display:"block", margin:"0 auto" }} />
+                  : <div><div style={{ fontSize:26, marginBottom:6 }}>&#x1F4F8;</div><div style={{ color:"#666", fontSize:13 }}>Tap to upload market listing screenshot</div><div style={{ color:"#444", fontSize:11, marginTop:4 }}>Must show the item listed at the exact price above</div></div>
+                }
+              </div>
+              {screenshot && <div style={{ fontSize:11, color:"#4ade8099", marginTop:6, textAlign:"center" }}>&#10003; {screenshot.name}</div>}
+              <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} style={{ display:"none" }} />
+            </div>
+            <button onClick={handleSubmit} disabled={!username.trim()||!screenshot} style={{ width:"100%", padding:"13px 0", background:(username.trim()&&screenshot)?"linear-gradient(135deg,"+color+"33,"+color+"18)":"rgba(255,255,255,0.03)", border:"1px solid "+((username.trim()&&screenshot)?color+"88":"rgba(255,255,255,0.08)"), borderRadius:8, color:(username.trim()&&screenshot)?color:"#444", fontWeight:700, fontSize:14, cursor:(username.trim()&&screenshot)?"pointer":"not-allowed", letterSpacing:"0.05em" }}>
               Submit Claim →
             </button>
           </div>
