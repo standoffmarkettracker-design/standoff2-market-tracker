@@ -1251,7 +1251,7 @@ function AuthLoggedIn({ user, onLogout }) {
           ) : (
             <div style={{ marginBottom:16 }}>
               <div style={{ fontSize:12, color:"#ef5350", marginBottom:8, padding:"6px 10px", background:"rgba(239,83,80,0.1)", borderRadius:6 }}>✗ Email not verified</div>
-              <button onClick={function(){user.sendEmailVerification().then(function(){alert("Verification email sent!")})}} style={{ padding:"6px 14px", borderRadius:6, background:"rgba(255,107,53,0.15)", border:"1px solid rgba(255,107,53,0.3)", color:"#ff6b35", fontSize:11, fontWeight:600, cursor:"pointer" }}>Resend Verification Email</button>
+              <button onClick={function(){user.sendEmailVerification().then(function(){alert("Verification email sent! Check your inbox and spam folder. If you already clicked the link, sign out and back in to refresh your status.")}).catch(function(e){alert(e&&e.code==="auth/too-many-requests"?"Too many requests — please wait a few minutes before trying again.":("Could not send email: "+(e&&e.message?e.message:"unknown error")))})}} style={{ padding:"6px 14px", borderRadius:6, background:"rgba(255,107,53,0.15)", border:"1px solid rgba(255,107,53,0.3)", color:"#ff6b35", fontSize:11, fontWeight:600, cursor:"pointer" }}>Resend Verification Email</button>
             </div>
           )}
           <button onClick={onLogout} style={{ padding:"10px 24px", borderRadius:8, background:"rgba(239,83,80,0.15)", border:"1px solid rgba(239,83,80,0.3)", color:"#ef5350", fontSize:13, fontWeight:600, cursor:"pointer" }}>Sign Out</button>
@@ -1344,14 +1344,14 @@ function AuthPanel({ user, onClose }) {
     firebase.auth().createUserWithEmailAndPassword(email, password)
       .then(function(cred) {
         return cred.user.updateProfile({ displayName: displayName }).then(function() {
+          return cred.user.sendEmailVerification();
+        }).then(function() {
           var uid = cred.user.uid;
           return Promise.all([
             db.ref("users/" + uid + "/name").set(displayName),
             db.ref("users/" + uid + "/email").set(email),
             db.ref("users/" + uid + "/joined").set(Date.now())
-          ]);
-        }).then(function() {
-          return cred.user.sendEmailVerification();
+          ]).catch(function(){});
         });
       })
       .then(function() {
@@ -1367,7 +1367,7 @@ function AuthPanel({ user, onClose }) {
     firebase.auth().signInWithEmailAndPassword(email, password)
       .then(function(cred) {
         if (!cred.user.emailVerified) {
-          cred.user.sendEmailVerification();
+          cred.user.sendEmailVerification().catch(function(){});
           firebase.auth().signOut();
           setError("Email not verified yet. We sent a new verification link â check your inbox and spam folder.");
           return;
@@ -3433,7 +3433,7 @@ function CasesPanel({ lang }) {
   );
 }
 
-function GoldPanel({ user, tier }) {
+function GoldPanel({ user, tier, setTab }) {
   var [goldTab, setGoldTab] = React.useState("buy");
   var tabs = [{id:"buy",label:"💳 Buy Gold"},{id:"earn",label:"💰 Earn Gold"}];
   return(
@@ -3444,12 +3444,12 @@ function GoldPanel({ user, tier }) {
           return(<div key={t.id} onClick={function(){setGoldTab(t.id);}} style={{padding:"12px 24px",cursor:"pointer",fontSize:13,fontWeight:active?600:400,color:active?"#fff":"#555",borderBottom:active?"2px solid #ff6b35":"2px solid transparent",marginBottom:-1,transition:"color 0.15s"}}>  {t.label}</div>);
         })}
       </div>
-      {goldTab==="buy" && <BuyGoldPanel user={user} tier={tier} />}
+      {goldTab==="buy" && <BuyGoldPanel user={user} tier={tier} setTab={setTab} />}
       {goldTab==="earn" && <AllowancePanel user={user} tier={tier} />}
     </div>
   );
 }
-function BuyGoldPanel({ user, tier }) {
+function BuyGoldPanel({ user, tier, setTab }) {
   var RATES = {Free:0.0075,Basic:0.0075,VIP:0.005,"VIP+":0.0035};
   var rate = RATES[tier] || 0.0075;
   var APPLE_DENOMS  = [5,10,15,25,50,100];
@@ -3485,7 +3485,7 @@ function BuyGoldPanel({ user, tier }) {
   if(step==="done")return(<div style={{maxWidth:560,margin:"0 auto",padding:"40px 28px",textAlign:"center"}}><div style={{fontSize:44,marginBottom:12}}>&#x2705;</div><div style={{fontSize:18,fontWeight:700,color:"#fff",marginBottom:8}}>Order submitted!</div><div style={{fontSize:14,color:"#888",marginBottom:20}}>Your order has been received. It may take a few hours to process — we'll reach out on Discord with instructions once it's ready.</div><div style={{background:"rgba(114,137,218,0.1)",border:"1px solid rgba(114,137,218,0.3)",borderRadius:10,padding:"14px 20px",marginBottom:20,textAlign:"center"}}><div style={{fontSize:12,color:"#7289da",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.06em"}}>Discord</div><div style={{fontSize:20,fontWeight:700,color:"#fff",fontFamily:"monospace"}}>camel5961</div><div style={{fontSize:11,color:"#555",marginTop:4}}>Message us to receive your gold delivery instructions</div></div><button onClick={function(){setStep("form");setGcCode("");}} style={{padding:"10px 28px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"#ccc",cursor:"pointer",fontSize:13}}>Place another order</button></div>);
   return(
     <div style={{maxWidth:560,margin:"0 auto",padding:"24px 16px",position:"relative"}}>
-      {!user&&<div style={{position:"absolute",inset:0,zIndex:10,borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"rgba(15,15,18,0.75)",backdropFilter:"blur(3px)",cursor:"default"}}><div style={{fontSize:28,marginBottom:8}}>&#x1F512;</div><div style={{fontSize:16,fontWeight:700,color:"#fff",marginBottom:6}}>Sign in to purchase gold</div><div style={{fontSize:13,color:"#999",marginBottom:18,textAlign:"center",padding:"0 32px"}}>Create a free account to get started.</div><button onClick={function(){window.__setTab&&window.__setTab("account");}} style={{padding:"11px 28px",background:"linear-gradient(135deg,rgba(255,193,7,0.2),rgba(255,193,7,0.08))",border:"1px solid rgba(255,193,7,0.6)",borderRadius:8,color:"#e6a800",fontWeight:700,fontSize:14,cursor:"pointer"}}>Sign in / Create account</button><div style={{marginTop:14,fontSize:12,color:"#555"}}>Need help? Discord: <span style={{color:"#7289da",fontWeight:500}}>camel5961</span></div></div>}
+      {!user&&<div style={{position:"absolute",inset:0,zIndex:10,borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"rgba(15,15,18,0.75)",backdropFilter:"blur(3px)",cursor:"default"}}><div style={{fontSize:28,marginBottom:8}}>&#x1F512;</div><div style={{fontSize:16,fontWeight:700,color:"#fff",marginBottom:6}}>Sign in to purchase gold</div><div style={{fontSize:13,color:"#999",marginBottom:18,textAlign:"center",padding:"0 32px"}}>Create a free account to get started.</div><button onClick={function(){setTab&&setTab("account");}} style={{padding:"11px 28px",background:"linear-gradient(135deg,rgba(255,193,7,0.2),rgba(255,193,7,0.08))",border:"1px solid rgba(255,193,7,0.6)",borderRadius:8,color:"#e6a800",fontWeight:700,fontSize:14,cursor:"pointer"}}>Sign in / Create account</button><div style={{marginTop:14,fontSize:12,color:"#555"}}>Need help? Discord: <span style={{color:"#7289da",fontWeight:500}}>camel5961</span></div></div>}
       <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"16px 20px",marginBottom:16}}>
         <div style={{fontSize:11,color:"#555",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:12}}>Gold rates by tier</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
@@ -4013,7 +4013,7 @@ function App() {
 
       {tab === "players" && <PlayerTrackerPanel user={user} tier={tier} setTab={setTab} />}
 
-      {tab === "gold" && <GoldPanel user={user} tier={tier} />}
+      {tab === "gold" && <GoldPanel user={user} tier={tier} setTab={setTab} />}
 
       {tab === "giveaways" && <GiveawaysTab user={user} tier={tier} />}
 
