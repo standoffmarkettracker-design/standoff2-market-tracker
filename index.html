@@ -1444,6 +1444,11 @@ var GIVEAWAY_PINNED = {
   biweekly: "AKR \"Twilight\" StatTrack",
   monthly: "Gloves \"Pink Noise\""
 };
+var GIVEAWAY_POOLS = {
+  weekly: ["Sticker \"Stay Tuned\" Shine","Sticker \"Bear Ambush\" Swap","Sticker \"Spy\" Reflex","Chibi \"Tundra Camo\"","Desert Eagle \"Razorwire\""],
+  biweekly: ["AKR \"Twilight\" StatTrack","Karambit \"Reis\"","Agent CT \"Hammer\"","Agent T \"Marco\"","Gloves \"Razorwire\""],
+  monthly: ["Gloves \"Pink Noise\"","M9 Bayonet \"Lincoln\"","M4 \"Dire Wolf\" StatTrack","AKR12 \"Speedrun\" StatTrack","Agent T \"Adam\""]
+};
 
 function getGiveawayItem(gType, overrideName) {
   var name = overrideName || GIVEAWAY_PINNED[gType];
@@ -1515,22 +1520,11 @@ function GiveawaysTab({ user, tier }) {
           if (basePrice > 0) {
             var maxAllowed = basePrice * 1.20;
             var pinned = GIVEAWAY_PINNED[g.type];
-            var pool = ITEMS.filter(function(i) {
-              if (!i.price || i.price <= 0) return false;
-              if (i.name === pinned) return false;
-              return Math.abs(i.price - basePrice) / basePrice <= 0.05 && i.price <= maxAllowed;
-            });
-            if (pool.length === 0) {
-              pool = ITEMS.filter(function(i) {
-                if (!i.price || i.price <= 0) return false;
-                if (i.name === pinned) return false;
-                return Math.abs(i.price - basePrice) / basePrice <= 0.15 && i.price <= maxAllowed;
-              });
-            }
-            if (pool.length > 0) {
-              var next = pool[Math.floor(Math.random() * pool.length)];
-              db.ref("giveaways/" + g.type + "/item").set(next.name);
-            }
+            var curatedPool = GIVEAWAY_POOLS[g.type] || [];
+            var curIdx = curatedPool.indexOf(pinned);
+            var nextName = curatedPool[(curIdx + 1) % curatedPool.length] || pinned;
+            GIVEAWAY_PINNED[g.type] = nextName;
+            db.ref("giveaways/" + g.type + "/item").set(nextName);
           }
         }
       }
