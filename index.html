@@ -78,6 +78,9 @@
     appId: "1:576315107843:web:452af4251cfc60fd2b3c36"
   });
   var db = firebase.database();
+// Funnel analytics: per-session-deduped daily counters in RTDB
+window.SO2A = { seen:{}, track:function(ev){ try{ var d=new Date().toISOString().slice(0,10); if(SO2A.seen[ev])return; SO2A.seen[ev]=1; db.ref('analytics/funnel/'+d+'/'+ev).transaction(function(c){ return (c||0)+1; }); }catch(e){} } };
+SO2A.track('visit');
 </script>
 <style>
 body{margin:0;background:#0f0f12}
@@ -1709,6 +1712,25 @@ function GiveawayWinnersAdmin() {
 }
 
 
+function FunnelStats(){
+  var [data,setData]=React.useState(null);
+  React.useEffect(function(){ db.ref('analytics/funnel').limitToLast(7).once('value',function(snap){ setData(snap.val()||{}); }); },[]);
+  var EVENTS=['visit','gold_tab','buy_panel_open','method_selected','checkout_submit','guest_signin_redirect','order_created'];
+  if(!data) return null;
+  var days=Object.keys(data).sort();
+  return (
+    <div style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'16px 20px',marginBottom:20}}>
+      <div style={{fontSize:12,color:'#888',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10}}>Gold funnel (last 7 days)</div>
+      <div style={{overflowX:'auto'}}>
+      <table style={{width:'100%',fontSize:12,color:'#ccc',borderCollapse:'collapse'}}>
+        <thead><tr><th style={{textAlign:'left',padding:'4px 8px',color:'#666'}}>Day</th>{EVENTS.map(function(e){return <th key={e} style={{textAlign:'right',padding:'4px 8px',color:'#666'}}>{e.replace(/_/g,' ')}</th>;})}</tr></thead>
+        <tbody>{days.map(function(d){return <tr key={d}><td style={{padding:'4px 8px',color:'#888'}}>{d.slice(5)}</td>{EVENTS.map(function(e){return <td key={e} style={{textAlign:'right',padding:'4px 8px'}}>{(data[d]&&data[d][e])||0}</td>;})}</tr>;})}</tbody>
+      </table>
+      </div>
+    </div>
+  );
+}
+
 function AdminPanel({ user }) {
   const [authed, setAuthed] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -1785,6 +1807,7 @@ function AdminPanel({ user }) {
         <h2 style={{ margin:0,fontSize:22,fontWeight:800,color:"#fff" }}>Admin Panel</h2>
         <span style={{ fontSize:12,color:"#555" }}>{users.length} users</span>
       </div>
+        <FunnelStats />
 
       <AdminTabs />
     </div>
@@ -3462,6 +3485,7 @@ function BuyGoldPanel({ user, tier, setTab }) {
   var [username,setUsername] = React.useState(user?user.displayName||"":"");
   var [step,setStep] = React.useState("form");
   var [copied,setCopied] = React.useState(false);
+    React.useEffect(function(){ SO2A.track('buy_panel_open'); }, []);
   var isCard=method==="apple"||method==="google";
   var isKofi=method==="kofi";
   var isDirect=method==="cashapp"||method==="venmo";
@@ -3469,7 +3493,10 @@ function BuyGoldPanel({ user, tier, setTab }) {
   var gcGold=Math.round(gcDenom/rate);
   function copyHandle(){navigator.clipboard.writeText(HANDLES[method]||"").catch(function(){});setCopied(true);setTimeout(function(){setCopied(false);},1500);}
   function canSubmit(){if(!username.trim())return false;if(isCard)return gcCode.trim().length>=8;return true;}
+    var __ready = user ? canSubmit() : true;
   function handleSubmit(){
+      if(!user){ SO2A.track('guest_signin_redirect'); if(setTab) setTab('account'); return; }
+      SO2A.track('checkout_submit');
     if(!canSubmit())return;
     setStep("submitting");
     var ml={cashapp:"Cash App ($jamesmoney192)",venmo:"Venmo (@Standoff2Tracker)",kofi:"Ko-fi / PayPal",apple:"Apple Gift Card",google:"Google Play Gift Card"}[method];
@@ -3479,13 +3506,13 @@ function BuyGoldPanel({ user, tier, setTab }) {
     var payload={embeds:[{title:"New Gold Purchase",color:0xFFD700,fields:fields,description:isCard?"Gift card code above - redeem and credit "+gcGold.toLocaleString()+" G to the user.":"Verify payment received then send "+directAmt+" G in-game.",timestamp:new Date().toISOString()}]};
     fetch("https://discord.com/api/webhooks/1521212880614330488/whaIWiT5y7FbVYQ93k0TwHtbPljg5CxdG8vwr8J9s6vbWTturZluUyKhHTNKcL0Ytzj5",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(function(){
       if(user){db.ref("goldPurchases/"+user.uid+"/"+Date.now()).set({uid:user.uid,username:username.trim(),tier:tier||"Basic",method:method,status:"pending",amount:isCard?gcGold:directAmt,gcCode:isCard?gcCode.trim():null,createdAt:new Date().toISOString()});}
+        SO2A.track('order_created');
       setStep("done");
     }).catch(function(){setStep("error");});
   }
   if(step==="done")return(<div style={{maxWidth:560,margin:"0 auto",padding:"40px 28px",textAlign:"center"}}><div style={{fontSize:44,marginBottom:12}}>&#x2705;</div><div style={{fontSize:18,fontWeight:700,color:"#fff",marginBottom:8}}>Order submitted!</div><div style={{fontSize:14,color:"#888",marginBottom:20}}>Your order has been received. It may take a few hours to process — we'll reach out on Discord with instructions once it's ready.</div><div style={{background:"rgba(114,137,218,0.1)",border:"1px solid rgba(114,137,218,0.3)",borderRadius:10,padding:"14px 20px",marginBottom:20,textAlign:"center"}}><div style={{fontSize:12,color:"#7289da",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.06em"}}>Discord</div><div style={{fontSize:20,fontWeight:700,color:"#fff",fontFamily:"monospace"}}>camel5961</div><div style={{fontSize:11,color:"#555",marginTop:4}}>Message us to receive your gold delivery instructions</div></div><button onClick={function(){setStep("form");setGcCode("");}} style={{padding:"10px 28px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"#ccc",cursor:"pointer",fontSize:13}}>Place another order</button></div>);
   return(
     <div style={{maxWidth:560,margin:"0 auto",padding:"24px 16px",position:"relative"}}>
-      {!user&&<div style={{position:"absolute",inset:0,zIndex:10,borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"rgba(15,15,18,0.75)",backdropFilter:"blur(3px)",cursor:"default"}}><div style={{fontSize:28,marginBottom:8}}>&#x1F512;</div><div style={{fontSize:16,fontWeight:700,color:"#fff",marginBottom:6}}>Sign in to purchase gold</div><div style={{fontSize:13,color:"#999",marginBottom:18,textAlign:"center",padding:"0 32px"}}>Create a free account to get started.</div><button onClick={function(){setTab&&setTab("account");}} style={{padding:"11px 28px",background:"linear-gradient(135deg,rgba(255,193,7,0.2),rgba(255,193,7,0.08))",border:"1px solid rgba(255,193,7,0.6)",borderRadius:8,color:"#e6a800",fontWeight:700,fontSize:14,cursor:"pointer"}}>Sign in / Create account</button><div style={{marginTop:14,fontSize:12,color:"#555"}}>Need help? Discord: <span style={{color:"#7289da",fontWeight:500}}>camel5961</span></div></div>}
       <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"16px 20px",marginBottom:16}}>
         <div style={{fontSize:11,color:"#555",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:12}}>Gold rates by tier</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
@@ -3496,7 +3523,7 @@ function BuyGoldPanel({ user, tier, setTab }) {
         <div style={{fontSize:11,color:"#555",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:14}}>Purchase gold</div>
         <div style={{fontSize:12,color:"#555",marginBottom:6}}>Payment method</div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:6,marginBottom:14}}>
-          {[{id:"cashapp",label:"Cash App",icon:"&#x1F4B8;"},{id:"venmo",label:"Venmo",icon:"&#x1F535;"},{id:"kofi",label:"Ko-fi/PayPal",icon:"&#x2615;"},{id:"apple",label:"Apple Card",icon:"&#x1F34E;"},{id:"google",label:"Google Play",icon:"&#x25B6;"}].map(function(m){var active=method===m.id;return(<div key={m.id} onClick={function(){setMethodState(m.id);}} style={{padding:"8px 4px",border:"1px solid "+(active?"rgba(255,193,7,0.6)":"rgba(255,255,255,0.08)"),borderRadius:8,background:active?"rgba(255,193,7,0.08)":"rgba(255,255,255,0.02)",color:active?"#fff":"#555",fontSize:10,fontWeight:500,cursor:"pointer",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}><span style={{fontSize:16}} dangerouslySetInnerHTML={{__html:m.icon}} /><span>{m.label}</span></div>);})}
+          {[{id:"cashapp",label:"Cash App",icon:"&#x1F4B8;"},{id:"venmo",label:"Venmo",icon:"&#x1F535;"},{id:"kofi",label:"Ko-fi/PayPal",icon:"&#x2615;"},{id:"apple",label:"Apple Card",icon:"&#x1F34E;"},{id:"google",label:"Google Play",icon:"&#x25B6;"}].map(function(m){var active=method===m.id;return(<div key={m.id} onClick={function(){(SO2A.track('method_selected'),setMethodState(m.id));}} style={{padding:"8px 4px",border:"1px solid "+(active?"rgba(255,193,7,0.6)":"rgba(255,255,255,0.08)"),borderRadius:8,background:active?"rgba(255,193,7,0.08)":"rgba(255,255,255,0.02)",color:active?"#fff":"#555",fontSize:10,fontWeight:500,cursor:"pointer",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}><span style={{fontSize:16}} dangerouslySetInnerHTML={{__html:m.icon}} /><span>{m.label}</span></div>);})}
         </div>
         {isDirect&&<div>
           <div style={{fontSize:12,color:"#555",marginBottom:6}}>Send payment to</div>
@@ -3525,7 +3552,7 @@ function BuyGoldPanel({ user, tier, setTab }) {
         </div>}
         <div style={{fontSize:12,color:"#555",marginBottom:6}}>Your in-game username</div>
         <input type="text" value={username} onChange={function(e){setUsername(e.target.value);}} placeholder="e.g. CamelS2" style={{width:"100%",padding:"10px 12px",background:"rgba(0,0,0,0.3)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#eee",fontSize:14,fontFamily:"inherit",outline:"none",marginBottom:14}} />
-        <button onClick={handleSubmit} disabled={!canSubmit()||step==="submitting"} style={{width:"100%",padding:"13px 0",background:canSubmit()?"linear-gradient(135deg,rgba(255,193,7,0.2),rgba(255,193,7,0.08))":"rgba(255,255,255,0.03)",border:"1px solid "+(canSubmit()?"rgba(255,193,7,0.6)":"rgba(255,255,255,0.07)"),borderRadius:8,color:canSubmit()?"#e6a800":"#444",fontWeight:700,fontSize:14,cursor:canSubmit()?"pointer":"not-allowed",letterSpacing:"0.04em"}}>{step==="submitting"?"Submitting...":"Submit purchase"}</button>
+        <button onClick={handleSubmit} disabled={!__ready||step==="submitting"} style={{width:"100%",padding:"13px 0",background:__ready?"linear-gradient(135deg,rgba(255,193,7,0.2),rgba(255,193,7,0.08))":"rgba(255,255,255,0.03)",border:"1px solid "+(__ready?"rgba(255,193,7,0.6)":"rgba(255,255,255,0.07)"),borderRadius:8,color:__ready?"#e6a800":"#444",fontWeight:700,fontSize:14,cursor:__ready?"pointer":"not-allowed",letterSpacing:"0.04em"}}>{step==="submitting"?"Submitting...":(user?'Submit purchase':'Sign in to complete purchase')}</button>
         {step==="error"&&<div style={{fontSize:12,color:"#f87171",marginTop:8,textAlign:"center"}}>Something went wrong. Please try again.</div>}
         <div style={{marginTop:14,textAlign:"center",fontSize:12,color:"#555"}}>Need help? Discord: <span style={{color:"#7289da",fontWeight:500}}>camel5961</span></div>
       </div>
@@ -3878,6 +3905,7 @@ function App() {
   const [showSupport, setShowSupport] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [tab, setTab] = useState("market");
+      React.useEffect(function(){ if(tab==='gold') SO2A.track('gold_tab'); }, [tab]);
   const [tier, setTier] = useState(function(){ return localStorage.getItem("s2_tier") || "Free"; });
   const [user, setUser] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
