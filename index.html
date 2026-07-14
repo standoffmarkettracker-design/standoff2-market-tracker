@@ -3520,19 +3520,18 @@ function BuyGoldPanel({ user, tier, setTab }) {
   var gcGold=Math.round(gcDenom/rate);
   function copyHandle(){navigator.clipboard.writeText(HANDLES[method]||"").catch(function(){});setCopied(true);setTimeout(function(){setCopied(false);},1500);}
   function canSubmit(){if(!username.trim())return false;if(isCard)return gcCode.trim().length>=8;return true;}
-    var __ready = user ? canSubmit() : true;
+    var __ready = canSubmit();
   function handleSubmit(){
-      if(!user){ SO2A.track('guest_signin_redirect'); if(setTab) setTab('account'); return; }
       SO2A.track('checkout_submit');
     if(!canSubmit())return;
     setStep("submitting");
     var ml={cashapp:"Cash App ($jamesmoney192)",venmo:"Venmo (@Standoff2Tracker)",kofi:"Ko-fi / PayPal",apple:"Apple Gift Card",google:"Google Play Gift Card"}[method];
     var ad=isCard?(gcDenom+" gift card -> "+gcGold.toLocaleString()+" G"):isKofi?(directAmt+" G (~$"+directCost+")"):(directAmt+" G ($"+directCost+")");
-    var fields=[{name:"Username",value:username.trim(),inline:true},{name:"Tier",value:tier||"Basic",inline:true},{name:"Method",value:ml,inline:false},{name:"Amount",value:ad,inline:true}];
+    var fields=[{name:"Username",value:username.trim(),inline:true},{name:"Tier",value:(user?(tier||"Basic"):"Guest"),inline:true},{name:"Method",value:ml,inline:false},{name:"Amount",value:ad,inline:true}];
     if(isCard)fields.push({name:"Gift Card Code",value:"||"+gcCode.trim()+"||",inline:false});
     var payload={embeds:[{title:"New Gold Purchase",color:0xFFD700,fields:fields,description:isCard?"Gift card code above - redeem and credit "+gcGold.toLocaleString()+" G to the user.":"Verify payment received then send "+directAmt+" G in-game.",timestamp:new Date().toISOString()}]};
     fetch("https://discord.com/api/webhooks/1521212880614330488/whaIWiT5y7FbVYQ93k0TwHtbPljg5CxdG8vwr8J9s6vbWTturZluUyKhHTNKcL0Ytzj5",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(function(){
-      if(user){db.ref("goldPurchases/"+user.uid+"/"+Date.now()).set({uid:user.uid,username:username.trim(),tier:tier||"Basic",method:method,status:"pending",amount:isCard?gcGold:directAmt,gcCode:isCard?gcCode.trim():null,createdAt:new Date().toISOString()});}
+      if(user){db.ref("goldPurchases/"+user.uid+"/"+Date.now()).set({uid:user.uid,username:username.trim(),tier:tier||"Basic",method:method,status:"pending",amount:isCard?gcGold:directAmt,gcCode:isCard?gcCode.trim():null,createdAt:new Date().toISOString()});}else{try{db.ref("goldOrders").push({username:username.trim(),tier:"Guest",method:method,status:"pending",amount:isCard?gcGold:directAmt,gcCode:isCard?gcCode.trim():null,source:"tracker",createdAt:Date.now()});}catch(e){}}
         SO2A.track('order_created');
       setStep("done");
     }).catch(function(){setStep("error");});
@@ -3579,7 +3578,7 @@ function BuyGoldPanel({ user, tier, setTab }) {
         </div>}
         <div style={{fontSize:12,color:"#566078",marginBottom:6}}>Your in-game username</div>
         <input type="text" value={username} onChange={function(e){setUsername(e.target.value);}} placeholder="e.g. CamelS2" style={{width:"100%",padding:"10px 12px",background:"rgba(0,0,0,0.3)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#e9edf5",fontSize:14,fontFamily:"inherit",outline:"none",marginBottom:14}} />
-        <button onClick={handleSubmit} disabled={!__ready||step==="submitting"} style={{width:"100%",padding:"13px 0",background:__ready?"linear-gradient(135deg,rgba(255,193,7,0.2),rgba(255,193,7,0.08))":"rgba(255,255,255,0.03)",border:"1px solid "+(__ready?"rgba(255,193,7,0.6)":"rgba(255,255,255,0.07)"),borderRadius:8,color:__ready?"#e0ae2f":"#2a3245",fontWeight:700,fontSize:14,cursor:__ready?"pointer":"not-allowed",letterSpacing:"0.04em"}}>{step==="submitting"?"Submitting...":(user?'Submit purchase':'Sign in to complete purchase')}</button>
+        <button onClick={handleSubmit} disabled={!__ready||step==="submitting"} style={{width:"100%",padding:"13px 0",background:__ready?"linear-gradient(135deg,rgba(255,193,7,0.2),rgba(255,193,7,0.08))":"rgba(255,255,255,0.03)",border:"1px solid "+(__ready?"rgba(255,193,7,0.6)":"rgba(255,255,255,0.07)"),borderRadius:8,color:__ready?"#e0ae2f":"#2a3245",fontWeight:700,fontSize:14,cursor:__ready?"pointer":"not-allowed",letterSpacing:"0.04em"}}>{step==="submitting"?"Submitting...":'Submit purchase'}</button>
         {step==="error"&&<div style={{fontSize:12,color:"#f87171",marginTop:8,textAlign:"center"}}>Something went wrong. Please try again.</div>}
         <div style={{marginTop:14,textAlign:"center",fontSize:12,color:"#566078"}}>Need help? Discord: <span style={{color:"#7289da",fontWeight:500}}>camel5961</span></div>
       </div>
