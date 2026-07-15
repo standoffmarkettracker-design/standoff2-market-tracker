@@ -273,6 +273,110 @@ def purge_zero_dates(hist1, hist2):
         print(f"  [purge] Removed {purged} zero-price history entries")
     return purged
 
+# ─── Flip Finder precompute ───────────────────────────────────────────────────
+# Computes per-item flip analytics once per price update so the site never has
+# to download or crunch the full history client-side. Output: flip_data.json
+
+FLIP_DIP_PCT = 20      # dip definition for the recovery backtest (matches 20% market fee)
+FLIP_WINDOW = 30       # days allowed for a dip to recover
+FLIP_SCORE_FEE = 20    # official marketplace commission used in the score
+
+def _flip_slope_pct(prices, k):
+    n = len(prices); m = min(k, n)
+    if m < 3: return 0.0
+    seg = prices[n-m:]
+    sx = sy = sxy = sxx = 0.0
+    for i, y in enumerate(seg):
+        sx += i; sy += y; sxy += i*y; sxx += i*i
+    denom = m*sxx - sx*sx
+    if not denom: return 0.0
+    slope = (m*sxy - sx*sy) / denom
+    mean = sy / m
+    return (slope/mean)*100 if mean else 0.0
+
+def _flip_backtest(prices, pre):
+    n = len(prices); events = recovered = 0; days = []
+    i = 30
+    while i < n:
+        tavg = (pre[i]-pre[i-30])/30
+        if tavg > 0 and prices[i] <= tavg*(1-FLIP_DIP_PCT/100):
+            events += 1
+            for j in range(i+1, min(i+FLIP_WINDOW+1, n)):
+                if prices[j] >= tavg:
+                    recovered += 1; days.append(j-i); break
+            i += 7
+        i += 1
+    days.sort()
+    med = days[len(days)//2] if days else -1
+    return events, recovered, med
+
+def _flip_round(x, nd=2):
+    return round(float(x), nd)
+
+def build_flip_data(today):
+    """Step 4: precompute flip analytics into flip_data.json."""
+    items = load_json(ROOT / "items.json")
+    hist = load_json(ROOT / "price_history_real_1.json")
+    hist.update(load_json(ROOT / "price_history_real_2.json"))
+    out = {}
+    for it in items:
+        name = it.get("name"); price = it.get("price") or 0
+        h = hist.get(name)
+        if not h or price <= 0: continue
+        dates = sorted(h.keys())
+        prices = [h[d] for d in dates]
+        n = len(prices)
+        if n < 35: continue
+        pre = [0.0]
+        for p in prices: pre.append(pre[-1]+p)
+        latest = prices[-1]
+        def avg(k):
+            m = min(k, n); return (pre[n]-pre[n-m])/m
+        avg7, avg30, avg90 = avg(7), avg(30), avg(90)
+        seg30 = prices[-30:] if n >= 30 else prices
+        mn30, mx30 = min(seg30), max(seg30)
+        mean30 = avg30
+        var = sum((p-mean30)**2 for p in seg30)/(len(seg30)-1) if len(seg30) > 1 else 0.0
+        stdev30 = var ** 0.5
+        vol_pct = (stdev30/mean30)*100 if mean30 else 0.0
+        z = (latest-mean30)/stdev30 if stdev30 else 0.0
+        range_pct = (latest-mn30)/(mx30-mn30) if mx30 > mn30 else 0.5
+        slope14 = _flip_slope_pct(prices, 14)
+        discount = (avg30-price)/avg30*100 if avg30 else 0.0
+        events, recovered, med = _flip_backtest(prices, pre)
+        rate = recovered/events if events else None
+        thin = 1 if ((it.get("spread") or 0) > 30 or (it.get("vol") or 0) > 40) else 0
+        s_disc = max(0.0, min(1.0, (discount-FLIP_SCORE_FEE)/20)) * 25
+        ev_w = min(events/3, 1)
+        s_rec = (0.35 if rate is None else rate) * ev_w * 30
+        s_trend = max(0.0, min(1.0, (slope14+1)/1)) * 15
+        s_liq = 5 if thin else 15
+        s_range = (1 - max(0.0, min(1.0, range_pct))) * 15
+        score = round(s_disc + s_rec + s_trend + s_liq + s_range)
+        # 30-point spark downsampled from last 90 days
+        seg90 = prices[-90:]
+        step = max(1, len(seg90)//30)
+        spark = [ _flip_round(seg90[i], 4 if seg90[i] < 100 else 1) for i in range(0, len(seg90), step) ][:30]
+        out[name] = [
+            _flip_round(avg7), _flip_round(avg30), _flip_round(avg90),
+            _flip_round(mn30), _flip_round(mx30), _flip_round(vol_pct),
+            _flip_round(z), _flip_round(range_pct, 3), _flip_round(slope14),
+            _flip_round(discount, 1), events, recovered,
+            (-1 if rate is None else _flip_round(rate, 3)), med, thin, score, n, spark
+        ]
+    data = {
+        "generated": today, "dipPct": FLIP_DIP_PCT, "windowDays": FLIP_WINDOW,
+        "scoreFee": FLIP_SCORE_FEE,
+        "legend": ["avg7","avg30","avg90","min30","max30","volPct","z","rangePct",
+                   "slope14","discount","events","recovered","rate","medianDays",
+                   "thin","score","n","spark"],
+        "items": out
+    }
+    save_json(ROOT / "flip_data.json", data)
+    print(f"  [flip] Wrote flip_data.json for {len(out)} items")
+    return len(out)
+
+
 def main():
     today = datetime.date.today().isoformat()
     print(f"=== Standoff 2 Price Update - {today} ===\n")
@@ -296,6 +400,11 @@ def main():
     if updated == 0 and new_items == 0:
         print("WARNING: no items updated or added", file=sys.stderr)
         sys.exit(1)
+    print("\nStep 4: Building flip analytics...")
+    try:
+        build_flip_data(today)
+    except Exception as e:
+        print(f"WARNING: flip precompute failed ({e}) -- site falls back gracefully")
     print(f"\nDone. {updated} updated, {new_items} new items added -- {today}")
 
 if __name__ == "__main__":
