@@ -2429,6 +2429,133 @@ function analyseHistory(hist) {
   return { hitLow:hitLow, recovered:recovered, isBelowAvg:isBelowAvg, last3above:last3above, rangePct:rangePct, min30:min30, avg30:avg30, dataPoints:dates.length };
 }
 
+// ─── Flip Finder ──────────────────────────────────────────────────────────────
+// Flags items trading below their 30-day average. Assumes resale at that average
+// and deducts a user-set market fee, so the profit column is net, not gross.
+function FlipFinderPanel({ setTab, setSelected }) {
+  var [histData, setHistData] = React.useState(null);
+  var [minPrice, setMinPrice] = React.useState(5);
+  var [maxBudget, setMaxBudget] = React.useState(5000);
+  var [fee, setFee] = React.useState(10);
+  var [minDisc, setMinDisc] = React.useState(8);
+  var [rarity, setRarity] = React.useState("All");
+
+  React.useEffect(function() { loadRealHistory().then(function(all){ setHistData(all); }); }, []);
+
+  var rows = [];
+  if (histData) {
+    ITEMS.forEach(function(item) {
+      if (!item || item.price < minPrice || item.price > maxBudget) return;
+      if (rarity !== "All" && item.rarity !== rarity) return;
+      var hist = histData[item.name];
+      if (!hist) return;
+      var a = analyseHistory(hist);
+      if (!a || a.dataPoints < 14) return;
+      var discount = (a.avg30 - item.price) / a.avg30 * 100;
+      if (discount < minDisc) return;
+      var net = a.avg30 * (1 - fee / 100) - item.price;
+      if (net <= 0) return;
+      var netPct = net / item.price * 100;
+      var thin = item.spread > 30 || item.vol > 40;
+      rows.push({ item: item, a: a, discount: discount, net: net, netPct: netPct, thin: thin });
+    });
+    rows.sort(function(x, y) { return y.netPct - x.netPct; });
+    rows = rows.slice(0, 40);
+  }
+
+  var avgNet = rows.length ? rows.reduce(function(s, r) { return s + r.netPct; }, 0) / rows.length : 0;
+  var liquid = rows.filter(function(r) { return !r.thin; }).length;
+
+  var inputStyle = { width: 90, padding: "8px 10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 13 };
+  var labelStyle = { fontSize: 11, color: "#566078", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 4, display: "block" };
+  var thStyle = { textAlign: "right", padding: "10px 12px", fontSize: 11, color: "#566078", letterSpacing: "0.07em", textTransform: "uppercase", borderBottom: "1px solid rgba(255,255,255,0.07)", whiteSpace: "nowrap" };
+
+  return (
+    <div style={{ padding: "20px 28px" }}>
+      <div className="s2-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 16 }}>
+        {[
+          { label: "Flip Candidates", value: histData ? String(rows.length) : "…", sub: "matching your filters" },
+          { label: "Avg Net Margin", value: histData ? avgNet.toFixed(1) + "%" : "…", sub: "after " + fee + "% market fee", color: "#3ddc84" },
+          { label: "Liquid Picks", value: histData ? String(liquid) : "…", sub: "normal spread / volume" }
+        ].map(function(s) { return (
+          <div key={s.label} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "14px 16px" }}>
+            <div style={labelStyle}>{s.label}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: s.color || "#fff", marginBottom: 2 }}>{s.value}</div>
+            <div style={{ fontSize: 11, color: "#566078" }}>{s.sub}</div>
+          </div>
+        ); })}
+      </div>
+
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "14px 16px", marginBottom: 16 }}>
+        <div><span style={labelStyle}>Min Price (G)</span><input type="number" min="0" value={minPrice} onChange={function(e){ setMinPrice(Number(e.target.value) || 0); }} style={inputStyle} /></div>
+        <div><span style={labelStyle}>Max Budget (G)</span><input type="number" min="1" value={maxBudget} onChange={function(e){ setMaxBudget(Number(e.target.value) || 1); }} style={inputStyle} /></div>
+        <div><span style={labelStyle}>Market Fee %</span><input type="number" min="0" max="50" value={fee} onChange={function(e){ setFee(Math.max(0, Math.min(50, Number(e.target.value) || 0))); }} style={inputStyle} /></div>
+        <div><span style={labelStyle}>Min Discount %</span><input type="number" min="0" max="90" value={minDisc} onChange={function(e){ setMinDisc(Math.max(0, Math.min(90, Number(e.target.value) || 0))); }} style={inputStyle} /></div>
+        <div><span style={labelStyle}>Rarity</span>
+          <select value={rarity} onChange={function(e){ setRarity(e.target.value); }} style={Object.assign({}, inputStyle, { width: 120 })}>
+            {["All","Common","Uncommon","Rare","Epic","Legendary","Arcane","Immortal"].map(function(r){ return <option key={r} value={r} style={{ background: "#141a26" }}>{r}</option>; })}
+          </select>
+        </div>
+      </div>
+
+      {!histData && <div style={{ color: "#566078", padding: 40, textAlign: "center" }}>Loading price history…</div>}
+
+      {histData && rows.length === 0 && (
+        <div style={{ color: "#566078", padding: 40, textAlign: "center" }}>No items match these filters right now. Try lowering the minimum discount or raising the budget.</div>
+      )}
+
+      {histData && rows.length > 0 && (
+        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead><tr>
+              <th style={Object.assign({}, thStyle, { textAlign: "left" })}>Item</th>
+              <th style={thStyle}>Current</th>
+              <th style={thStyle}>30d Avg</th>
+              <th style={thStyle}>Discount</th>
+              <th style={thStyle}>Net / Item</th>
+              <th style={thStyle}>Net %</th>
+              <th style={thStyle}>Range Pos</th>
+              <th style={Object.assign({}, thStyle, { textAlign: "left" })}>Liquidity</th>
+            </tr></thead>
+            <tbody>
+              {rows.map(function(r, idx) {
+                var rc = RC[r.item.rarity] || "#8e99b3";
+                return (
+                  <tr key={r.item.name + "_flip" + idx}
+                    onClick={function() {
+                      setTab("market");
+                      setSelected(r.item);
+                      setTimeout(function() { var el = document.querySelector(".s2-detail"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80);
+                    }}
+                    style={{ cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.04)" }}
+                    onMouseEnter={function(e){ e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                    onMouseLeave={function(e){ e.currentTarget.style.background = "transparent"; }}>
+                    <td style={{ padding: "10px 12px" }}>
+                      <span style={{ color: rc, fontWeight: 600 }}>{r.item.name.replace(/"/g, "")}</span>
+                      <span style={{ color: "#566078", fontSize: 11, marginLeft: 8 }}>{r.item.type}</span>
+                    </td>
+                    <td style={{ padding: "10px 12px", textAlign: "right", color: "#fff" }}>{fmtPrice(r.item.price)} G</td>
+                    <td style={{ padding: "10px 12px", textAlign: "right", color: "#aab4cc" }}>{fmtPrice(r.a.avg30)} G</td>
+                    <td style={{ padding: "10px 12px", textAlign: "right", color: "#4fc3f7" }}>−{r.discount.toFixed(1)}%</td>
+                    <td style={{ padding: "10px 12px", textAlign: "right", color: "#3ddc84", fontWeight: 700 }}>+{fmtPrice(r.net)} G</td>
+                    <td style={{ padding: "10px 12px", textAlign: "right", color: "#3ddc84" }}>+{r.netPct.toFixed(1)}%</td>
+                    <td style={{ padding: "10px 12px", textAlign: "right", color: r.a.rangePct < 0.25 ? "#3ddc84" : "#aab4cc" }}>{Math.round(r.a.rangePct * 100)}%</td>
+                    <td style={{ padding: "10px 12px", color: r.thin ? "#ffb74d" : "#3ddc84", fontSize: 12 }}>{r.thin ? "Thin — may fill slowly" : "OK"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div style={{ marginTop: 14, fontSize: 12, color: "#566078", lineHeight: 1.6 }}>
+        Net profit assumes you buy at the current price and resell at the item's 30-day average, minus the market fee set above — adjust the fee to match the game's current commission. Prices can keep falling: a discount is an opportunity, not a guarantee. "Range Pos" shows where the current price sits in the 30-day range (0% = at the bottom). Thin-market items have a wide spread or low volume and may take much longer to sell near the average.
+      </div>
+    </div>
+  );
+}
+
 // ─── Weekly Market Report ─────────────────────────────────────────────────────
 function WeeklyMarketReport({ tier }) {
   var isVIP = tier === "VIP+" || tier === "VIP";
@@ -4044,12 +4171,13 @@ function App() {
       </div>
 
       <div className="s2-tabs" style={{ display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"collection",label:"📊 Collection"},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"gold",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
+        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"flips",label:"🔄 Flip Finder"},{id:"collection",label:"📊 Collection"},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"gold",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
           <button key={t.id} onClick={function(){setTab(t.id)}} style={{ padding:"12px 24px",background:tab===t.id?"rgba(255,255,255,0.05)":"transparent",border:"none",borderBottom:tab===t.id?"2px solid #ff7d3a":"2px solid transparent",color:tab===t.id?"#fff":"#6b7590",fontSize:13,fontWeight:600,cursor:"pointer",letterSpacing:"0.03em" }}>{t.label}</button>
         )})}
       </div>
 
       {tab === "collection" && <CollectionPanel user={user} lang={lang} setTab={setTab} setSelected={setSelected} setGraphItem={setGraphItem} />}
+      {tab === "flips" && <FlipFinderPanel setTab={setTab} setSelected={setSelected} />}
       {tab === "investments" && (
         <div style={{ padding:"28px" }}>
           <h2 style={{ margin:"0 0 6px",fontSize:22,fontWeight:800,color:"#fff" }}>{t("bestInvestments",lang)}</h2>
