@@ -40,7 +40,7 @@ jobs:
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add items.json price_history_real_1.json price_history_real_2.json collections.json
+          git add items.json price_history_real_1.json price_history_real_2.json collections.json flip_data.json
           git diff --cached --quiet && echo "No changes" && exit 0
           git commit -m "chore: price update $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push --force-with-lease
