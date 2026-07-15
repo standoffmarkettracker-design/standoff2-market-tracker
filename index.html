@@ -2429,6 +2429,422 @@ function analyseHistory(hist) {
   return { hitLow:hitLow, recovered:recovered, isBelowAvg:isBelowAvg, last3above:last3above, rangePct:rangePct, min30:min30, avg30:avg30, dataPoints:dates.length };
 }
 
+// ─── Flip Finder (live tab) ───────────────────────────────────────────────────
+// Reads precomputed analytics from /flip_data.json (built by scripts/update_prices.py
+// each price run) — no client-side history download or backtesting.
+function loadFlipData() {
+  if (!window.__flipDataP) {
+    window.__flipDataP = fetch("/flip_data.json")
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .catch(function(){ return null; });
+  }
+  return window.__flipDataP;
+}
+
+function flipToast(msg) {
+  var d = document.createElement("div");
+  d.textContent = msg;
+  d.style.cssText = "position:fixed;bottom:24px;right:24px;z-index:9999;background:#141a26;border:1px solid rgba(255,125,58,0.5);color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,0.5)";
+  document.body.appendChild(d);
+  setTimeout(function(){ d.remove(); }, 6000);
+}
+
+// Evaluates the user's stored alerts against current prices + flip data.
+// Runs once per session at login; marks hits as triggered in Firebase.
+function evaluateUserAlerts(u) {
+  if (!u || window.__alertsEvaluated) return;
+  window.__alertsEvaluated = true;
+  loadFlipData().then(function(fd) {
+    db.ref("alerts/" + u.uid).once("value", function(snap) {
+      var data = snap.val() || {};
+      var byName = {};
+      (typeof ITEMS !== "undefined" && ITEMS || []).forEach(function(it){ byName[it.name] = it; });
+      var iAvg30 = fd && fd.legend ? fd.legend.indexOf("avg30") : -1;
+      var fired = [];
+      Object.keys(data).forEach(function(id) {
+        var a = data[id];
+        if (!a || a.triggered) return;
+        var it = byName[a.item];
+        if (!it) return;
+        var hit = false;
+        if (a.type === "flip_breakeven") {
+          var row = fd && fd.items && fd.items[a.item];
+          if (row && iAvg30 >= 0) hit = row[iAvg30] * (1 - (a.fee || 20) / 100) - it.price > 0;
+        } else if (a.targetPrice) {
+          hit = a.direction === "below" ? it.price <= a.targetPrice : it.price >= a.targetPrice;
+        }
+        if (hit) {
+          fired.push(a.item);
+          db.ref("alerts/" + u.uid + "/" + id).update({ triggered: true, triggeredAt: Date.now(), triggerPrice: it.price });
+        }
+      });
+      if (fired.length) flipToast("🔔 " + fired.length + " price alert" + (fired.length > 1 ? "s" : "") + " triggered: " + fired.slice(0,2).map(function(n){ return n.replace(/"/g,""); }).join(", ") + (fired.length > 2 ? "…" : ""));
+    });
+  });
+}
+
+function FlipFinderPanel({ user, setTab, setSelected }) {
+  var [fd, setFd] = React.useState(undefined);            // undefined=loading, null=missing
+  var [view, setView] = React.useState("scanner");
+  var [wl, setWl] = React.useState([]);
+  var [openName, setOpenName] = React.useState(null);
+  var [search, setSearch] = React.useState("");
+  var [fType, setFType] = React.useState("All");
+  var [fRarity, setFRarity] = React.useState("All");
+  var [minP, setMinP] = React.useState(5);
+  var [maxP, setMaxP] = React.useState(50000);
+  var [fee, setFee] = React.useState(20);
+  var [minDisc, setMinDisc] = React.useState(20);
+  var [minRec, setMinRec] = React.useState(0);
+  var [sortBy, setSortBy] = React.useState("score");
+  var [profOnly, setProfOnly] = React.useState(true);
+  var [savedMsg, setSavedMsg] = React.useState("");
+
+  React.useEffect(function() { loadFlipData().then(function(d){ setFd(d); }); }, []);
+
+  // Watchlist: Firebase when signed in, localStorage otherwise
+  var WLKEY = "ff_watchlist_v1";
+  function wlLocalGet() { try { return JSON.parse(localStorage.getItem(WLKEY)) || []; } catch(e) { return []; } }
+  function wlLocalSet(list) { try { localStorage.setItem(WLKEY, JSON.stringify(list)); } catch(e) {} }
+  function loadWl() {
+    if (user) {
+      db.ref("users/" + user.uid + "/flipWatchlist").once("value", function(snap) {
+        var data = snap.val() || {};
+        setWl(Object.keys(data).map(function(id){ return Object.assign({ id: id }, data[id]); }));
+      });
+    } else {
+      setWl(wlLocalGet());
+    }
+  }
+  React.useEffect(loadWl, [user && user.uid]);
+
+  function flash(msg) { setSavedMsg(msg); setTimeout(function(){ setSavedMsg(""); }, 2500); }
+
+  function wlAdd(name, price) {
+    if (wl.some(function(w){ return w.item === name; })) { flash("Already on your watchlist"); return; }
+    var rec = { item: name, entry: price, qty: 1, added: new Date().toISOString().slice(0,10) };
+    if (user) {
+      db.ref("users/" + user.uid + "/flipWatchlist").push(rec).then(loadWl);
+    } else {
+      var list = wlLocalGet(); list.push(rec); wlLocalSet(list); setWl(list);
+    }
+    flash("Added to watchlist" + (user ? " (synced)" : " — sign in to sync across devices"));
+  }
+  function wlRemove(w) {
+    if (user && w.id) {
+      db.ref("users/" + user.uid + "/flipWatchlist/" + w.id).remove().then(loadWl);
+    } else {
+      var list = wlLocalGet().filter(function(x){ return x.item !== w.item; });
+      wlLocalSet(list); setWl(list);
+    }
+  }
+  function wlSetQty(w, q) {
+    q = Math.max(1, Number(q) || 1);
+    if (user && w.id) {
+      db.ref("users/" + user.uid + "/flipWatchlist/" + w.id).update({ qty: q }).then(loadWl);
+    } else {
+      var list = wlLocalGet(); var e = list.find(function(x){ return x.item === w.item; });
+      if (e) { e.qty = q; wlLocalSet(list); setWl(list.slice()); }
+    }
+  }
+
+  function addBreakevenAlert(name) {
+    if (!user) { flash("Sign in to set alerts"); return; }
+    db.ref("alerts/" + user.uid).push({ item: name, type: "flip_breakeven", fee: fee, createdAt: Date.now(), triggered: false })
+      .then(function(){ flash("Alert set: when " + name.replace(/"/g,"") + " crosses breakeven"); });
+  }
+  function addTargetAlert(name, target) {
+    if (!user) { flash("Sign in to set alerts"); return; }
+    db.ref("alerts/" + user.uid).push({ item: name, type: "flip_target", targetPrice: Math.round(target * 100) / 100, direction: "above", createdAt: Date.now(), triggered: false })
+      .then(function(){ flash("Alert set: " + name.replace(/"/g,"") + " reaches " + fmtPrice(target) + " G"); });
+  }
+
+  if (fd === undefined) return <div style={{ padding: 40, textAlign: "center", color: "#566078" }}>Loading flip data…</div>;
+  if (fd === null) return <div style={{ padding: 40, textAlign: "center", color: "#566078" }}>Flip analytics are generated with each price update (every 6 hours). Check back shortly after the next update.</div>;
+
+  var L = fd.legend, IX = {};
+  L.forEach(function(k, i){ IX[k] = i; });
+  function G(row, k) { return row[IX[k]]; }
+  var byName = {};
+  ITEMS.forEach(function(it){ byName[it.name] = it; });
+
+  function analyseRow(it) {
+    var row = fd.items[it.name];
+    if (!row) return null;
+    var avg30 = G(row, "avg30");
+    var discount = avg30 ? (avg30 - it.price) / avg30 * 100 : 0;
+    var net = avg30 * (1 - fee / 100) - it.price;
+    var netPct = it.price ? net / it.price * 100 : 0;
+    var rate = G(row, "rate");
+    return { row: row, avg30: avg30, discount: discount, net: net, netPct: netPct,
+      rate: rate < 0 ? null : rate, events: G(row, "events"), medianDays: G(row, "medianDays"),
+      slope14: G(row, "slope14"), thin: !!G(row, "thin"), score: G(row, "score"),
+      rangePct: G(row, "rangePct"), volPct: G(row, "volPct"), z: G(row, "z"), n: G(row, "n"),
+      avg7: G(row, "avg7"), avg90: G(row, "avg90"), min30: G(row, "min30"), max30: G(row, "max30"),
+      spark: G(row, "spark") };
+  }
+
+  function sparkSvg(prices, w, h, stroke) {
+    if (!prices || prices.length < 2) return null;
+    var mn = Math.min.apply(null, prices), mx = Math.max.apply(null, prices);
+    var span = mx - mn || 1;
+    var pts = prices.map(function(p, i) {
+      return (i / (prices.length - 1) * w).toFixed(1) + "," + (h - 2 - (p - mn) / span * (h - 4)).toFixed(1);
+    }).join(" ");
+    return <svg width={w} height={h} viewBox={"0 0 " + w + " " + h}><polyline points={pts} fill="none" stroke={stroke} strokeWidth="1.5" /></svg>;
+  }
+
+  var rows = [];
+  var types = {};
+  ITEMS.forEach(function(it) {
+    if (it.type) types[it.type] = 1;
+    if (it.price < minP || it.price > maxP) return;
+    if (fType !== "All" && it.type !== fType) return;
+    if (fRarity !== "All" && it.rarity !== fRarity) return;
+    if (search && it.name.toLowerCase().indexOf(search.toLowerCase()) < 0) return;
+    var a = analyseRow(it);
+    if (!a) return;
+    if (a.discount < minDisc) return;
+    if (profOnly && a.net <= 0) return;
+    if (minRec > 0 && (a.rate === null || a.rate * 100 < minRec)) return;
+    rows.push({ it: it, a: a });
+  });
+  rows.sort(function(x, y) {
+    switch (sortBy) {
+      case "netPct": return y.a.netPct - x.a.netPct;
+      case "net": return y.a.net - x.a.net;
+      case "discount": return y.a.discount - x.a.discount;
+      case "rec": return (y.a.rate || 0) - (x.a.rate || 0);
+      default: return y.a.score - x.a.score;
+    }
+  });
+  var shown = rows.slice(0, 50);
+  var pos = rows.filter(function(r){ return r.a.net > 0; });
+  var avgNet = pos.length ? pos.reduce(function(s,r){ return s + r.a.netPct; }, 0) / pos.length : 0;
+  var recRates = pos.map(function(r){ return r.a.rate; }).filter(function(r){ return r !== null; });
+
+  var inputStyle = { width: 84, padding: "7px 9px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: 13 };
+  var labelStyle = { fontSize: 10, color: "#566078", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 4, display: "block" };
+  var thStyle = { textAlign: "right", padding: "9px 10px", fontSize: 10, color: "#566078", letterSpacing: "0.07em", textTransform: "uppercase", borderBottom: "1px solid rgba(255,255,255,0.07)", whiteSpace: "nowrap" };
+  var tdStyle = { padding: "9px 10px", textAlign: "right", borderBottom: "1px solid rgba(255,255,255,0.04)", whiteSpace: "nowrap" };
+  var btnStyle = { background: "rgba(79,195,247,0.12)", border: "1px solid rgba(79,195,247,0.35)", color: "#4fc3f7", borderRadius: 6, padding: "3px 8px", fontSize: 11, cursor: "pointer", marginLeft: 4 };
+
+  function scoreColor(s) {
+    if (s >= 65) return ["rgba(61,220,132,0.15)", "#3ddc84"];
+    if (s >= 45) return ["rgba(255,210,74,0.12)", "#ffd24a"];
+    return ["rgba(255,92,105,0.1)", "#ff5c69"];
+  }
+
+  function renderDetail(r) {
+    var it = r.it, a = r.a;
+    var breakeven = it.price / (1 - fee / 100);
+    var profitable = a.net > 0;
+    var caveats = [];
+    if (!profitable) caveats.push("at the current price this flip loses money after the " + fee + "% fee");
+    if (a.rate !== null && a.rate < 0.5) caveats.push("only " + Math.round(a.rate * 100) + "% of its past " + a.events + " dips this deep recovered within " + fd.windowDays + " days");
+    if (a.rate === null) caveats.push("no comparable historical dips to judge recovery odds");
+    if (a.slope14 <= -1.5) caveats.push("still falling fast (" + a.slope14.toFixed(1) + "%/day)");
+    if (a.thin) caveats.push("thin market — fills may be slow");
+    var statCard = function(label, val, cap) {
+      return <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "8px 11px" }}>
+        <span style={labelStyle}>{label}</span>
+        <div style={{ fontSize: 13, fontFamily: "'JetBrains Mono',monospace" }}>{val}</div>
+        {cap ? <div style={{ fontSize: 10.5, color: "#566078", marginTop: 2 }}>{cap}</div> : null}
+      </div>;
+    };
+    return (
+      <tr key={it.name + "_det"} style={{ background: "rgba(255,255,255,0.02)" }}>
+        <td colSpan={12} style={{ padding: "16px 14px", textAlign: "left", whiteSpace: "normal" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 16 }}>
+            <div>{sparkSvg(a.spark, 210, 90, "#4fc3f7")}
+              <div style={{ fontSize: 10.5, color: "#566078", marginTop: 4 }}>last ~90 days · {a.n} days of history</div>
+            </div>
+            <div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginBottom: 10 }}>
+                {statCard("7d / 30d / 90d Avg", fmtPrice(a.avg7) + " / " + fmtPrice(a.avg30) + " / " + fmtPrice(a.avg90))}
+                {statCard("30d Range", fmtPrice(a.min30) + " – " + fmtPrice(a.max30), "now at " + Math.round(a.rangePct * 100) + "% of range")}
+                {statCard("Dip Backtest", a.events ? a.rate === null ? "—" : Math.round(a.rate * 100) + "% of " + a.events + " recovered" : "no comparable dips", a.medianDays > 0 ? "median " + a.medianDays + " days" : "")}
+              </div>
+              <div style={{ background: profitable ? "rgba(61,220,132,0.06)" : "rgba(255,183,77,0.06)", border: "1px solid " + (profitable ? "rgba(61,220,132,0.25)" : "rgba(255,183,77,0.3)"), borderRadius: 10, padding: "10px 13px", fontSize: 12.5, lineHeight: 1.55 }}>
+                {profitable
+                  ? <span>Buy at ≤ <b>{fmtPrice(it.price)} G</b>, list at <b>{fmtPrice(a.avg30)} G</b> (30d avg) → net <b style={{ color: "#3ddc84" }}>+{fmtPrice(a.net)} G</b> (+{a.netPct.toFixed(1)}%) after the {fee}% fee. Breakeven sale: <b>{fmtPrice(breakeven)} G</b>.</span>
+                  : <span>No profitable flip at this price — selling at the 30d average nets <b style={{ color: "#ff5c69" }}>−{fmtPrice(Math.abs(a.net))} G</b> after fee.</span>}
+                {caveats.length ? <span><br /><b style={{ color: "#ffb74d" }}>Caveats:</b> {caveats.join("; ")}.</span> : null}
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <button style={btnStyle} onClick={function(){ wlAdd(it.name, it.price); }}>+ Watchlist</button>
+                <button style={btnStyle} onClick={function(){ addTargetAlert(it.name, a.avg30); }}>🔔 Alert at target</button>
+                {!profitable ? <button style={btnStyle} onClick={function(){ addBreakevenAlert(it.name); }}>🔔 Alert at breakeven</button> : null}
+                <button style={btnStyle} onClick={function(){ setTab("market"); setSelected(it); }}>Full chart →</button>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  var scanner = (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 14 }}>
+        {[
+          { l: "Profitable Candidates", v: String(pos.length), c: "#fff", cap: "net-positive after fee" },
+          { l: "Avg Net Margin", v: avgNet.toFixed(1) + "%", c: "#3ddc84", cap: "after " + fee + "% market fee" },
+          { l: "Avg Recovery Rate", v: recRates.length ? Math.round(recRates.reduce(function(s,r){return s+r;},0) / recRates.length * 100) + "%" : "—", c: "#4fc3f7", cap: "of candidates' past dips bounced back" },
+          { l: "Data Generated", v: fd.generated, c: "#aab4cc", cap: "rebuilt every price update" }
+        ].map(function(s) { return (
+          <div key={s.l} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "12px 15px" }}>
+            <span style={labelStyle}>{s.l}</span>
+            <div style={{ fontSize: 16, fontWeight: 700, color: s.c }}>{s.v}</div>
+            <div style={{ fontSize: 10.5, color: "#566078", marginTop: 2 }}>{s.cap}</div>
+          </div>
+        ); })}
+      </div>
+
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: "12px 15px", marginBottom: 14 }}>
+        <div><span style={labelStyle}>Search</span><input type="text" value={search} onChange={function(e){ setSearch(e.target.value); }} placeholder="item name…" style={Object.assign({}, inputStyle, { width: 170 })} /></div>
+        <div><span style={labelStyle}>Type</span>
+          <select value={fType} onChange={function(e){ setFType(e.target.value); }} style={Object.assign({}, inputStyle, { width: 130 })}>
+            {["All"].concat(Object.keys(types).sort()).map(function(t){ return <option key={t} value={t} style={{ background: "#141a26" }}>{t}</option>; })}
+          </select></div>
+        <div><span style={labelStyle}>Rarity</span>
+          <select value={fRarity} onChange={function(e){ setFRarity(e.target.value); }} style={Object.assign({}, inputStyle, { width: 115 })}>
+            {["All","Common","Uncommon","Rare","Epic","Legendary","Arcane","Immortal"].map(function(r){ return <option key={r} value={r} style={{ background: "#141a26" }}>{r}</option>; })}
+          </select></div>
+        <div><span style={labelStyle}>Min Price</span><input type="number" min="0" value={minP} onChange={function(e){ setMinP(Number(e.target.value) || 0); }} style={inputStyle} /></div>
+        <div><span style={labelStyle}>Max Budget</span><input type="number" min="1" value={maxP} onChange={function(e){ setMaxP(Number(e.target.value) || 1); }} style={inputStyle} /></div>
+        <div><span style={labelStyle}>Fee %</span><input type="number" min="0" max="50" value={fee} onChange={function(e){ setFee(Math.max(0, Math.min(50, Number(e.target.value) || 0))); }} style={inputStyle} /></div>
+        <div><span style={labelStyle}>Min Disc %</span><input type="number" min="0" max="90" value={minDisc} onChange={function(e){ setMinDisc(Math.max(0, Math.min(90, Number(e.target.value) || 0))); }} style={inputStyle} /></div>
+        <div><span style={labelStyle}>Min Recovery %</span><input type="number" min="0" max="100" value={minRec} onChange={function(e){ setMinRec(Math.max(0, Math.min(100, Number(e.target.value) || 0))); }} style={inputStyle} /></div>
+        <div><span style={labelStyle}>Sort</span>
+          <select value={sortBy} onChange={function(e){ setSortBy(e.target.value); }} style={Object.assign({}, inputStyle, { width: 120 })}>
+            <option value="score" style={{ background: "#141a26" }}>Flip Score</option>
+            <option value="netPct" style={{ background: "#141a26" }}>Net %</option>
+            <option value="net" style={{ background: "#141a26" }}>Net G</option>
+            <option value="discount" style={{ background: "#141a26" }}>Discount</option>
+            <option value="rec" style={{ background: "#141a26" }}>Recovery</option>
+          </select></div>
+        <div><span style={labelStyle}>Profitable Only</span>
+          <select value={profOnly ? "1" : "0"} onChange={function(e){ setProfOnly(e.target.value === "1"); }} style={Object.assign({}, inputStyle, { width: 110 })}>
+            <option value="1" style={{ background: "#141a26" }}>Yes</option>
+            <option value="0" style={{ background: "#141a26" }}>Show all dips</option>
+          </select></div>
+      </div>
+
+      <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead><tr>
+            <th style={Object.assign({}, thStyle, { textAlign: "center" })}>Score</th>
+            <th style={Object.assign({}, thStyle, { textAlign: "left" })}>Item</th>
+            <th style={Object.assign({}, thStyle, { textAlign: "center" })}>90d</th>
+            <th style={thStyle}>Current</th><th style={thStyle}>30d Avg</th><th style={thStyle}>Discount</th>
+            <th style={thStyle}>Net / Item</th><th style={thStyle}>Net %</th><th style={thStyle}>Recovery</th>
+            <th style={thStyle}>Trend 14d</th>
+            <th style={Object.assign({}, thStyle, { textAlign: "left" })}>Liq.</th>
+            <th style={Object.assign({}, thStyle, { textAlign: "center" })}>Actions</th>
+          </tr></thead>
+          <tbody>
+            {shown.length === 0 ? (
+              <tr><td colSpan={12} style={{ padding: 40, textAlign: "center", color: "#566078" }}>No items match. Lower the minimum discount, or switch "Profitable Only" off to browse all dips.</td></tr>
+            ) : shown.reduce(function(acc, r) {
+              var it = r.it, a = r.a;
+              var rc = RC[it.rarity] || "#8e99b3";
+              var sc = scoreColor(a.score);
+              var trendC = a.slope14 <= -1.5 ? "#ff5c69" : a.slope14 < -0.3 ? "#ffb74d" : "#3ddc84";
+              acc.push(
+                <tr key={it.name + "_flip"} onClick={function(){ setOpenName(openName === it.name ? null : it.name); }} style={{ cursor: "pointer" }}
+                  onMouseEnter={function(e){ e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                  onMouseLeave={function(e){ e.currentTarget.style.background = "transparent"; }}>
+                  <td style={Object.assign({}, tdStyle, { textAlign: "center" })}><span style={{ display: "inline-block", minWidth: 32, background: sc[0], color: sc[1], borderRadius: 6, padding: "2px 6px", fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, fontSize: 12 }}>{a.score}</span></td>
+                  <td style={Object.assign({}, tdStyle, { textAlign: "left" })}><span style={{ color: rc, fontWeight: 600 }}>{it.name.replace(/"/g, "")}</span><span style={{ color: "#566078", fontSize: 10, marginLeft: 6 }}>{it.type}</span></td>
+                  <td style={Object.assign({}, tdStyle, { textAlign: "center" })}>{sparkSvg(a.spark, 100, 24, a.slope14 < 0 ? "#ff5c69" : "#3ddc84")}</td>
+                  <td style={tdStyle}>{fmtPrice(it.price)} G</td>
+                  <td style={Object.assign({}, tdStyle, { color: "#aab4cc" })}>{fmtPrice(a.avg30)} G</td>
+                  <td style={Object.assign({}, tdStyle, { color: "#4fc3f7" })}>−{a.discount.toFixed(1)}%</td>
+                  <td style={Object.assign({}, tdStyle, { color: a.net > 0 ? "#3ddc84" : "#ff5c69", fontWeight: 700 })}>{a.net > 0 ? "+" : "−"}{fmtPrice(Math.abs(a.net))} G</td>
+                  <td style={Object.assign({}, tdStyle, { color: a.net > 0 ? "#3ddc84" : "#ff5c69" })}>{a.net > 0 ? "+" : "−"}{Math.abs(a.netPct).toFixed(1)}%</td>
+                  <td style={tdStyle}>{a.rate === null ? <span style={{ color: "#566078" }}>no events</span> : <span><span style={{ color: a.rate >= 0.6 ? "#3ddc84" : a.rate >= 0.4 ? "#ffb74d" : "#ff5c69" }}>{Math.round(a.rate * 100)}%</span><span style={{ color: "#566078", fontSize: 11 }}> of {a.events}</span></span>}</td>
+                  <td style={Object.assign({}, tdStyle, { color: trendC, fontFamily: "'JetBrains Mono',monospace" })}>{a.slope14.toFixed(2)}%/d</td>
+                  <td style={Object.assign({}, tdStyle, { textAlign: "left", color: a.thin ? "#ffb74d" : "#3ddc84", fontSize: 12 })}>{a.thin ? "Thin" : "OK"}</td>
+                  <td style={Object.assign({}, tdStyle, { textAlign: "center" })}><button style={btnStyle} onClick={function(e){ e.stopPropagation(); wlAdd(it.name, it.price); }}>+ Watch</button></td>
+                </tr>
+              );
+              if (openName === it.name) acc.push(renderDetail(r));
+              return acc;
+            }, [])}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ marginTop: 12, fontSize: 12, color: "#566078", lineHeight: 1.6, maxWidth: 980 }}>
+        Net profit assumes buying at the current price and reselling at the item's 30-day average, minus the market fee (the official marketplace commission is 20%). <b style={{ color: "#aab4cc" }}>Recovery</b> backtests each item's own history: of past dips ≥{fd.dipPct}% below its trailing 30-day average, the share that returned to that average within {fd.windowDays} days. A discount is an opportunity, not a guarantee — prices can keep falling.
+      </div>
+    </div>
+  );
+
+  var watchlist = (
+    <div>
+      <div style={{ fontSize: 12, color: "#566078", marginBottom: 12 }}>
+        {user ? "Synced to your account — available on any device." : "Stored in this browser only — sign in to sync across devices."}
+      </div>
+      <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, overflow: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead><tr>
+            <th style={Object.assign({}, thStyle, { textAlign: "left" })}>Item</th>
+            <th style={thStyle}>Qty</th><th style={thStyle}>Entry</th><th style={thStyle}>Current</th><th style={thStyle}>30d Avg</th>
+            <th style={thStyle}>P/L if sold now (net)</th><th style={thStyle}>P/L at 30d avg (net)</th>
+            <th style={Object.assign({}, thStyle, { textAlign: "left" })}>Added</th>
+            <th style={Object.assign({}, thStyle, { textAlign: "center" })}>Actions</th>
+          </tr></thead>
+          <tbody>
+            {wl.length === 0 ? (
+              <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: "#566078" }}>No positions yet — add items from the Scanner.</td></tr>
+            ) : wl.map(function(w) {
+              var it = byName[w.item];
+              var row = fd.items[w.item];
+              var cur = it ? it.price : w.entry;
+              var avg30 = row ? row[IX.avg30] : cur;
+              var plNow = (cur * (1 - fee / 100) - w.entry) * w.qty;
+              var plAvg = (avg30 * (1 - fee / 100) - w.entry) * w.qty;
+              var pl = function(v) { return <span style={{ color: v >= 0 ? "#3ddc84" : "#ff5c69", fontFamily: "'JetBrains Mono',monospace" }}>{v >= 0 ? "+" : "−"}{fmtPrice(Math.abs(v))} G</span>; };
+              var rc = it ? (RC[it.rarity] || "#8e99b3") : "#8e99b3";
+              return (
+                <tr key={w.item}>
+                  <td style={Object.assign({}, tdStyle, { textAlign: "left" })}><span style={{ color: rc, fontWeight: 600 }}>{w.item.replace(/"/g, "")}</span></td>
+                  <td style={tdStyle}><input type="number" min="1" value={w.qty} onChange={function(e){ wlSetQty(w, e.target.value); }} style={Object.assign({}, inputStyle, { width: 58 })} /></td>
+                  <td style={Object.assign({}, tdStyle, { fontFamily: "'JetBrains Mono',monospace" })}>{fmtPrice(w.entry)} G</td>
+                  <td style={Object.assign({}, tdStyle, { fontFamily: "'JetBrains Mono',monospace" })}>{fmtPrice(cur)} G</td>
+                  <td style={Object.assign({}, tdStyle, { color: "#aab4cc" })}>{fmtPrice(avg30)} G</td>
+                  <td style={tdStyle}>{pl(plNow)}</td>
+                  <td style={tdStyle}>{pl(plAvg)}</td>
+                  <td style={Object.assign({}, tdStyle, { textAlign: "left", color: "#566078" })}>{w.added}</td>
+                  <td style={Object.assign({}, tdStyle, { textAlign: "center" })}>
+                    <button style={btnStyle} onClick={function(){ addTargetAlert(w.item, avg30); }}>🔔 Target</button>
+                    <button style={{ background: "rgba(255,92,105,0.1)", border: "1px solid rgba(255,92,105,0.3)", color: "#ff5c69", borderRadius: 6, padding: "3px 8px", fontSize: 11, cursor: "pointer", marginLeft: 4 }} onClick={function(){ wlRemove(w); }}>Remove</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop: 12, fontSize: 12, color: "#566078" }}>P/L is net of the {fee}% market fee on the sale side. "🔔 Target" alerts you when the item reaches its 30-day average.</div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "20px 28px" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, alignItems: "center" }}>
+        {[["scanner", "Scanner"], ["watch", "My Watchlist (" + wl.length + ")"]].map(function(v) {
+          return <button key={v[0]} onClick={function(){ setView(v[0]); }} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid " + (view === v[0] ? "rgba(255,125,58,0.5)" : "rgba(255,255,255,0.1)"), background: view === v[0] ? "rgba(255,125,58,0.12)" : "rgba(255,255,255,0.03)", color: view === v[0] ? "#ff7d3a" : "#8e99b3", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{v[1]}</button>;
+        })}
+        {savedMsg ? <span style={{ fontSize: 12, color: "#3ddc84", marginLeft: 8 }}>{savedMsg}</span> : null}
+      </div>
+      {view === "scanner" ? scanner : watchlist}
+    </div>
+  );
+}
+
 // ─── Weekly Market Report ─────────────────────────────────────────────────────
 function WeeklyMarketReport({ tier }) {
   var isVIP = tier === "VIP+" || tier === "VIP";
@@ -3968,6 +4384,7 @@ function App() {
     var unsub = firebase.auth().onAuthStateChanged(function(u) {
       setUser(u);
       if (u) {
+        evaluateUserAlerts(u);
         db.ref("users/" + u.uid + "/tier").on("value", function(snap) {
           var t = snap.val();
           if (t) { setTier(t); localStorage.setItem("s2_tier", t); }
@@ -4044,12 +4461,13 @@ function App() {
       </div>
 
       <div className="s2-tabs" style={{ display:"flex",gap:0,borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"collection",label:"📊 Collection"},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"gold",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
+        {[{id:"market",label:t("market",lang)},{id:"investments",label:t("bestInvestments",lang)},{id:"flips",label:"🔄 Flip Finder"},{id:"collection",label:"📊 Collection"},{id:"players",label:"🎮 Player Tracker"}].concat(siteConfig.giveawaysEnabled?[{id:"giveaways",label:t("giveaways",lang)}]:[]).concat([{id:"gold",label:"💰 Gold"},{id:"account",label:user?"👤 "+(user.displayName||"Account"):t("signUp",lang)}]).concat(showAdmin?[{id:"admin",label:"⚙ Admin"}]:[]).map(function(t){return(
           <button key={t.id} onClick={function(){setTab(t.id)}} style={{ padding:"12px 24px",background:tab===t.id?"rgba(255,255,255,0.05)":"transparent",border:"none",borderBottom:tab===t.id?"2px solid #ff7d3a":"2px solid transparent",color:tab===t.id?"#fff":"#6b7590",fontSize:13,fontWeight:600,cursor:"pointer",letterSpacing:"0.03em" }}>{t.label}</button>
         )})}
       </div>
 
       {tab === "collection" && <CollectionPanel user={user} lang={lang} setTab={setTab} setSelected={setSelected} setGraphItem={setGraphItem} />}
+      {tab === "flips" && <FlipFinderPanel user={user} setTab={setTab} setSelected={setSelected} />}
       {tab === "investments" && (
         <div style={{ padding:"28px" }}>
           <h2 style={{ margin:"0 0 6px",fontSize:22,fontWeight:800,color:"#fff" }}>{t("bestInvestments",lang)}</h2>
