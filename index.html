@@ -1399,7 +1399,7 @@ function AuthPanel({ user, onClose }) {
         if (!cred.user.emailVerified) {
           cred.user.sendEmailVerification().catch(function(){});
           firebase.auth().signOut();
-          setError("Email not verified yet. We sent a new verification link â check your inbox and spam folder.");
+          setError("Email not verified yet. We sent a new verification link — check your inbox and spam folder.");
           return;
         }
         setSuccess("Signed in!");
@@ -1445,7 +1445,7 @@ function AuthPanel({ user, onClose }) {
 
         <div style={{ marginBottom:16 }}>
           <div style={{ fontSize:11,color:"#8e99b3",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em" }}>Password</div>
-          <input type="password" value={password} onChange={function(e){setPassword(e.target.value)}} placeholder="â¢â¢â¢â¢â¢â¢â¢â¢"
+          <input type="password" value={password} onChange={function(e){setPassword(e.target.value)}} placeholder="••••••••"
             style={{ width:"100%",padding:"10px 12px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#e9edf5",fontSize:13,outline:"none" }} />
         </div>
 
@@ -1468,7 +1468,7 @@ var GIVEAWAY_ITEMS = [
 ];
 
 // Giveaway items are pinned by name so price updates never change what's being given away.
-// To change a giveaway item, update the name here â it no longer depends on live prices.
+// To change a giveaway item, update the name here — it no longer depends on live prices.
 var GIVEAWAY_PINNED = {
   weekly: "Sticker \"Stay Tuned\" Shine",
   biweekly: "AKR \"Twilight\" StatTrack",
@@ -1596,7 +1596,7 @@ function GiveawaysTab({ user, tier }) {
       <p style={{ margin:"0 0 14px",fontSize:11,color:"#ff7d3a",background:"rgba(255,125,58,0.08)",padding:"8px 12px",borderRadius:8,border:"1px solid rgba(255,125,58,0.15)" }}>ð If you win you will receive an email with details on how to receive your prize in game</p>
       <div style={{ marginBottom:24,display:"flex",gap:12,flexWrap:"wrap" }}>
         {[{t:"Free",v:1,c:"#8e99b3"},{t:"Basic",v:10,c:"#ff5c69"},{t:"VIP",v:25,c:"#6690ff"},{t:"VIP+",v:100,c:"#ffd24a"}].map(function(x){return(
-          <span key={x.t} style={{ fontSize:11,padding:"4px 10px",borderRadius:20,background:tier===x.t?x.c+"33":x.c+"11",border:"1px solid "+(tier===x.t?x.c:x.c+"44"),color:x.c,fontWeight:tier===x.t?700:400 }}>{x.t}: {x.v} ticket{x.v!==1?"s":""}{tier===x.t?" â":""}</span>
+          <span key={x.t} style={{ fontSize:11,padding:"4px 10px",borderRadius:20,background:tier===x.t?x.c+"33":x.c+"11",border:"1px solid "+(tier===x.t?x.c:x.c+"44"),color:x.c,fontWeight:tier===x.t?700:400 }}>{x.t}: {x.v} ticket{x.v!==1?"s":""}{tier===x.t?" ✓":""}</span>
         )})}
       </div>
 
@@ -1634,7 +1634,7 @@ function GiveawaysTab({ user, tier }) {
               {!user ? (
                 <div style={{ textAlign:"center",fontSize:12,color:"#6b7590",padding:"8px",background:"rgba(255,255,255,0.02)",borderRadius:8,border:"1px solid rgba(255,255,255,0.06)" }}>Sign in to enter</div>
               ) : hasEntered ? (
-                <div style={{ textAlign:"center",fontSize:12,color:"#3ddc84",padding:"10px",background:"rgba(61,220,132,0.1)",borderRadius:8,border:"1px solid rgba(61,220,132,0.2)",fontWeight:600 }}>â Entered ({tickets} ticket{tickets!==1?"s":""})</div>
+                <div style={{ textAlign:"center",fontSize:12,color:"#3ddc84",padding:"10px",background:"rgba(61,220,132,0.1)",borderRadius:8,border:"1px solid rgba(61,220,132,0.2)",fontWeight:600 }}>✓ Entered ({tickets} ticket{tickets!==1?"s":""})</div>
               ) : (
                 <button onClick={function(){handleEnter(g.type)}} style={{ width:"100%",padding:"10px",borderRadius:8,background:g.color+"22",border:"1px solid "+g.color+"66",color:g.color,fontSize:13,fontWeight:700,cursor:"pointer" }}>Enter ({tickets} ticket{tickets!==1?"s":""})</button>
               )}
@@ -1718,7 +1718,7 @@ function GiveawayWinnersAdmin() {
   return (
     <div>
       <div style={{ fontSize:12,color:"#566078",marginBottom:16 }}>{history.length} winner{history.length!==1?"s":""} recorded</div>
-      {history.length===0 && <div style={{ color:"#566078",fontSize:13,textAlign:"center",padding:20 }}>No winners yet â they will appear here automatically</div>}
+      {history.length===0 && <div style={{ color:"#566078",fontSize:13,textAlign:"center",padding:20 }}>No winners yet — they will appear here automatically</div>}
       {history.map(function(w) {
         var c = typeColors[w.type] || "#8e99b3";
         return (
@@ -2071,12 +2071,53 @@ function ClaimsAdminTab() {
   }
 }
 
-function useInventory() {
-  var stored = localStorage.getItem('s2_inventory');
-  var initial = stored ? JSON.parse(stored) : [];
-  var ref = React.useState(initial);
+function invToCloudUpdate(items) {
+  var update = {};
+  items.forEach(function(i) { update[i.name.replace(/[.#$\/\[\]]/g, "_")] = i; });
+  return update;
+}
+function useInventory(user) {
+  var ref = React.useState(function() {
+    var stored = localStorage.getItem('s2_inventory');
+    try { return stored ? JSON.parse(stored) : []; } catch(e) { return []; }
+  });
   var inv = ref[0]; var setInv = ref[1];
-  function save(items) { setInv(items); localStorage.setItem('s2_inventory', JSON.stringify(items)); }
+  var loadedUid = React.useRef(null);
+
+  // When signed in, the account's cloud inventory is the source of truth.
+  // Local (signed-out) items are merged in once so nothing is lost, then synced up.
+  React.useEffect(function() {
+    if (!user) { loadedUid.current = null; return; }
+    if (loadedUid.current === user.uid) return;
+    db.ref("playerInventories/" + user.uid).once("value").then(function(snap) {
+      var val = snap.val() || {};
+      var cloud = Object.keys(val).map(function(k) { return val[k]; })
+        .filter(function(i) { return i && i.name && typeof i.qty === "number"; });
+      var stored = localStorage.getItem('s2_inventory');
+      var local = [];
+      try { local = stored ? JSON.parse(stored) : []; } catch(e) {}
+      var byName = {};
+      local.forEach(function(i) { if (i && i.name) byName[i.name] = i; });
+      cloud.forEach(function(i) { byName[i.name] = i; }); // cloud wins on conflict
+      var merged = Object.keys(byName).map(function(k) { return byName[k]; });
+      loadedUid.current = user.uid;
+      setInv(merged);
+      localStorage.setItem('s2_inventory', JSON.stringify(merged));
+      if (merged.length !== cloud.length) {
+        db.ref("playerInventories/" + user.uid).set(invToCloudUpdate(merged)).catch(function(){});
+      }
+    }).catch(function(){});
+  }, [user && user.uid]);
+
+  function save(items) {
+    setInv(items);
+    localStorage.setItem('s2_inventory', JSON.stringify(items));
+    // Persist to the signed-in account (only after the cloud copy has been loaded,
+    // so a slow first load can never be overwritten by stale local data)
+    if (user && loadedUid.current === user.uid) {
+      db.ref("playerInventories/" + user.uid).set(invToCloudUpdate(items)).catch(function(){});
+    }
+  }
   function addItem(name, qty) {
     var existing = inv.find(function(i){return i.name===name});
     var item = ITEMS.find(function(i){return i.name===name});
@@ -2096,7 +2137,7 @@ function useInventory() {
 }
 
 function InventoryPanel({ lang, setTab, setSelected, setGraphItem, user }) {
-  var inv = useInventory();
+  var inv = useInventory(user);
   var items = inv.items;
   var [addSearch, setAddSearch] = React.useState("");
   var [showAdd, setShowAdd] = React.useState(false);
@@ -2169,20 +2210,16 @@ function InventoryPanel({ lang, setTab, setSelected, setGraphItem, user }) {
     alert("✓ " + confirmItems.length + " item(s) imported!");
   }
 
-  // Mirror inventory to Firebase so Player Tracker search can read it
+  // Daily portfolio value snapshot (inventory itself now syncs inside useInventory)
   React.useEffect(function() {
     if (!user || items.length === 0) return;
-    var update = {};
-    items.forEach(function(i) { update[i.name.replace(/[.#$\/\[\]]/g, "_")] = i; });
-    db.ref("playerInventories/" + user.uid).set(update);
-    // Daily value snapshot
     var today = new Date().toISOString().slice(0, 10);
     var total = items.reduce(function(sum, invItem) {
       var market = ITEMS.find(function(i) { return i.name === invItem.name; });
       return sum + (market ? market.price * invItem.qty : 0);
     }, 0);
     db.ref("playerValueHistory/" + user.uid + "/" + today).set(Math.round(total * 100) / 100);
-  }, [items.length, user && user.uid]);
+  }, [items, user && user.uid]);
 
   var totalValue = 0; var totalAdded = 0; var totalDay = 0; var totalWeek = 0; var totalMonth = 0;
   var enriched = items.map(function(invItem) {
@@ -3405,7 +3442,7 @@ function ProfileInventoryView({ inventory, vhist }) {
 
 // ─── Portfolio Tracker ────────────────────────────────────────────────────────
 function PortfolioPanel({ user, setTab }) {
-  var inv = useInventory();
+  var inv = useInventory(user);
   var items = inv.items;
   var [valueHistory, setValueHistory] = React.useState({});
   var [sortBy, setSortBy] = React.useState("value");
