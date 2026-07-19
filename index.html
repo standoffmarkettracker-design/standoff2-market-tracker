@@ -827,6 +827,7 @@ function ItemChat({ item, tier, user }) {
 
   React.useEffect(function() {
     if (!item) return;
+    if (!user) { setMsgs([]); return; } // chat requires sign-in per DB rules; re-attach when auth restores
     var key = chatKey(item.name);
     cleanOldMessages(item.name);
     var ref = db.ref("chats/" + key);
@@ -842,7 +843,7 @@ function ItemChat({ item, tier, user }) {
     });
     setInput("");
     return function() { ref.off("value", handler); };
-  }, [item && item.name]);
+  }, [item && item.name, user && user.uid]);
 
   React.useEffect(function() {
     if (cooldown <= 0) return;
@@ -4426,13 +4427,17 @@ function App() {
           var t = snap.val();
           if (t) { setTier(t); localStorage.setItem("s2_tier", t); }
         });
-        // Check admin on login
-        db.ref("admins/" + u.uid).once("value", function(snap) {
-          if (snap.val() === true) setShowAdmin(true);
-        });
-        db.ref("users/" + u.uid + "/isAdmin").once("value", function(snap) {
-          if (snap.val() === true) setShowAdmin(true);
-        });
+        // Check admin on login (retry once — the auth token can lag the DB socket right after session restore)
+        (function checkAdmin(attempt) {
+          Promise.all([
+            db.ref("admins/" + u.uid).once("value"),
+            db.ref("users/" + u.uid + "/isAdmin").once("value")
+          ]).then(function(snaps) {
+            if (snaps[0].val() === true || snaps[1].val() === true) setShowAdmin(true);
+          }).catch(function() {
+            if (attempt < 2) setTimeout(function() { checkAdmin(attempt + 1); }, 1500);
+          });
+        })(0);
 
       } else {
         setShowAdmin(false);
