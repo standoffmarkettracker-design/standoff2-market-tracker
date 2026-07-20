@@ -3447,6 +3447,8 @@ function PortfolioPanel({ user, setTab }) {
   var items = inv.items;
   var [valueHistory, setValueHistory] = React.useState({});
   var [sortBy, setSortBy] = React.useState("value");
+  var [selPoint, setSelPoint] = React.useState(null);
+  var [pinned, setPinned] = React.useState(false);
 
   // Load historical value snapshots from Firebase
   React.useEffect(function() {
@@ -3491,6 +3493,9 @@ function PortfolioPanel({ user, setTab }) {
   var histWithToday = Object.assign({}, valueHistory);
   if (totalValue > 0) histWithToday[today] = Math.round(totalValue * 100) / 100;
   var histDates  = Object.keys(histWithToday).sort();
+  React.useEffect(function() {
+    if (histDates.length >= 2 && selPoint === null) setSelPoint(histDates.length - 1);
+  }, [histDates.length]);
   var histPrices = histDates.map(function(d){ return histWithToday[d]; });
   var histMin    = Math.min.apply(null, histPrices) * 0.97;
   var histMax    = Math.max.apply(null, histPrices) * 1.03;
@@ -3543,25 +3548,75 @@ function PortfolioPanel({ user, setTab }) {
       </div>
 
       {/* Value history chart */}
-      {histDates.length >= 2 && (
-        <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:20, marginBottom:24, overflow:"hidden" }}>
-          <div style={{ fontSize:12, fontWeight:700, color:"#8e99b3", marginBottom:12 }}>Portfolio Value History</div>
-          <svg viewBox={"0 0 " + chartW + " " + chartH} style={{ width:"100%", height:chartH, display:"block" }}>
-            <defs>
-              <linearGradient id="pfGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={chartColor} stopOpacity="0.3" />
-                <stop offset="100%" stopColor={chartColor} stopOpacity="0.02" />
-              </linearGradient>
-            </defs>
-            <path d={fillD} fill="url(#pfGrad)" />
-            <path d={pathD} fill="none" stroke={chartColor} strokeWidth="2" />
-            {/* Start and end labels */}
-            <text x="4" y="14" fill="#566078" fontSize="9">{histDates[0]}</text>
-            <text x={chartW-4} y="14" fill="#566078" fontSize="9" textAnchor="end">{histDates[histDates.length-1]}</text>
-            <text x={toX(histDates.length-1)} y={toY(histPrices[histPrices.length-1])-6} fill={chartColor} fontSize="10" fontWeight="700" textAnchor="end">{fmtPrice(histPrices[histPrices.length-1])} G</text>
-          </svg>
+      <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:20, marginBottom:24, overflow:"hidden" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:12, flexWrap:"wrap", gap:8 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:"#8e99b3" }}>Portfolio Value History</div>
+          {selPoint !== null && histDates[selPoint] && (function(){
+            var v = histPrices[selPoint];
+            var prev = selPoint > 0 ? histPrices[selPoint-1] : null;
+            var diff = prev === null ? null : v - prev;
+            var diffPct = prev ? (diff/prev*100) : null;
+            var dc = diff === null ? "#8e99b3" : (diff >= 0 ? "#3ddc84" : "#ff5c69");
+            return (
+              <div style={{ fontSize:12, color:"#c6cede" }}>
+                <span style={{ color:"#566078" }}>{histDates[selPoint]}</span>
+                <span style={{ fontWeight:800, marginLeft:8 }}>{fmtPrice(v)} G</span>
+                {diff !== null && <span style={{ color:dc, fontWeight:700, marginLeft:8 }}>{(diff>=0?"+":"")+fmtPrice(diff)+" G ("+(diff>=0?"+":"")+diffPct.toFixed(1)+"%) vs prev day"}</span>}
+              </div>
+            );
+          })()}
         </div>
-      )}
+        {histDates.length >= 2 ? (
+          <React.Fragment>
+            <svg viewBox={"0 0 " + chartW + " " + (chartH+14)} style={{ width:"100%", height:chartH+14, display:"block", cursor:"crosshair" }}
+              onMouseLeave={function(){ if (!pinned) setSelPoint(histDates.length-1); }}
+              onMouseMove={function(ev){
+                if (pinned) return;
+                var r = ev.currentTarget.getBoundingClientRect();
+                var frac = (ev.clientX - r.left) / r.width;
+                var i = Math.round(frac * (histDates.length - 1));
+                setSelPoint(Math.max(0, Math.min(histDates.length - 1, i)));
+              }}
+              onClick={function(ev){
+                var r = ev.currentTarget.getBoundingClientRect();
+                var frac = (ev.clientX - r.left) / r.width;
+                var i = Math.max(0, Math.min(histDates.length - 1, Math.round(frac * (histDates.length - 1))));
+                if (pinned && selPoint === i) { setPinned(false); }
+                else { setSelPoint(i); setPinned(true); }
+              }}>
+              <defs>
+                <linearGradient id="pfGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={chartColor} stopOpacity="0.3" />
+                  <stop offset="100%" stopColor={chartColor} stopOpacity="0.02" />
+                </linearGradient>
+              </defs>
+              <path d={fillD} fill="url(#pfGrad)" />
+              <path d={pathD} fill="none" stroke={chartColor} strokeWidth="2" />
+              {selPoint !== null && histDates[selPoint] && (
+                <line x1={toX(selPoint)} y1="0" x2={toX(selPoint)} y2={chartH} stroke="rgba(255,255,255,0.25)" strokeWidth="1" strokeDasharray="3 3" />
+              )}
+              {histDates.map(function(d, i) {
+                var up = i === 0 || histPrices[i] >= histPrices[i-1];
+                var pc = i === 0 ? "#8e99b3" : (up ? "#3ddc84" : "#ff5c69");
+                var isSel = selPoint === i;
+                return (
+                  <g key={d}>
+                    <circle cx={toX(i)} cy={toY(histPrices[i])} r={isSel ? 5 : 3} fill={pc} stroke="#0d1220" strokeWidth="1.5" style={{ transition:"r 0.1s" }} />
+                    {isSel && <circle cx={toX(i)} cy={toY(histPrices[i])} r="9" fill="none" stroke={pc} strokeWidth="1" opacity="0.5" />}
+                  </g>
+                );
+              })}
+              <text x="4" y={chartH+12} fill="#566078" fontSize="9">{histDates[0]}</text>
+              <text x={chartW-4} y={chartH+12} fill="#566078" fontSize="9" textAnchor="end">{histDates[histDates.length-1]}</text>
+            </svg>
+            <div style={{ fontSize:10, color:"#3a4358", marginTop:6 }}>Hover to inspect · click a point to pin it · green/red dots show the day-over-day change</div>
+          </React.Fragment>
+        ) : (
+          <div style={{ fontSize:12, color:"#566078", padding:"14px 0" }}>
+            Collecting daily snapshots — your value history chart will appear here after your portfolio has been recorded on 2 different days. Today's snapshot {histDates.length === 1 ? "has been saved" : "will be saved automatically"}.
+          </div>
+        )}
+      </div>
 
       {/* Holdings table */}
       <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, overflow:"hidden" }}>
