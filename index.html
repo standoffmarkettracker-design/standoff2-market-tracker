@@ -1183,6 +1183,33 @@ function SupportModal({ onClose, currentTier, setTier, user, onSignUp }) {
   );
 }
 
+// --- Email verification helpers -------------------------------------------
+// Firebase invalidates the previous verification link every time a new one is
+// issued, so send at most one link per explicit user action and always point
+// people at the NEWEST email.
+function sendVerification(u) {
+  var acs = { url: "https://standoff2markettracker.com/", handleCodeInApp: false };
+  return u.sendEmailVerification(acs).catch(function(e) {
+    var c = e && e.code;
+    // The continue URL needs its domain whitelisted in Firebase Auth settings.
+    // If it is not, fall back to a plain link rather than failing to send.
+    if (c === "auth/unauthorized-continue-uri" || c === "auth/invalid-continue-uri") {
+      return u.sendEmailVerification();
+    }
+    throw e;
+  });
+}
+
+function verifyErrText(e) {
+  var c = e && e.code;
+  if (c === "auth/too-many-requests") return "Too many attempts — Firebase is temporarily blocking new emails for this address. Wait about 15 minutes, then tap Resend once.";
+  if (c === "auth/wrong-password" || c === "auth/invalid-credential" || c === "auth/invalid-login-credentials") return "That email and password don’t match.";
+  if (c === "auth/user-not-found") return "No account with that email — switch to Sign Up.";
+  if (c === "auth/invalid-email") return "That email address doesn’t look valid.";
+  if (c === "auth/network-request-failed") return "Network error — check your connection and try again.";
+  return (e && e.message) ? e.message : "Something went wrong. Please try again.";
+}
+
 function AuthLoggedIn({ user, onLogout }) {
   var [ptUsername, setPtUsername] = React.useState("");
   var [ptPublic, setPtPublic] = React.useState(true);
@@ -1282,7 +1309,11 @@ function AuthLoggedIn({ user, onLogout }) {
           ) : (
             <div style={{ marginBottom:16 }}>
               <div style={{ fontSize:12, color:"#ff5c69", marginBottom:8, padding:"6px 10px", background:"rgba(255,92,105,0.1)", borderRadius:6 }}>✗ Email not verified</div>
-              <button onClick={function(){user.sendEmailVerification().then(function(){alert("Verification email sent! Check your inbox and spam folder. If you already clicked the link, sign out and back in to refresh your status.")}).catch(function(e){alert(e&&e.code==="auth/too-many-requests"?"Too many requests — please wait a few minutes before trying again.":("Could not send email: "+(e&&e.message?e.message:"unknown error")))})}} style={{ padding:"6px 14px", borderRadius:6, background:"rgba(255,125,58,0.15)", border:"1px solid rgba(255,125,58,0.3)", color:"#ff7d3a", fontSize:11, fontWeight:600, cursor:"pointer" }}>Resend Verification Email</button>
+              <div style={{ fontSize:11, color:"#8e99b3", marginBottom:8, lineHeight:1.5 }}>Already clicked the link? Tap refresh below — no need to sign out. If you have several verification emails, only the newest one still works.</div>
+              <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
+                <button onClick={function(){var u=firebase.auth().currentUser; if(!u){alert("Session expired — please sign in again.");return;} u.reload().then(function(){var f=firebase.auth().currentUser; if(f&&f.emailVerified){alert("Verified! Reloading the page.");location.reload();}else{alert("Still showing unverified. Open the NEWEST verification email and click its link, then tap refresh again.");}}).catch(function(e){alert(verifyErrText(e))})}} style={{ padding:"6px 14px", borderRadius:6, background:"rgba(61,220,132,0.15)", border:"1px solid rgba(61,220,132,0.35)", color:"#3ddc84", fontSize:11, fontWeight:600, cursor:"pointer" }}>I’ve verified — refresh</button>
+                <button onClick={function(){var u=firebase.auth().currentUser; if(!u){alert("Session expired — please sign in again.");return;} sendVerification(u).then(function(){alert("New link sent. Open the NEWEST email in your inbox or spam folder — any older verification links have now stopped working.")}).catch(function(e){alert(verifyErrText(e))})}} style={{ padding:"6px 14px", borderRadius:6, background:"rgba(255,125,58,0.15)", border:"1px solid rgba(255,125,58,0.3)", color:"#ff7d3a", fontSize:11, fontWeight:600, cursor:"pointer" }}>Send a new link</button>
+              </div>
             </div>
           )}
           <button onClick={onLogout} style={{ padding:"10px 24px", borderRadius:8, background:"rgba(255,92,105,0.15)", border:"1px solid rgba(255,92,105,0.3)", color:"#ff5c69", fontSize:13, fontWeight:600, cursor:"pointer" }}>Sign Out</button>
@@ -1367,6 +1398,15 @@ function AuthPanel({ user, onClose }) {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [showResend, setShowResend] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(function() {
+    if (cooldown <= 0) return;
+    var t = setTimeout(function() { setCooldown(function(c) { return c - 1; }); }, 1000);
+    return function() { clearTimeout(t); };
+  }, [cooldown]);
 
   function handleSignUp() {
     setError(null);
@@ -1375,7 +1415,7 @@ function AuthPanel({ user, onClose }) {
     firebase.auth().createUserWithEmailAndPassword(email, password)
       .then(function(cred) {
         return cred.user.updateProfile({ displayName: displayName }).then(function() {
-          return cred.user.sendEmailVerification();
+          return sendVerification(cred.user);
         }).then(function() {
           var uid = cred.user.uid;
           return Promise.all([
@@ -1387,26 +1427,65 @@ function AuthPanel({ user, onClose }) {
       })
       .then(function() {
         firebase.auth().signOut();
-        setSuccess("Account created! Check your email (and spam folder) to verify, then sign in.");
+        setShowResend(true);
+        setCooldown(60);
+        setSuccess("Account created! Open the verification email (check spam too), click the link, then sign in. Don’t request extra links — each new one cancels the last.");
       })
       .catch(function(e) { setError(e.message); });
   }
 
   function handleLogin() {
-    setError(null);
+    setError(null); setSuccess(null);
     if (!email || !password) { setError("Please fill in all fields"); return; }
     firebase.auth().signInWithEmailAndPassword(email, password)
       .then(function(cred) {
-        if (!cred.user.emailVerified) {
-          cred.user.sendEmailVerification().catch(function(){});
-          firebase.auth().signOut();
-          setError("Email not verified yet. We sent a new verification link — check your inbox and spam folder.");
-          return;
-        }
-        setSuccess("Signed in!");
-        setTimeout(onClose, 800);
+        // Pull fresh state from the server: emailVerified on the cached token is
+        // stale for anyone who just clicked their link in another tab or device.
+        return cred.user.reload().catch(function(){}).then(function() {
+          var u = firebase.auth().currentUser || cred.user;
+          if (!u.emailVerified) {
+            // Deliberately NOT auto-sending a new link here. Each new link
+            // invalidates the previous one, so auto-resending on every attempt
+            // was killing the link the user had already been sent.
+            setShowResend(true);
+            firebase.auth().signOut();
+            setError("This email isn’t verified yet. Open the newest verification email (check spam), click its link, then sign in again.");
+            return;
+          }
+          setShowResend(false);
+          setSuccess("Signed in!");
+          setTimeout(onClose, 800);
+        });
       })
-      .catch(function(e) { setError(e.message); });
+      .catch(function(e) { setError(verifyErrText(e)); });
+  }
+
+  function handleResend() {
+    if (resendBusy || cooldown > 0) return;
+    setError(null); setSuccess(null);
+    if (!email || !password) { setError("Enter your email and password above, then tap Resend."); return; }
+    setResendBusy(true);
+    firebase.auth().signInWithEmailAndPassword(email, password)
+      .then(function(cred) {
+        return cred.user.reload().catch(function(){}).then(function() {
+          var u = firebase.auth().currentUser || cred.user;
+          if (u.emailVerified) {
+            setShowResend(false);
+            setSuccess("This email is already verified — tap Sign In.");
+            return firebase.auth().signOut();
+          }
+          return sendVerification(u).then(function() {
+            setCooldown(60);
+            setSuccess("New link sent. Open the NEWEST email — older verification links have stopped working.");
+            return firebase.auth().signOut();
+          });
+        });
+      })
+      .catch(function(e) {
+        firebase.auth().signOut();
+        setError(verifyErrText(e));
+      })
+      .then(function() { setResendBusy(false); });
   }
 
   function handleLogout() {
@@ -1457,6 +1536,16 @@ function AuthPanel({ user, onClose }) {
           style={{ width:"100%",padding:"12px",borderRadius:8,background:"#ff7d3a",border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer" }}>
           {mode === "signup" ? "Create Account" : "Sign In"}
         </button>
+
+        {showResend && (
+          <div style={{ marginTop:14, paddingTop:14, borderTop:"1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ fontSize:11, color:"#8e99b3", marginBottom:8, lineHeight:1.5 }}>Can’t find the email? Check your spam folder first. Requesting a new link cancels every previous one, so only ask for another if the newest link is missing or expired.</div>
+            <button onClick={handleResend} disabled={resendBusy || cooldown > 0}
+              style={{ width:"100%",padding:"10px",borderRadius:8,background:"rgba(255,125,58,0.12)",border:"1px solid rgba(255,125,58,0.3)",color:(resendBusy||cooldown>0)?"#6b7590":"#ff7d3a",fontSize:12,fontWeight:600,cursor:(resendBusy||cooldown>0)?"default":"pointer" }}>
+              {resendBusy ? "Sending…" : (cooldown > 0 ? ("Resend available in " + cooldown + "s") : "Resend verification email")}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
