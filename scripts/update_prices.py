@@ -402,7 +402,8 @@ def main():
         sys.exit(1)
     print("\nStep 4: Building flip analytics...")
     try:
-        build_flip_data(today)
+        from flip_engine import build_flip_data as build_flip_v2
+        build_flip_v2(ROOT, today)
     except Exception as e:
         print(f"WARNING: flip precompute failed ({e}) -- site falls back gracefully")
     print(f"\nDone. {updated} updated, {new_items} new items added -- {today}")
