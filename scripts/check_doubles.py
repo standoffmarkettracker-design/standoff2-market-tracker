@@ -3,7 +3,7 @@
 Compares current items.json to the previous git commit.
 Sends a Discord alert for any item that doubled in price.
 """
-import json, subprocess, urllib.request, sys
+import json, subprocess, urllib.request, urllib.error, sys
 
 DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1521212880614330488/whaIWiT5y7FbVYQ93k0TwHtbPljg5CxdG8vwr8J9s6vbWTturZluUyKhHTNKcL0Ytzj5"
 PINNED = {'Sticker "Province"', 'AKR "Scylla" StatTrack', 'S2 Mantis "Ink Wash"'}
@@ -46,10 +46,28 @@ if len(doubled) > 20:
     content += f"\n_...and {len(doubled) - 20} more_"
 
 payload = json.dumps({"content": content}).encode()
-req = urllib.request.Request(DISCORD_WEBHOOK, data=payload, method="POST", headers={"Content-Type": "application/json"})
+req = urllib.request.Request(
+    DISCORD_WEBHOOK,
+    data=payload,
+    method="POST",
+    headers={
+        "Content-Type": "application/json",
+        # Discord sits behind Cloudflare, which 403s the default "Python-urllib/x.y"
+        # User-Agent. Without this header the POST never reaches the webhook.
+        "User-Agent": "StandoffMarketTracker-Bot/1.0 (+https://standoff2markettracker.com)",
+    },
+)
 try:
-    with urllib.request.urlopen(req) as r:
+    with urllib.request.urlopen(req, timeout=30) as r:
         print(f"Discord notified: {r.status}")
+except urllib.error.HTTPError as e:
+    body = ""
+    try:
+        body = e.read().decode("utf-8", "replace")[:300]
+    except Exception:
+        pass
+    print(f"Discord HTTP {e.code}: {body}")
+    sys.exit(1)
 except Exception as e:
     print(f"Discord error: {e}")
     sys.exit(1)
