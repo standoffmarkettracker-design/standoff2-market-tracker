@@ -1206,6 +1206,9 @@ function verifyErrText(e) {
   if (c === "auth/wrong-password" || c === "auth/invalid-credential" || c === "auth/invalid-login-credentials") return "That email and password don’t match.";
   if (c === "auth/user-not-found") return "No account with that email — switch to Sign Up.";
   if (c === "auth/invalid-email") return "That email address doesn’t look valid.";
+  if (c === "auth/missing-email") return "Enter your email address first.";
+  if (c === "auth/expired-action-code") return "That reset link has expired — request a new one.";
+  if (c === "auth/invalid-action-code") return "That reset link is no longer valid — request a new one.";
   if (c === "auth/network-request-failed") return "Network error — check your connection and try again.";
   return (e && e.message) ? e.message : "Something went wrong. Please try again.";
 }
@@ -1400,6 +1403,7 @@ function AuthPanel({ user, onClose }) {
   const [success, setSuccess] = useState(null);
   const [showResend, setShowResend] = useState(false);
   const [resendBusy, setResendBusy] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(function() {
@@ -1488,6 +1492,24 @@ function AuthPanel({ user, onClose }) {
       .then(function() { setResendBusy(false); });
   }
 
+  function handleReset() {
+    if (resetBusy || cooldown > 0) return;
+    setError(null); setSuccess(null);
+    if (!email) { setError("Enter your email above, then tap Forgot password."); return; }
+    setResetBusy(true);
+    // Same reply whether or not the address is registered - a distinct
+    // "no such user" would let anyone enumerate our emails.
+    var generic = "If an account exists for that email, a reset link is on its way. Check spam too.";
+    firebase.auth().sendPasswordResetEmail(email)
+      .then(function() { setCooldown(60); setSuccess(generic); })
+      .catch(function(e) {
+        var c = e && e.code;
+        if (c === "auth/user-not-found") { setCooldown(60); setSuccess(generic); }
+        else { setError(verifyErrText(e)); }
+      })
+      .then(function() { setResetBusy(false); });
+  }
+
   function handleLogout() {
     firebase.auth().signOut();
     onClose();
@@ -1528,6 +1550,17 @@ function AuthPanel({ user, onClose }) {
           <input type="password" value={password} onChange={function(e){setPassword(e.target.value)}} placeholder="••••••••"
             style={{ width:"100%",padding:"10px 12px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,color:"#e9edf5",fontSize:13,outline:"none" }} />
         </div>
+
+        {mode === "login" && (
+          <div style={{ marginTop:-10, marginBottom:14, textAlign:"right" }}>
+            <button onClick={handleReset} disabled={resetBusy || cooldown > 0}
+              style={{ background:"none",border:"none",padding:0,fontSize:12,fontWeight:600,
+                       color:(resetBusy||cooldown>0)?"#6b7590":"#ff7d3a",
+                       cursor:(resetBusy||cooldown>0)?"default":"pointer" }}>
+              {resetBusy ? "Sending…" : (cooldown > 0 ? ("Try again in " + cooldown + "s") : "Forgot password?")}
+            </button>
+          </div>
+        )}
 
         {error && <div style={{ marginBottom:12,padding:"8px 12px",borderRadius:8,background:"rgba(255,92,105,0.15)",color:"#ff5c69",fontSize:12 }}>{error}</div>}
         {success && <div style={{ marginBottom:12,padding:"8px 12px",borderRadius:8,background:"rgba(61,220,132,0.15)",color:"#3ddc84",fontSize:12 }}>{success}</div>}
