@@ -47,4 +47,6 @@ jobs:
 
       - name: Alert Discord on price doubles
         run: python scripts/check_doubles.py
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         continue-on-error: true
