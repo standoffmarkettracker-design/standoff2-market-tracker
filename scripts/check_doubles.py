@@ -3,9 +3,12 @@
 Compares current items.json to the previous git commit.
 Sends a Discord alert for any item that doubled in price.
 """
-import json, subprocess, urllib.request, urllib.error, sys
+import json, os, subprocess, urllib.request, urllib.error, sys
 
-DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1521212880614330488/whaIWiT5y7FbVYQ93k0TwHtbPljg5CxdG8vwr8J9s6vbWTturZluUyKhHTNKcL0Ytzj5"
+DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK", "")
+if not DISCORD_WEBHOOK:
+    print("DISCORD_WEBHOOK not set - skipping alerts")
+    sys.exit(0)
 PINNED = {'Sticker "Province"', 'AKR "Scylla" StatTrack', 'S2 Mantis "Ink Wash"'}
 
 try:
