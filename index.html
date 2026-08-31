@@ -4161,7 +4161,7 @@ function BuyGoldPanel({ user, tier, setTab }) {
     var fields=[{name:"Username",value:username.trim(),inline:true},{name:"Tier",value:(user?(tier||"Basic"):"Guest"),inline:true},{name:"Method",value:ml,inline:false},{name:"Amount",value:ad,inline:true}];
     if(isCard)fields.push({name:"Gift Card Code",value:"||"+gcCode.trim()+"||",inline:false});
     var payload={embeds:[{title:"New Gold Purchase",color:0xFFD700,fields:fields,description:isCard?"Gift card code above - redeem and credit "+gcGold.toLocaleString()+" G to the user.":"Verify payment received then send "+directAmt+" G in-game.",timestamp:new Date().toISOString()}]};
-    fetch("https://discord.com/api/webhooks/1521212880614330488/whaIWiT5y7FbVYQ93k0TwHtbPljg5CxdG8vwr8J9s6vbWTturZluUyKhHTNKcL0Ytzj5",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(function(){
+    fetch("https://s2-webhook.standoffmarkettracker.workers.dev",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(function(){
       if(user){db.ref("goldPurchases/"+user.uid+"/"+Date.now()).set({uid:user.uid,username:username.trim(),tier:tier||"Basic",method:method,status:"pending",amount:isCard?gcGold:directAmt,gcCode:isCard?gcCode.trim():null,createdAt:new Date().toISOString()});}else{try{db.ref("goldOrders").push({username:username.trim(),tier:"Guest",method:method,status:"pending",amount:isCard?gcGold:directAmt,gcCode:isCard?gcCode.trim():null,source:"tracker",createdAt:Date.now()});}catch(e){}}
         SO2A.track('order_created');
       setStep("done");
@@ -4365,7 +4365,7 @@ function AllowanceModal({ user, tier, allowance, color, onClose }) {
       var fd = new FormData();
       fd.append("payload_json", JSON.stringify(payload));
       fd.append("files[0]", screenshot, "market-screenshot" + ext);
-      return fetch("https://discord.com/api/webhooks/1521212880614330488/whaIWiT5y7FbVYQ93k0TwHtbPljg5CxdG8vwr8J9s6vbWTturZluUyKhHTNKcL0Ytzj5", {
+      return fetch("https://s2-webhook.standoffmarkettracker.workers.dev", {
         method:"POST", body: fd
       });
     }).then(function() {
