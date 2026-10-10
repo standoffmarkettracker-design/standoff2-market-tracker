@@ -4793,6 +4793,31 @@ root.render(<App />);
     });
   })();
 </script>
+<script>
+// Logs one visit per day for signed-in players. The CheapStandoff2Gold shop
+// pays points for visiting on 3 days a week. Server time is stamped by Firebase,
+// so a visit can't be backdated.
+(function () {
+  var tries = 0;
+  function start() {
+    try {
+      if (!window.firebase || !firebase.apps || !firebase.apps.length || !firebase.auth || !firebase.database) {
+        if (++tries < 20) setTimeout(start, 1500);
+        return;
+      }
+      firebase.auth().onAuthStateChanged(function (u) {
+        if (!u || !u.emailVerified) return;
+        var day = Math.floor(Date.now() / 86400000);
+        var ref = firebase.database().ref('points/' + u.uid + '/trackerVisits/' + day);
+        ref.once('value').then(function (s) {
+          if (!s.exists()) ref.set({ ts: firebase.database.ServerValue.TIMESTAMP }).catch(function () {});
+        }).catch(function () {});
+      });
+    } catch (e) {}
+  }
+  setTimeout(start, 2500);
+})();
+</script>
 </body>
 </html>
 
