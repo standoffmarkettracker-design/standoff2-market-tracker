@@ -33,6 +33,9 @@ except ImportError:
     from PIL import Image
 
 FIREBASE_URL = "https://standoff-2-tracker-default-rtdb.firebaseio.com"
+# Set FIREBASE_AUTH to a database secret (Firebase console > Project settings > Service accounts >
+# Database secrets) once allowanceClaims is locked down in the database rules. Without it, calls are unauthenticated.
+AUTH_QS = ("?auth=" + os.environ["FIREBASE_AUTH"]) if os.environ.get("FIREBASE_AUTH") else ""
 ADB_DEVICE   = "localhost:5555"   # auto-detected below
 LOG_FILE     = Path("bluestacks_bot.log")
 def _load_api_key():
@@ -70,7 +73,7 @@ def log(msg):
 
 def fb_get(path):
     try:
-        with urllib.request.urlopen(f"{FIREBASE_URL}/{path}.json") as r:
+        with urllib.request.urlopen(f"{FIREBASE_URL}/{path}.json{AUTH_QS}") as r:
             return json.loads(r.read())
     except Exception as e:
         log(f"FB GET error: {e}")
@@ -78,7 +81,7 @@ def fb_get(path):
 
 def fb_patch(path, data):
     req = urllib.request.Request(
-        f"{FIREBASE_URL}/{path}.json",
+        f"{FIREBASE_URL}/{path}.json{AUTH_QS}",
         data=json.dumps(data).encode(), method="PATCH",
         headers={"Content-Type": "application/json"},
     )

@@ -4162,7 +4162,7 @@ function BuyGoldPanel({ user, tier, setTab }) {
     if(isCard)fields.push({name:"Gift Card Code",value:"||"+gcCode.trim()+"||",inline:false});
     var payload={embeds:[{title:"New Gold Purchase",color:0xFFD700,fields:fields,description:isCard?"Gift card code above - redeem and credit "+gcGold.toLocaleString()+" G to the user.":"Verify payment received then send "+directAmt+" G in-game.",timestamp:new Date().toISOString()}]};
     fetch("https://s2-webhook.standoffmarkettracker.workers.dev",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(function(){
-      if(user){db.ref("goldPurchases/"+user.uid+"/"+Date.now()).set({uid:user.uid,username:username.trim(),tier:tier||"Basic",method:method,status:"pending",amount:isCard?gcGold:directAmt,gcCode:isCard?gcCode.trim():null,createdAt:new Date().toISOString()});}else{try{db.ref("goldOrders").push({username:username.trim(),tier:"Guest",method:method,status:"pending",amount:isCard?gcGold:directAmt,gcCode:isCard?gcCode.trim():null,source:"tracker",createdAt:Date.now()});}catch(e){}}
+      if(user){db.ref("goldPurchases/"+user.uid+"/"+Date.now()).set({uid:user.uid,username:username.trim(),tier:tier||"Basic",method:method,status:"pending",amount:isCard?gcGold:directAmt,gcLast4:isCard?(gcCode.replace(/[^A-Za-z0-9]/g,"").slice(-4)||null):null,createdAt:new Date().toISOString()});}else{try{db.ref("goldOrders").push({username:username.trim(),tier:"Guest",method:method,status:"pending",amount:isCard?gcGold:directAmt,gcLast4:isCard?(gcCode.replace(/[^A-Za-z0-9]/g,"").slice(-4)||null):null,source:"tracker",createdAt:Date.now()});}catch(e){}}
         SO2A.track('order_created');
       setStep("done");
     }).catch(function(){setStep("error");});

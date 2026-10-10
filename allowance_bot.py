@@ -11,11 +11,14 @@ First run opens a browser - log in with Google (your main account),
 then press ENTER. Session saved to session.json for future runs.
 """
 
-import asyncio, json, sys, urllib.request
+import asyncio, json, os, sys, urllib.request
 from pathlib import Path
 from datetime import datetime, timezone
 
 FIREBASE_URL = "https://standoff-2-tracker-default-rtdb.firebaseio.com"
+# Set FIREBASE_AUTH to a database secret (Firebase console > Project settings > Service accounts >
+# Database secrets) once allowanceClaims is locked down in the database rules. Without it, calls are unauthenticated.
+AUTH_QS = ("?auth=" + os.environ["FIREBASE_AUTH"]) if os.environ.get("FIREBASE_AUTH") else ""
 SESSION_FILE = Path("session.json")
 MARKET_URL   = "https://standoff-2.com/en/market"
 BASE_URL     = "https://standoff-2.com"
@@ -31,7 +34,7 @@ def log(msg):
 
 def fb_get(path):
     try:
-        with urllib.request.urlopen(f"{FIREBASE_URL}/{path}.json") as r:
+        with urllib.request.urlopen(f"{FIREBASE_URL}/{path}.json{AUTH_QS}") as r:
             return json.loads(r.read())
     except Exception as e:
         log(f"FB GET error {path}: {e}")
@@ -39,7 +42,7 @@ def fb_get(path):
 
 def fb_patch(path, data):
     req = urllib.request.Request(
-        f"{FIREBASE_URL}/{path}.json",
+        f"{FIREBASE_URL}/{path}.json{AUTH_QS}",
         data=json.dumps(data).encode(), method="PATCH",
         headers={"Content-Type": "application/json"},
     )
