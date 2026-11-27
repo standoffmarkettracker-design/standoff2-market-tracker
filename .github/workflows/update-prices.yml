@@ -36,11 +36,22 @@ jobs:
       - name: Run price update script
         run: python scripts/update_prices.py
 
+      # Posts when a swing item enters its buy or sell zone, ranks buy urgency,
+      # announces new swing items, and writes swing_state.json + swing_data.json.
+      # Uses the SWING_WEBHOOK secret if it exists, otherwise DISCORD_WEBHOOK.
+      - name: Swing alerts (buy and sell zones)
+        run: python scripts/swing_alerts.py
+        env:
+          SWING_WEBHOOK: ${{ secrets.SWING_WEBHOOK }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        continue-on-error: true
+
       - name: Commit and push if data changed
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add items.json price_history_real_1.json price_history_real_2.json collections.json flip_data.json
+          git add swing_state.json swing_data.json 2>/dev/null || true
           git diff --cached --quiet && echo "No changes" && exit 0
           git commit -m "chore: price update $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push --force-with-lease
