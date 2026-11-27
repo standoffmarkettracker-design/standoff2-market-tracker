@@ -1,0 +1,4 @@
+{
+  "how_to": "One entry per thing you bought. item = exact market name, bought_at = price paid per item in gold, qty = how many, date = YYYY-MM-DD. target and stop are optional: leave them out and the bot uses the item's sell line (at least +10% after the 20% fee) and 75% of its usual low.",
+  "holdings": []
+}

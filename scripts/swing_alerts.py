@@ -10,10 +10,17 @@ similar high (like the Arcane Fragment), then on every price update:
     its own recent trend, how deep it is under the buy line, the upside to the
     sell line and how reliable the item's swings have been),
   * announces items that newly fit the pattern, and items that stop fitting,
-  * once a day posts the full ranked buy list.
+  * once a day posts the full ranked buy list, plus your holdings' profit/loss,
+  * lowers buy urgency when the whole market fell more than 2% in the last week,
+  * grades every buy-zone entry (did it reach the sell line within 60 days?)
+    and posts a report card every Monday,
+  * watches holdings.json: alerts when something you own hits its sell target
+    or falls through its stop.
 
-Reads:   items.json, price_history_real_1.json, price_history_real_2.json
+Reads:   items.json, price_history_real_1.json, price_history_real_2.json,
+         holdings.json (what you own: target and stop-loss alerts)
 Writes:  swing_state.json  (what the bot already alerted on, so it never repeats)
+         swing_log.json    (every buy-zone entry and how it turned out, for the weekly report card)
          swing_data.json   (watchlist + zones + urgency, for the site)
 Posts:   SWING_WEBHOOK if set, else DISCORD_WEBHOOK. Without either it prints only.
 
@@ -43,6 +50,16 @@ KEEP_SWINGS, KEEP_RATIO, KEEP_CV, KEEP_SPREAD, KEEP_AVG_NET = 4, 1.40, 0.32, 25.
 
 REALERT_HOURS = 72          # same item + same zone is not re-alerted within this
 ALERT_MIN_URGENCY = 50      # buy-zone entries under this score only show in the daily ranking
+MARKET_FALL, MARKET_PENALTY = -0.02, 10   # whole market down >2% in 7 days -> buy urgency -10
+#   (replay Apr-Sep 2026: alerted buys averaged +4.4% after fee without this, +6.3% with it)
+
+# report card: every buy-zone entry is logged and graded
+GRADE_DAYS = 60             # an alert that hasn't reached its sell line in 60 days is graded at that day's price
+REPORT_WEEKDAY = 0          # Monday (UTC): weekly report card, posted with the daily ranking
+
+# holdings.json: what you own. Defaults when an entry gives no target/stop of its own
+HOLD_MIN_GAIN = 0.10        # default target is at least +10% after the fee
+HOLD_STOP = 0.75            # default stop: under 75% of the usual low (or 75% of what you paid, for non-swing items)
 EXIT_PAD = 1.08             # leave the buy zone only above buy line x1.08 (sell zone: below sell line /1.08)
 DIGEST_HOUR_UTC = 12        # the first run at/after this hour posts the daily ranking
 FLOOR_BREAK = 0.75          # price under 75% of the typical low = pattern may be breaking
@@ -193,7 +210,26 @@ def price_on_or_before(s, day):
     return best
 
 
-def urgency(a, now, today):
+def market_change(hist, today, lag):
+    """Median price change of every item worth >= 10 G over the last `lag` days (the whole market's move)."""
+    def near(h, day):
+        for k in range(4):
+            v = h.get((day - dt.timedelta(days=k)).isoformat())
+            try:
+                if v and float(v) > 0:
+                    return float(v)
+            except (TypeError, ValueError):
+                pass
+        return None
+    ch = []
+    for h in hist.values():
+        a, b = near(h, today), near(h, today - dt.timedelta(days=lag))
+        if a and b and b >= 10:
+            ch.append(math.log(a / b))
+    return math.exp(st.median(ch)) - 1 if len(ch) > 200 else None
+
+
+def urgency(a, now, today, market_7d=None):
     """0-100 buy urgency for an item in (or at) its buy zone, plus the reasons."""
     s = a["series"]
     recent = [p for d, p in s if 0 < (today - d).days <= 30]
@@ -216,12 +252,16 @@ def urgency(a, now, today):
     if now < a["typical_low"] * FLOOR_BREAK:
         score -= 25
         warn = f"under its usual floor ({gold(a['typical_low'])}), the pattern may be breaking"
+    market_note = None
+    if market_7d is not None and market_7d < MARKET_FALL:
+        score -= MARKET_PENALTY
+        market_note = f"whole market {market_7d * 100:+.1f}% this week, so -{MARKET_PENALTY} urgency"
     score = round(clamp(score, 0, 100))
     return {
         "score": score, "tier": next(t for cut, t in TIERS if score >= cut),
         "trend_30d": trend, "below_trend_pct": round(below_trend * 100, 1),
         "under_buy_pct": round(depth * 100, 1), "upside_net_pct": round(upside * 100, 1),
-        "drop_5d_pct": round(drop5 * 100, 1), "warning": warn,
+        "drop_5d_pct": round(drop5 * 100, 1), "warning": warn, "market_note": market_note,
     }
 
 
@@ -269,6 +309,8 @@ def buy_line(r):
         ln += f"\n  ⚠️ {u['warning']}"
     elif u["upside_net_pct"] < 5:
         ln += "\n  ⚠️ little left after the 20% fee at this price"
+    if u.get("market_note"):
+        ln += f"\n  \U0001F4C9 {u['market_note']}"
     return ln
 
 
@@ -285,6 +327,107 @@ def sell_line(r):
             f"\n  bought at the buy line = {from_buy * 100:+.0f}% after fee")
 
 
+# ------------------------------------------------------ report card + holdings ---
+def current_price(name, items, hist, today, asof):
+    if not asof:
+        v = float(items.get(name, {}).get("price") or 0)
+        if v > 0:
+            return v
+    return price_on_or_before(series_for(hist, name, today - dt.timedelta(days=30), today), today)
+
+
+def grade_log(log, items, hist, today, asof, stamp):
+    """Close open alerts that reached their sell line, or that are GRADE_DAYS old."""
+    closed = []
+    for e in log:
+        if e["status"] != "open":
+            continue
+        start = dt.date.fromisoformat(e["at"][:10])
+        if asof:   # replay: walk the days since the alert, so a hit in between isn't missed
+            path = [p for d, p in series_for(hist, e["item"], start + dt.timedelta(days=1), today)]
+        else:
+            now = current_price(e["item"], items, hist, today, asof)
+            path = [now] if now else []
+        if path and max(path) >= e["sell"]:
+            e.update(status="hit", closed=stamp.isoformat(), result=round(e["sell"] * (1 - FEE) / e["price"] - 1, 4))
+            closed.append(e)
+        elif (today - start).days >= GRADE_DAYS:
+            last = current_price(e["item"], items, hist, today, asof) or e["price"]
+            e.update(status="expired", closed=stamp.isoformat(), result=round(last * (1 - FEE) / e["price"] - 1, 4))
+            closed.append(e)
+    return closed
+
+
+def tier_of(score):
+    return "70+" if score >= 70 else "50-69" if score >= 50 else "30-49" if score >= 30 else "under 30"
+
+
+def report_lines(log, stamp):
+    week_ago = stamp - dt.timedelta(days=7)
+    lines = [f"## \U0001F4CA Weekly report card · {stamp.date().isoformat()}"]
+    recent = [e for e in log if e["status"] != "open" and dt.datetime.fromisoformat(e["closed"]) >= week_ago]
+    posted_recent = [e for e in recent if e["posted"]]
+    if posted_recent:
+        lines.append(f"**Buy alerts graded this week ({len(posted_recent)}):**")
+        for e in sorted(posted_recent, key=lambda e: -e["result"])[:12]:
+            how = "hit sell line" if e["status"] == "hit" else f"no hit in {GRADE_DAYS} days"
+            lines.append(f"{'✅' if e['result'] > 0 else '❌'} {e['item']} · bought {gold(e['price'])} on {e['at'][:10]} · {how} · **{e['result'] * 100:+.0f}%** after fee")
+    else:
+        lines.append("No buy alerts finished this week.")
+    done = [e for e in log if e["status"] != "open"]
+    if done:
+        lines.append("**All graded buy-zone entries so far, by urgency:**")
+        for t in ["70+", "50-69", "30-49", "under 30"]:
+            g = [e for e in done if tier_of(e["urgency"]) == t]
+            if g:
+                hit = sum(e["status"] == "hit" for e in g) / len(g)
+                lines.append(f"`{t:>8}` {len(g):3} graded · {hit * 100:3.0f}% hit the sell line · avg **{st.mean(e['result'] for e in g) * 100:+.1f}%** after fee"
+                             + ("  (alerted)" if t in ("70+", "50-69") else "  (ranking only)"))
+        mid = [e for e in done if tier_of(e["urgency"]) == "50-69"]
+        if len(mid) >= 15 and st.mean(e["result"] for e in mid) < 0:
+            lines.append("_Urgency 50-69 is losing money so far: alerting only 70+ would cut the noise._")
+    still = sum(e["status"] == "open" for e in log if e["posted"])
+    lines.append(f"Open alerts still being tracked: {still}")
+    return lines
+
+
+def holdings_check(holdings, analysed, items, hist, today, asof, hstate):
+    """Target/stop alerts and a P/L line for each thing you own."""
+    alerts, table = [], []
+    for h in holdings:
+        name, paid = h.get("item"), float(h.get("bought_at") or 0)
+        if not name or paid <= 0:
+            continue
+        qty = int(h.get("qty") or 1)
+        now = current_price(name, items, hist, today, asof)
+        if not now:
+            table.append(f"• {name}: no current price")
+            continue
+        a = analysed.get(name)
+        breakeven = paid / (1 - FEE)
+        target = float(h.get("target") or 0) or max(a["sell_above"] if a else 0, breakeven * (1 + HOLD_MIN_GAIN))
+        stop = float(h.get("stop") or 0) or ((a["typical_low"] if a else paid) * HOLD_STOP)
+        net = now * (1 - FEE) / paid - 1
+        net_gold = (now * (1 - FEE) - paid) * qty
+        key = f"{name}|{paid}|{h.get('date', '')}"
+        flags = hstate.setdefault(key, {})
+        if now >= target and not flags.get("target"):
+            flags["target"] = today.isoformat()
+            alerts.append(f"\U0001F3AF **{name}** hit your target: {gold(now)} (target {gold(target)}). "
+                          f"Selling now = **{net * 100:+.0f}%** after fee ({net_gold:+,.2f} G on {qty}).")
+        if now <= stop and not flags.get("stop"):
+            flags["stop"] = today.isoformat()
+            why = "below its usual low, so the swing may be over" if a else "well below what you paid"
+            alerts.append(f"\U0001F6D1 **{name}** fell to {gold(now)}, {why} (stop {gold(stop)}). "
+                          f"Selling now = **{net * 100:+.0f}%** after fee ({net_gold:+,.2f} G on {qty}).")
+        if now < target * 0.90:
+            flags.pop("target", None)       # re-arm only once it has clearly dropped back
+        if now > stop * 1.10:
+            flags.pop("stop", None)
+        table.append(f"• {name} ×{qty} · paid {gold(paid)} · now {gold(now)} · **{net * 100:+.0f}%** after fee · target {gold(target)}")
+    return alerts, table
+
+
 # -------------------------------------------------------------------- main ---
 def main():
     ap = argparse.ArgumentParser()
@@ -292,6 +435,8 @@ def main():
     ap.add_argument("--asof")
     ap.add_argument("--no-state", action="store_true")
     ap.add_argument("--state-file", default="swing_state.json")
+    ap.add_argument("--log-file", default="swing_log.json")
+    ap.add_argument("--holdings-file", default="holdings.json")
     args = ap.parse_args()
 
     now_utc = dt.datetime.now(dt.timezone.utc)
@@ -307,6 +452,9 @@ def main():
     prev_watch = set(state.get("watch", []))
     zones = state.get("zones", {})
     last_alert = state.get("last_alert", {})
+    log = load(args.log_file, None) or []
+    holdings = (load(args.holdings_file, None) or {}).get("holdings", [])
+    market_7d = market_change(hist, today, 7)
 
     # 1. who fits the pattern now
     watch, analysed = [], {}
@@ -319,6 +467,11 @@ def main():
             watch.append(name); analysed[name] = a
     added = sorted(set(watch) - prev_watch)
     dropped = sorted(prev_watch - set(watch))
+    held_names = {h.get("item") for h in holdings}
+    for name in held_names - set(analysed):      # holdings that aren't on the watchlist still get levels if they swing at all
+        a = analyse(name, hist, today, items.get(name, {}).get("spread")) if name in hist else None
+        if a and a["flips"] >= 1:
+            analysed[name] = a
 
     # 2. where each watched item is now
     rows = []
@@ -348,7 +501,7 @@ def main():
             "median_hold_days": a["median_hold_days"], "days_between_lows": a["days_between_lows"],
             "type": items.get(name, {}).get("type", ""), "spread_pct": a["spread"],
         }
-        r["urgency"] = urgency(a, now, today) if z == "buy" or now <= a["buy_below"] * 1.05 else None
+        r["urgency"] = urgency(a, now, today, market_7d) if z == "buy" or now <= a["buy_below"] * 1.05 else None
         rows.append(r)
 
     # 3. zone changes worth an alert
@@ -371,11 +524,26 @@ def main():
     in_buy = sorted([r for r in rows if r["zone"] == "buy"], key=lambda r: -r["urgency"]["score"])
     in_sell = sorted([r for r in rows if r["zone"] == "sell"], key=lambda r: -(r["price_now"] / r["sell_above"]))
 
+    # 3b. report card log: grade old entries, then log every new buy-zone entry (alerted or not)
+    grade_log(log, items, hist, today, args.asof, stamp)
+    for r in entered_buy:
+        u = r["urgency"]["score"]
+        log.append({"item": r["item"], "at": stamp.isoformat(), "price": r["price_now"], "buy": r["buy_below"],
+                    "sell": r["sell_above"], "urgency": u, "posted": u >= ALERT_MIN_URGENCY,
+                    "market_7d": round(market_7d, 4) if market_7d is not None else None, "status": "open"})
+
+    # 3c. holdings
+    hstate = state.setdefault("holdings", {})
+    hold_alerts, hold_table = holdings_check(holdings, analysed, items, hist, today, args.asof, hstate)
+
     # 4. messages
     lines = []
     if first_run:
         lines.append(f"## \U0001F4E1 Swing bot is live: watching {len(watch)} items")
         lines.append("I'll post when one of them drops into its buy zone or climbs into its sell zone, and once a day with the full buy ranking.")
+    if hold_alerts:
+        lines.append("## \U0001F4BC Your holdings")
+        lines += hold_alerts
     loud = [r for r in entered_buy if r["urgency"]["score"] >= ALERT_MIN_URGENCY]
     if loud:
         lines.append(f"## \U0001F7E2 Entered the buy zone ({len(loud)})")
@@ -394,8 +562,11 @@ def main():
         lines.append(", ".join(f"**{n}**" for n in dropped))
 
     digest_due = (state.get("last_digest") != today.isoformat()) and (args.asof or now_utc.hour >= DIGEST_HOUR_UTC)
-    if (digest_due or first_run) and (in_buy or in_sell):
+    if digest_due or first_run:
         lines.append(f"## \U0001F4CB Daily ranking · {today.isoformat()}")
+        if market_7d is not None:
+            lines.append(f"Whole market this week: **{market_7d * 100:+.1f}%**"
+                         + (f" (falling, so buy urgency is {MARKET_PENALTY} points lower)" if market_7d < MARKET_FALL else ""))
         if in_buy:
             lines.append(f"**In the buy zone now ({len(in_buy)}), most urgent first:**")
             top = [r for r in in_buy if r["urgency"]["score"] >= ALERT_MIN_URGENCY][:15]
@@ -405,7 +576,13 @@ def main():
                 lines.append(f"Lower urgency ({len(rest)}): " + ", ".join(f"{r['item']} {gold(r['price_now'])} ({r['urgency']['score']})" for r in rest[:25]))
         if in_sell:
             lines.append(f"**In the sell zone now ({len(in_sell)}):** " + ", ".join(f"{r['item']} {gold(r['price_now'])}" for r in in_sell[:20]))
+        if hold_table:
+            lines.append("**Your holdings:**")
+            lines += hold_table
         state["last_digest"] = today.isoformat()
+        if today.weekday() == REPORT_WEEKDAY and state.get("last_report") != today.isoformat() and not first_run:
+            lines += report_lines(log, stamp)
+            state["last_report"] = today.isoformat()
 
     if lines:
         lines.append("_Levels come from each item's last 18 months; past swings don't guarantee the next one._")
@@ -416,7 +593,8 @@ def main():
         print("Nothing new to alert.")
 
     print(f"watching {len(watch)} | buy zone {len(in_buy)} | sell zone {len(in_sell)} | "
-          f"entered buy {len(entered_buy)} (alerted {len([r for r in entered_buy if r['urgency']['score'] >= ALERT_MIN_URGENCY])}) | entered sell {len(entered_sell)} | new {len(added)} | dropped {len(dropped)}")
+          f"entered buy {len(entered_buy)} (alerted {len(loud)}) | entered sell {len(entered_sell)} | new {len(added)} | dropped {len(dropped)}"
+          f" | market 7d {'n/a' if market_7d is None else f'{market_7d * 100:+.1f}%'} | holdings alerts {len(hold_alerts)}")
 
     # 5. remember
     if not args.no_state:
@@ -424,7 +602,10 @@ def main():
                       "last_alert": {k: v for k, v in last_alert.items()
                                      if (stamp - dt.datetime.fromisoformat(v)).days < 30}})
         save(args.state_file, state)
-        save("swing_data.json", {"generated": stamp.isoformat(), "fee": FEE, "items": rows})
+        keep_from = stamp - dt.timedelta(days=365)
+        save(args.log_file, [e for e in log if e["status"] == "open" or dt.datetime.fromisoformat(e["closed"]) >= keep_from])
+        save("swing_data.json", {"generated": stamp.isoformat(), "fee": FEE,
+                                 "market_7d": market_7d, "items": rows})
 
 
 if __name__ == "__main__":
